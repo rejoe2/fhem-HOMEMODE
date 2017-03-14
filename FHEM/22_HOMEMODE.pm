@@ -2374,6 +2374,28 @@ sub HOMEMODE_HolidayEvents($)
   return (\@events);
 }
 
+sub HOMEMODE_devStateIcon($;$)
+{
+  my ($hash,$state) = @_; 
+  $hash = $defs{$hash} if (ref $hash ne "HASH");
+  return if (!$hash);
+  my $name = $hash->{NAME};
+  my $val = ReadingsVal($name,"state","");
+  return ".*:weather_sunrise:dnd+on"          if ($val eq "morning");
+  return ".*:weather_sun:dnd+on"              if ($val eq "day");
+  return ".*:weather_summer:dnd+on"           if ($val eq "afternoon");
+  return ".*:weather_sunset:dnd+on"           if ($val eq "evening");
+  return ".*:weather_moon_phases_2:dnd+on"    if ($val eq "night");
+  return ".*:user_away:dnd+on"                if ($val eq "absent");
+  return ".*:user_ext_away:dnd+on"            if ($val eq "gone");
+  return ".*:audio_volume_mute:dnd+off"       if ($val eq "dnd");
+  return ".*:scene_sleeping:dnd+on"           if ($val eq "gotosleep");
+  return ".*:scene_sleeping_alternat:dnd+on"  if ($val eq "asleep");
+  return ".*:weather_sunrise:dnd+on"          if ($val eq "awoken");
+  return ".*:status_available:dnd+on"         if ($val eq "home");
+  return;
+
+
 sub HOMEMODE_checkIP($)
 {
   my ($hash) = @_;
