@@ -83,7 +83,7 @@ sub HOMEMODE_Define($$)
                                   "day:weather_sun:dnd+on\r\n".
                                   "afternoon:weather_summer:dnd+on\r\n".
                                   "evening:weather_sunset:dnd+on\r\n".
-                                  "night:weather_moon_phases_2:dnd+on;
+                                  "night:weather_moon_phases_2:dnd+on";
     $attr{$name}{icon}          = "floor";
     $attr{$name}{room}          = "HOMEMODE";
     $attr{$name}{webCmd}        = "modeAlarm";
