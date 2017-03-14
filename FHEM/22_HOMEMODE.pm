@@ -78,7 +78,12 @@ sub HOMEMODE_Define($$)
                                   "gotosleep:scene_sleeping:dnd+on\r\n".
                                   "asleep:scene_sleeping_alternat:dnd+on\r\n".
                                   "awoken:weather_sunrise:dnd+on\r\n".
-                                  "home:status_available:dnd+on\r\n";
+                                  "home:status_available:dnd+on\r\n".
+                                  "morning:weather_sunrise:dnd+on\r\n".
+                                  "day:weather_sun:dnd+on\r\n".
+                                  "afternoon:weather_summer:dnd+on\r\n".
+                                  "evening:weather_sunset:dnd+on\r\n".
+                                  "night:weather_moon_phases_2:dnd+on;
     $attr{$name}{icon}          = "floor";
     $attr{$name}{room}          = "HOMEMODE";
     $attr{$name}{webCmd}        = "modeAlarm";
