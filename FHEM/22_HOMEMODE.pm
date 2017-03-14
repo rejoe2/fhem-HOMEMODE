@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-14 23:26:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:13:00Z deespe $
 #
 # Usage
 # 
@@ -1692,13 +1692,12 @@ sub HOMEMODE_DayTime($)
     push @texts,$text;
     push @times,$time;
   }
-  my $daytime;
+  my $daytime = $texts[scalar @texts - 1];
   for (my $x = 0; $x < scalar @times; $x++)
   {
     my $y = $x + 1;
     $y = 0 if ($x == scalar @times - 1);
-    $daytime = $texts[$x] if ($y > $x && ($loctime >= $times[$x] && $loctime < $times[$y]));
-    $daytime = $texts[$x] if ($y < $x && ($loctime >= $times[$x] || $loctime < $times[$y]));
+    $daytime = $texts[$x] if ($y > $x && $loctime >= $times[$x] && $loctime < $times[$y]);
   }
   return $daytime;
 }
