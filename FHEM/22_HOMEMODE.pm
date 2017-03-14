@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13658 2017-03-09 21:00:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-14 20:00:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.251";
+my $HOMEMODE_version = "0.253";
 my $HOMEMODE_Daytimes = "morning,day,afternoon,evening,night";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
@@ -72,8 +72,13 @@ sub HOMEMODE_Define($$)
   }
   if ($init_done && !defined $hash->{OLDDEF})
   {
-    $attr{$name}{devStateIcon}  = '{(HOMEMODE_devStateIcon($name),"toggle")}';
-    $attr{$name}{"event-on-change-reading"} = ".*";
+    $attr{$name}{devStateIcon}  = "absent:user_away:dnd+on\r\n".
+                                  "gone:user_ext_away:dnd+on\r\n".
+                                  "dnd:audio_volume_mute:dnd+off\r\n".
+                                  "gotosleep:scene_sleeping:dnd+on\r\n".
+                                  "asleep:scene_sleeping_alternat:dnd+on\r\n".
+                                  "awoken:weather_sunrise:dnd+on\r\n".
+                                  "home:status_available:dnd+on\r\n";
     $attr{$name}{icon}          = "floor";
     $attr{$name}{room}          = "HOMEMODE";
     $attr{$name}{webCmd}        = "modeAlarm";
@@ -438,7 +443,7 @@ sub HOMEMODE_GetUpdate(@)
   my $name = $hash->{NAME};
   RemoveInternalTimer($hash,"HOMEMODE_GetUpdate");
   return if ($attr{$name}{disable});
-  my $mode = HOMEMODE_DayTime();
+  my $mode = HOMEMODE_DayTime($hash);
   HOMEMODE_SetDaytime($hash);
   HOMEMODE_SetSeason($hash);
   CommandSet(undef,"$name:FILTER=mode!=$mode mode $mode") if (ReadingsVal($hash->{DEF},"state","") eq "home" && AttrVal($name,"HomeAutoDaytime",1));
@@ -550,7 +555,7 @@ sub HOMEMODE_Set($@)
     my $namode = "disarm";
     my $present = "absent";
     my $location = "underway";
-    $option = HOMEMODE_DayTime() if ($option && $option eq "home" && AttrVal($name,"HomeAutoDaytime",1) == 1);
+    $option = HOMEMODE_DayTime($hash) if ($option && $option eq "home" && AttrVal($name,"HomeAutoDaytime",1) == 1);
     if ($option !~ /^(absent|gone)$/)
     {
       push @commands,$attr{$name}{"HomeCMDpresence-present"} if ($attr{$name}{"HomeCMDpresence-present"} && $mode =~ /^(absent|gone)$/);
@@ -763,7 +768,7 @@ sub HOMEMODE_RESIDENTS($;$)
   if ($devtype eq "RESIDENTS")
   {
     $mode = ReadingsVal($dev,"state","");
-    $mode = $mode eq "home" && AttrVal($name,"HomeAutoDaytime",1) == 1 ? HOMEMODE_DayTime() : $mode;
+    $mode = $mode eq "home" && AttrVal($name,"HomeAutoDaytime",1) == 1 ? HOMEMODE_DayTime($hash) : $mode;
     CommandSet(undef,"$name:FILTER=mode!=$mode mode $mode");
     return;
   }
@@ -882,11 +887,11 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDcontactOpenWarning2:textField-long";
   push @attribs,"HomeCMDcontactOpenWarningLast:textField-long";
   push @attribs,"HomeCMDdaytime:textField-long";
-  foreach my $dt (split(",",$HOMEMODE_Daytimes))
-  {
-    push @attribs,"HomeCMDdaytime-$dt:textField-long";
-    push @attribs,"HomeCMDmode-$dt:textField-long";
-  }
+  # foreach my $dt (split(",",$HOMEMODE_Daytimes))
+  # {
+  #   push @attribs,"HomeCMDdaytime-$dt:textField-long";
+  #   push @attribs,"HomeCMDmode-$dt:textField-long";
+  # }
   push @attribs,"HomeCMDdnd-off:textField-long";
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
@@ -936,6 +941,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDtwilight-ss_civil:textField-long";
   push @attribs,"HomeCMDtwilight-ss_indoor:textField-long";
   push @attribs,"HomeCMDtwilight-ss_weather:textField-long";
+  push @attribs,"HomeDaytimes";
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
   push @attribs,"HomePresenceDeviceType";
@@ -987,6 +993,7 @@ sub HOMEMODE_userattr($)
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
+  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes","morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00");
   foreach my $sm (split(",",$specialmodes))
   {
     push @userattrAll,"HomeCMDmode-$sm";
@@ -1049,6 +1056,12 @@ sub HOMEMODE_userattr($)
       }
     }
   }
+  foreach my $daytime (split(" ",$daytimes))
+  {
+    my $text = (split("\\|",$daytime))[0];
+    push @userattrAll,"HomeCMDdaytime-".$text.":textField-long";
+    push @userattrAll,"HomeCMDmode-".$text.":textField-long";
+  }
   my $userattrPrevList = join(" ",@userattrPrev) if (\@userattrPrev);
   Log3 $name,5,"$name: userattrPrevList: $userattrPrevList" if ($userattrPrevList);
   my $userattrNewList = join(" ",@userattrAll);
@@ -1109,7 +1122,7 @@ sub HOMEMODE_Attr(@)
     $hash->{helper}{lastChangedAttrValue} = $attr_value;
     if ($attr_name =~ /^(HomeAutoAwoken|HomeAutoAsleep|HomeAutoArrival)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.9." if ($attr_value !~ /^\d{1,4}(\.\d)?$/ || $attr_value > 5999.9 || $attr_value < 0.1);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.9." if ($attr_value !~ /^\d{1,4}(\.\d)?$/ || $attr_value > 5999.9 || $attr_value < 0);
     }
     elsif ($attr_name =~ /^(disable|HomeAdvancedUserAttr|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
     {
@@ -1279,6 +1292,17 @@ sub HOMEMODE_Attr(@)
         }
       }
     }
+    elsif ($attr_name eq "HomeDaytimes")
+    {
+      if ($init_done)
+      {
+        return "$attr_value for $attr_name must be in format: morning|6:00 day|9:00 ..." if ($attr_value !~ /^(\w+\|\d{1,2}:\d{2})(\s\w+\|\d{1,2}:\d{2}){0,}$/);
+        if ($attr_value_old ne $attr_value)
+        {
+          HOMEMODE_updateInternals($hash,1);
+        }
+      }
+    }
   }
   else
   {
@@ -1325,6 +1349,10 @@ sub HOMEMODE_Attr(@)
       CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice} && $attr_name eq "HomeSensorHumidityOutside");
       HOMEMODE_updateInternals($hash,1);
     }
+    elsif ($attr_name eq "HomeDaytimes")
+    {
+      HOMEMODE_updateInternals($hash,1);
+    }
   }
   return;
 }
@@ -1360,7 +1388,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $location = ReadingsVal($name,"location","");
   my $rlocation = ReadingsVal($resident,"location","");
   my $alarm = ReadingsVal($name,"alarmTriggered",0);
-  my $daytime = HOMEMODE_DayTime();
+  my $daytime = HOMEMODE_DayTime($hash);
   my $mode = ReadingsVal($name,"mode","");
   my $amode = ReadingsVal($name,"modeAlarm","");
   my $pamode = ReadingsVal($name,"prevModeAlarm","");
@@ -1645,22 +1673,41 @@ sub HOMEMODE_AttrCheck($$;$)
   return $value;
 }
 
-sub HOMEMODE_DayTime()
+sub HOMEMODE_DayTime($)
 {
+  my ($hash) = @_;
+  my $name = $hash->{NAME};
+  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes","morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00");
   my ($sec,$min,$hour,$mday,$month,$year,$wday,$yday,$isdst) = localtime;
-  my $dt = "morning";
-  $dt = "day"       if ($hour >= 10 && $hour <= 13);
-  $dt = "afternoon" if ($hour >= 14 && $hour <= 17);
-  $dt = "evening"   if ($hour >= 18 && $hour <= 22);
-  $dt = "night"     if ($hour == 23 || $hour <=  4);
-  return $dt;
+  my $loctime = $hour * 60 + $min;
+  Log3 $name,5,"loctime: $loctime";
+  my @texts;
+  my @times;
+  foreach my $daytime (split(" ",$daytimes))
+  {
+    my @dt = split("\\|",$daytime);
+    my $text = $dt[0];
+    my $time = (split(":",$dt[1]))[0] * 60 + (split(":",$dt[1]))[1];
+    Log3 $name,5,"time: $time";
+    push @texts,$text;
+    push @times,$time;
+  }
+  my $daytime;
+  for (my $x = 0; $x < scalar @times; $x++)
+  {
+    my $y = $x + 1;
+    $y = 0 if ($x == scalar @times - 1);
+    $daytime = $texts[$x] if ($y > $x && ($loctime >= $times[$x] && $loctime <= $times[$y]));
+    $daytime = $texts[0] if ($y < $x && ($loctime >= $times[$x] || $loctime <= $times[$y]));
+  }
+  return $daytime;
 }
 
 sub HOMEMODE_SetDaytime($)
 {
   my ($hash) = @_;
   my $name = $hash->{NAME};
-  my $dt = HOMEMODE_DayTime();
+  my $dt = HOMEMODE_DayTime($hash);
   if (ReadingsVal($name,"daytime","") ne $dt)
   {
     my @commands;
@@ -2322,29 +2369,6 @@ sub HOMEMODE_HolidayEvents($)
   return (\@events);
 }
 
-sub HOMEMODE_devStateIcon($;$)
-{
-  my ($hash,$state) = @_; 
-  $hash = $defs{$hash} if (ref $hash ne "HASH");
-  return if (!$hash);
-  my $name = $hash->{NAME};
-  my $val = ReadingsVal($name,"state","");
-  return ".*:weather_moon_phases_2:dnd+on"    if ($val eq "night");
-  return ".*:weather_sunrise:dnd+on"          if ($val eq "morning");
-  return ".*:weather_sun:dnd+on"              if ($val eq "day");
-  return ".*:weather_summer:dnd+on"           if ($val eq "afternoon");
-  return ".*:weather_sunset:dnd+on"           if ($val eq "evening");
-  return ".*:weather_moon_phases_2:dnd+on"    if ($val eq "night");
-  return ".*:user_away:dnd+on"                if ($val eq "absent");
-  return ".*:user_ext_away:dnd+on"            if ($val eq "gone");
-  return ".*:audio_volume_mute:dnd+off"       if ($val eq "dnd");
-  return ".*:scene_sleeping:dnd+on"           if ($val eq "gotosleep");
-  return ".*:scene_sleeping_alternat:dnd+on"  if ($val eq "asleep");
-  return ".*:weather_sunrise:dnd+on"          if ($val eq "awoken");
-  return ".*:status_available:dnd+on"         if ($val eq "home");
-  return;
-}
-
 sub HOMEMODE_checkIP($)
 {
   my ($hash) = @_;
@@ -2697,8 +2721,13 @@ sub HOMEMODE_checkIP($)
       cmds to execute on specific season change
     </li>
     <li>
+      <b><i>HomeDaytimes</i></b><br>
+      space separated list of text|time pairs for possible daytimes starting with the first event of the day (lowest time)
+      default: morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00
+    </li>
+    <li>
       <b><i>HomeEventsHolidayDevices</i></b><br>
-      comma separated list (or devspec) of holiday calendars
+      comma separated list (devspec) of holiday calendars
     </li>
     <li>
       <b><i>HomeIcewarningOnOffTemps</i></b><br>
