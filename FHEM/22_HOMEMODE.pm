@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:13:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:50:00Z deespe $
 #
 # Usage
 # 
@@ -326,7 +326,7 @@ sub HOMEMODE_updateInternals($;$)
     push @allMonitoredDevices,$resdev;
     my $autopresence = HOMEMODE_AttrCheck($hash,"HomeAutoPresence",0);
     my $presencetype = HOMEMODE_AttrCheck($hash,"HomePresenceDeviceType","PRESENCE");
-    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=absent|present");
+    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=.*");
     my @residentsshort;
     my @logtexte;
     foreach my $resident (split(",",$hash->{RESIDENTS}))
