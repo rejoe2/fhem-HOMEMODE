@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-14 22:50:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-14 23:26:00Z deespe $
 #
 # Usage
 # 
@@ -16,7 +16,7 @@ use HttpUtils;
 use Data::Dumper;
 
 my $HOMEMODE_version = "0.255";
-my $HOMEMODE_Daytimes = "morning,day,afternoon,evening,night";
+my $HOMEMODE_Daytimes = "morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
 my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
@@ -892,11 +892,6 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDcontactOpenWarning2:textField-long";
   push @attribs,"HomeCMDcontactOpenWarningLast:textField-long";
   push @attribs,"HomeCMDdaytime:textField-long";
-  # foreach my $dt (split(",",$HOMEMODE_Daytimes))
-  # {
-  #   push @attribs,"HomeCMDdaytime-$dt:textField-long";
-  #   push @attribs,"HomeCMDmode-$dt:textField-long";
-  # }
   push @attribs,"HomeCMDdnd-off:textField-long";
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
@@ -998,7 +993,7 @@ sub HOMEMODE_userattr($)
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
-  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes","morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00");
+  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
   foreach my $sm (split(",",$specialmodes))
   {
     push @userattrAll,"HomeCMDmode-$sm";
@@ -1682,7 +1677,7 @@ sub HOMEMODE_DayTime($)
 {
   my ($hash) = @_;
   my $name = $hash->{NAME};
-  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes","morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00");
+  my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
   my ($sec,$min,$hour,$mday,$month,$year,$wday,$yday,$isdst) = localtime;
   my $loctime = $hour * 60 + $min;
   Log3 $name,5,"loctime: $loctime";
