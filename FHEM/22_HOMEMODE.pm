@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-14 22:19:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-14 22:50:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.254";
+my $HOMEMODE_version = "0.255";
 my $HOMEMODE_Daytimes = "morning,day,afternoon,evening,night";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
@@ -1702,8 +1702,8 @@ sub HOMEMODE_DayTime($)
   {
     my $y = $x + 1;
     $y = 0 if ($x == scalar @times - 1);
-    $daytime = $texts[$x] if ($y > $x && ($loctime >= $times[$x] && $loctime <= $times[$y]));
-    $daytime = $texts[0] if ($y < $x && ($loctime >= $times[$x] || $loctime <= $times[$y]));
+    $daytime = $texts[$x] if ($y > $x && ($loctime >= $times[$x] && $loctime < $times[$y]));
+    $daytime = $texts[$x] if ($y < $x && ($loctime >= $times[$x] || $loctime < $times[$y]));
   }
   return $daytime;
 }
