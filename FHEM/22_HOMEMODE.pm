@@ -2394,7 +2394,7 @@ sub HOMEMODE_devStateIcon($;$)
   return ".*:weather_sunrise:dnd+on"          if ($val eq "awoken");
   return ".*:status_available:dnd+on"         if ($val eq "home");
   return;
-
+}
 
 sub HOMEMODE_checkIP($)
 {
