@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:50:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:11:05Z deespe $
 #
 # Usage
 # 
@@ -2442,6 +2442,22 @@ sub HOMEMODE_checkIP($)
   You can monitor added contact and motion sensors and execute CMDs depending on their state.<br>
   A simple alarm system is included, so your contact and motion sensors can trigger alarms depending on the current alarm mode.<br>
   A lot of customizations are possible, p.e. special event (holiday) calendars and locations.<br>
+  <p><b>General information:</b></p>
+  <ul>
+    <li>
+      The HOMEMODE device is refreshing itselfs every 5 seconds by calling HOMEMODE_GetUpdate and subfunctions.<br>
+      This is the reason why some automations (p.e. daytime or season) are delayed up to 4 seconds.<br>
+      All automations triggered by external events (other devices monitored by HOMEMODE) and the execution of the HomeCMD attributes will not be delayed.
+    </li>
+    <li>Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".</li>
+    <li>
+      Seasons will be set meteorological<br>
+      start spring: March 1th<br>
+      start summer: June 1th<br>
+      start autumn: September 1th<br>
+      start winter: December 1th
+    </li>
+  </ul>
   <br>
   <a name="HOMEMODE_define"></a>
   <p><b>define [optional]</b></p>
@@ -2554,6 +2570,10 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>HomeAutoAlarmModes</i></b><br>
       set modeAlarm automatically depending on mode<br>
+      if mode is set to "home", modeAlarm will be set to "disarm"<br>
+      if mode is set to "absent", modeAlarm will be set to "armaway"<br>
+      if mode is set to "asleep", modeAlarm will be set to "armnight"<br>
+      modeAlarm "home" can only be set manually<br>
       values 0 or 1, value 0 disables automatically set modeAlarm<br>
       default: 1
     </li>
