@@ -2457,6 +2457,10 @@ sub HOMEMODE_checkIP($)
       start autumn: September 1th<br>
       start winter: December 1th
     </li>
+    <li>
+      There's a special function, which you may use, which is converting given minutes (up to 5999.9) to a timestamp that can be used for creating at devices.<br>
+      This function is called HOMEMODE_hourmaker and the only value you need to pass is the number in minutes with max. 1 digit after the dot.
+    </li>
   </ul>
   <br>
   <a name="HOMEMODE_define"></a>
