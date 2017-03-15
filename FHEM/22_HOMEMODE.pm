@@ -2449,7 +2449,9 @@ sub HOMEMODE_checkIP($)
       This is the reason why some automations (p.e. daytime or season) are delayed up to 4 seconds.<br>
       All automations triggered by external events (other devices monitored by HOMEMODE) and the execution of the HomeCMD attributes will not be delayed.
     </li>
-    <li>Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".</li>
+    <li>
+      Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".
+    </li>
     <li>
       Seasons will be set meteorological<br>
       start spring: March 1th<br>
@@ -2460,6 +2462,9 @@ sub HOMEMODE_checkIP($)
     <li>
       There's a special function, which you may use, which is converting given minutes (up to 5999.9) to a timestamp that can be used for creating at devices.<br>
       This function is called HOMEMODE_hourmaker and the only value you need to pass is the number in minutes with max. 1 digit after the dot.
+    </li>
+    <li>
+      Each set command and each updated reading of the HOMEMODE device will create an event within FHEM, so you're able to create additional notify or DOIF devices if needed.
     </li>
   </ul>
   <br>
