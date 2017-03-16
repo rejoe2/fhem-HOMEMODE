@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-16 10:11:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13660 2017-03-17 00:16:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.256";
+my $HOMEMODE_version = "0.257";
 my $HOMEMODE_Daytimes = "morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
@@ -906,7 +906,6 @@ sub HOMEMODE_Attributes($)
   my $name = $hash->{NAME};
   my @attribs;
   push @attribs,"disable:1,0";
-  push @attribs,"HomeAbsentDelay";
   push @attribs,"HomeAdvancedUserAttr:1,0";
   push @attribs,"HomeAutoAlarmModes:0,1";
   push @attribs,"HomeAutoArrival";
