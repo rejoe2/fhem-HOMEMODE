@@ -2464,8 +2464,8 @@ sub HOMEMODE_checkIP($)
 
 =pod
 =item device
-=item summary    provides a HOMEMODE device with ROOMMATE/GUEST and PRESENCE integration
-=item summary_DE stellt ein HOMEMODE Ger&auml;t mit ROOMMATE/GUEST und PRESENCE Integration zur Verf&uuml;gung
+=item summary    provides a HOMEMODE device with ROOMMATE/GUEST and PRESENCE integration, basic automations and more
+=item summary_DE stellt ein HOMEMODE Ger&auml;t mit ROOMMATE/GUEST und PRESENCE Integration für grundlegende Automationen und mehr zur Verf&uuml;gung
 =begin html
 
 <a name="HOMEMODE"></a>
