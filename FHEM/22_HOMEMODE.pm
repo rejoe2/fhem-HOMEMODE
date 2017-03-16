@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-15 20:43:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-16 10:11:00Z deespe $
 #
 # Usage
 # 
@@ -643,10 +643,10 @@ sub HOMEMODE_Set($@)
   elsif ($cmd eq "modeAlarm")
   {
     CommandDelete(undef,"atTmp_modeAlarm_delayed_arm") if ($defs{atTmp_modeAlarm_delayed_arm});
+    my $delay;
     if ($option =~ /^arm/ && $attr{$name}{HomeModeAlarmArmDelay})
     {
       my @delays = split(" ",$attr{$name}{HomeModeAlarmArmDelay});
-      my $delay;
       if ($delays[1])
       {
         $delay = $delays[0] if ($option eq "armaway");
@@ -657,6 +657,9 @@ sub HOMEMODE_Set($@)
       {
         $delay = $delays[0];
       }
+    }
+    if ($delay)
+    {
       my $hours = HOMEMODE_hourMaker(sprintf("%.2f",$delay / 60));
       CommandDefine(undef,"-temporary atTmp_modeAlarm_delayed_arm at +$hours {HOMEMODE_set_modeAlarm(\"$name\",\"$option\",\"$amode\")}");
     }
