@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13659 2017-03-15 00:11:05Z deespe $
+# $Id: 22_HOMEMODE.pm 13659 2017-03-16 10:11:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.255";
+my $HOMEMODE_version = "0.256";
 my $HOMEMODE_Daytimes = "morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
@@ -642,13 +642,31 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm")
   {
-    push @commands,$attr{$name}{"HomeCMDmodeAlarm"} if ($attr{$name}{"HomeCMDmodeAlarm"});
-    push @commands,$attr{$name}{"HomeCMDmodeAlarm-$option"} if ($attr{$name}{"HomeCMDmodeAlarm-$option"});
-    readingsBeginUpdate($hash);
-    readingsBulkUpdate($hash,"prevModeAlarm",$amode);
-    readingsBulkUpdate($hash,$cmd,$option);
-    readingsEndUpdate($hash,1);
-    HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
+    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm") if ($defs{atTmp_modeAlarm_delayed_arm});
+    my $delay;
+    if ($option =~ /^arm/ && $attr{$name}{HomeModeAlarmArmDelay})
+    {
+      my @delays = split(" ",$attr{$name}{HomeModeAlarmArmDelay});
+      if ($delays[1])
+      {
+        $delay = $delays[0] if ($option eq "armaway");
+        $delay = $delays[1] if ($option eq "armnight");
+        $delay = $delays[2] if ($option eq "armhome");
+      }
+      else
+      {
+        $delay = $delays[0];
+      }
+    }
+    if ($delay)
+    {
+      my $hours = HOMEMODE_hourMaker(sprintf("%.2f",$delay / 60));
+      CommandDefine(undef,"-temporary atTmp_modeAlarm_delayed_arm at +$hours {HOMEMODE_set_modeAlarm(\"$name\",\"$option\",\"$amode\")}");
+    }
+    else
+    {
+      HOMEMODE_set_modeAlarm($name,$option,$amode);
+    }
   }
   elsif ($cmd eq "anyoneElseAtHome")
   {
@@ -676,6 +694,25 @@ sub HOMEMODE_Set($@)
     HOMEMODE_execCMDs($hash,$cmds);
   }
   return;
+}
+
+sub HOMEMODE_set_modeAlarm($$$)
+{
+  my ($name,$option,$amode) = @_;
+  my $hash = $defs{$name};
+  my @commands;
+  push @commands,$attr{$name}{"HomeCMDmodeAlarm"} if ($attr{$name}{"HomeCMDmodeAlarm"});
+  push @commands,$attr{$name}{"HomeCMDmodeAlarm-$option"} if ($attr{$name}{"HomeCMDmodeAlarm-$option"});
+  readingsBeginUpdate($hash);
+  readingsBulkUpdate($hash,"prevModeAlarm",$amode);
+  readingsBulkUpdate($hash,"modeAlarm",$option);
+  readingsEndUpdate($hash,1);
+  HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
 }
 
 sub HOMEMODE_alarmTriggered($@)
@@ -869,6 +906,7 @@ sub HOMEMODE_Attributes($)
   my $name = $hash->{NAME};
   my @attribs;
   push @attribs,"disable:1,0";
+  push @attribs,"HomeAbsentDelay";
   push @attribs,"HomeAdvancedUserAttr:1,0";
   push @attribs,"HomeAutoAlarmModes:0,1";
   push @attribs,"HomeAutoArrival";
@@ -913,8 +951,6 @@ sub HOMEMODE_Attributes($)
   {
     push @attribs,"HomeCMDmodeAlarm-$am:textField-long";
   }
-  push @attribs,"HomeCMDmode:textField-long";
-  push @attribs,"HomeCMDmodeAlarm:textField-long";
   push @attribs,"HomeCMDmotion:textField-long";
   push @attribs,"HomeCMDmotion-on:textField-long";
   push @attribs,"HomeCMDmotion-off:textField-long";
@@ -944,6 +980,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeDaytimes";
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
+  push @attribs,"HomeModeAlarmArmDelay";
   push @attribs,"HomePresenceDeviceType";
   push @attribs,"HomePublicIpCheckInterval";
   push @attribs,"HomeResidentCmdDelay";
@@ -1301,6 +1338,13 @@ sub HOMEMODE_Attr(@)
         {
           HOMEMODE_updateInternals($hash,1);
         }
+      }
+    }
+    elsif ($attr_name eq "HomeModeAlarmArmDelay")
+    {
+      if ($init_done)
+      {
+        return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})(\s\d{1,5}){0,2}$/);
       }
     }
   }
@@ -2449,13 +2493,22 @@ sub HOMEMODE_checkIP($)
       This is the reason why some automations (p.e. daytime or season) are delayed up to 4 seconds.<br>
       All automations triggered by external events (other devices monitored by HOMEMODE) and the execution of the HomeCMD attributes will not be delayed.
     </li>
-    <li>Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".</li>
+    <li>
+      Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".
+    </li>
     <li>
       Seasons will be set meteorological<br>
       start spring: March 1th<br>
       start summer: June 1th<br>
       start autumn: September 1th<br>
       start winter: December 1th
+    </li>
+    <li>
+      There's a special function, which you may use, which is converting given minutes (up to 5999.9) to a timestamp that can be used for creating at devices.<br>
+      This function is called HOMEMODE_hourMaker and the only value you need to pass is the number in minutes with max. 2 digit after the dot.
+    </li>
+    <li>
+      Each set command and each updated reading of the HOMEMODE device will create an event within FHEM, so you're able to create additional notify or DOIF devices if needed.
     </li>
   </ul>
   <br>
@@ -2779,6 +2832,13 @@ sub HOMEMODE_checkIP($)
       <b><i>HomePresenceDeviceAbsentCount-&lt;RESIDENT&gt;</i></b><br>
       number of resident associated presence device to turn resident to absent<br>
       default: maximum number of available presence device for each resident
+    </li>
+    <li>
+      <b><i>HomeModeAlarmArmDelay</i></b><br>
+      time in seconds for delaying modeAlarm arm... commands<br>
+      must be a single number (valid for alle modeAlarm arm... commands) or 3 space separated numbers for each modeAlarm arm... command individually (order: armaway armnight armhome)<br>
+      values from 0 to 99999<br>
+      default: 0
     </li>
     <li>
       <b><i>HomePresenceDevicePresentCount-&lt;RESIDENT&gt;</i></b><br>
