@@ -976,7 +976,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDtwilight-ss_civil:textField-long";
   push @attribs,"HomeCMDtwilight-ss_indoor:textField-long";
   push @attribs,"HomeCMDtwilight-ss_weather:textField-long";
-  push @attribs,"HomeDaytimes";
+  push @attribs,"HomeDaytimes:textField-long";
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
   push @attribs,"HomeModeAlarmArmDelay";
@@ -1306,8 +1306,8 @@ sub HOMEMODE_Attr(@)
     {
       if ($init_done)
       {
-        delete $attr{$name}{HomeSensorHumidityOutside} if ($attr{$name}{HomeSensorHumidityOutside} && $attr_value eq $attr{$name}{HomeSensorHumidityOutside});
         return "$attr_value must be a valid device with temperature reading!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=temperature=.*"));
+        delete $attr{$name}{HomeSensorHumidityOutside} if ($attr{$name}{HomeSensorHumidityOutside} && $attr_value eq $attr{$name}{HomeSensorHumidityOutside});
         if ($attr_value_old ne $attr_value)
         {
           CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeYahooWeatherDevice});
@@ -1317,9 +1317,9 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSensorHumidityOutside")
     {
+      return "You have to omit this attribute if it should have the same value like HomeSensorTemperatureOutside!" if ($attr_value eq $attr{$name}{HomeSensorTemperatureOutside});
       if ($init_done)
       {
-        return "You have to omit this attribute if it should have the same value like HomeSensorTemperatureOutside!" if ($attr_value eq $attr{$name}{HomeSensorTemperatureOutside});
         return "$attr_value must be a valid device with humidity reading!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=humidity=.*"));
         if ($attr_value_old ne $attr_value)
         {
@@ -1330,22 +1330,36 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
+      return "$attr_value for $attr_name must be in format: morning|6:00 day|9:00 ..." if ($attr_value !~ /^(\w+\|\d{1,2}:\d{2})(\s\w+\|\d{1,2}:\d{2}){0,}$/);
       if ($init_done)
       {
-        return "$attr_value for $attr_name must be in format: morning|6:00 day|9:00 ..." if ($attr_value !~ /^(\w+\|\d{1,2}:\d{2})(\s\w+\|\d{1,2}:\d{2}){0,}$/);
         if ($attr_value_old ne $attr_value)
         {
-          # TODO: validate times order
+          my @ts;
+          my $val = $attr_value;
+          $val =~ s/(\r\n|\s{2,})/ /gm;
+          foreach my $t (split(" ",$val))
+          {
+            my $time = (split("\\|",$t))[1];
+            my @times = split(":",$time);
+            my $minutes = $times[0] * 60 + $times[1];
+            my $lastminutes = @ts ? $ts[scalar @ts - 1] : "";
+            if (!$lastminutes || $minutes < $lastminutes)
+            {
+              push @ts,$minutes;
+            }
+            else
+            {
+              return "Wrong times order in $attr_value";
+            }
+          }
           HOMEMODE_updateInternals($hash,1);
         }
       }
     }
     elsif ($attr_name eq "HomeModeAlarmArmDelay")
     {
-      if ($init_done)
-      {
-        return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
-      }
+      return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
     }
   }
   else
@@ -1722,6 +1736,7 @@ sub HOMEMODE_DayTime($)
   my ($hash) = @_;
   my $name = $hash->{NAME};
   my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
+  $daytimes =~ s/(\r\n|\s{2,})/ /gm;
   my ($sec,$min,$hour,$mday,$month,$year,$wday,$yday,$isdst) = localtime;
   my $loctime = $hour * 60 + $min;
   Log3 $name,5,"loctime: $loctime";
@@ -3460,7 +3475,7 @@ sub HOMEMODE_checkIP($)
   </ul>
   <a name="HOMEMODE_placeholders"></a>
   <p><b>Placeholders</b></p>
-  <p>These placeholders can be used in all HomeCMD or HomeText attributes</p>
+  <p>These placeholders can be used in all HomeCMD attributes</p>
   <ul>
     <li>
       <b><i>%ADDRESS%</i></b><br>
