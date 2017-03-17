@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13660 2017-03-17 00:16:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13660 2017-03-17 12:38:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.257";
+my $HOMEMODE_version = "0.258";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
