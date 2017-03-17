@@ -16,7 +16,7 @@ use HttpUtils;
 use Data::Dumper;
 
 my $HOMEMODE_version = "0.257";
-my $HOMEMODE_Daytimes = "morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00";
+my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
 my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
@@ -1092,11 +1092,13 @@ sub HOMEMODE_userattr($)
       }
     }
   }
-  foreach my $daytime (split(" ",$daytimes))
+  foreach (split(/\s/,$daytimes))
   {
-    my $text = (split("\\|",$daytime))[0];
-    push @userattrAll,"HomeCMDdaytime-".$text.":textField-long";
-    push @userattrAll,"HomeCMDmode-".$text.":textField-long";
+    my $text = (split(/\|/))[1];
+    my $d = "HomeCMDdaytime-".$text.":textField-long";
+    my $m = "HomeCMDmode-".$text.":textField-long";
+    push @userattrAll,$d if (!grep(/^$d$/,@userattrAll));
+    push @userattrAll,$m if (!grep(/^$m$/,@userattrAll));
   }
   my $userattrPrevList = join(" ",@userattrPrev) if (\@userattrPrev);
   Log3 $name,5,"$name: userattrPrevList: $userattrPrevList" if ($userattrPrevList);
@@ -1330,21 +1332,19 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
-      return "$attr_value for $attr_name must be in format: morning|6:00 day|9:00 ..." if ($attr_value !~ /^(\w+\|\d{1,2}:\d{2})(\s\w+\|\d{1,2}:\d{2}){0,}$/);
+      return "$attr_value for $attr_name must be in format: 06:00|morning 09:00|day ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|\w+)(\s[0-2]\d:[0-5]\d\|\w+){0,}$/);
       if ($init_done)
       {
         if ($attr_value_old ne $attr_value)
         {
           my @ts;
-          my $val = $attr_value;
-          $val =~ s/(\r\n|\s{2,})/ /gm;
-          foreach my $t (split(" ",$val))
+          foreach (split(/\s/,$attr_value))
           {
-            my $time = (split("\\|",$t))[1];
-            my @times = split(":",$time);
-            my $minutes = $times[0] * 60 + $times[1];
-            my $lastminutes = @ts ? $ts[scalar @ts - 1] : "";
-            if (!$lastminutes || $minutes < $lastminutes)
+            my $time = (split(/\|/))[0];
+            my ($h,$m) = split(/:/,$time);
+            my $minutes = $h * 60 + $m;
+            my $lastminutes = @ts ? $ts[scalar @ts - 1] : -1;
+            if ($minutes > $lastminutes)
             {
               push @ts,$minutes;
             }
@@ -1353,7 +1353,7 @@ sub HOMEMODE_Attr(@)
               return "Wrong times order in $attr_value";
             }
           }
-          HOMEMODE_updateInternals($hash,1);
+          HOMEMODE_userattr($hash);
         }
       }
     }
@@ -1409,7 +1409,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_userattr($hash);
     }
   }
   return;
@@ -1736,20 +1736,20 @@ sub HOMEMODE_DayTime($)
   my ($hash) = @_;
   my $name = $hash->{NAME};
   my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
-  $daytimes =~ s/(\r\n|\s{2,})/ /gm;
   my ($sec,$min,$hour,$mday,$month,$year,$wday,$yday,$isdst) = localtime;
   my $loctime = $hour * 60 + $min;
   Log3 $name,5,"loctime: $loctime";
   my @texts;
   my @times;
-  foreach my $daytime (split(" ",$daytimes))
+  foreach (split(/\s/,$daytimes))
   {
-    my @dt = split("\\|",$daytime);
-    my $text = $dt[0];
-    my $time = (split(":",$dt[1]))[0] * 60 + (split(":",$dt[1]))[1];
-    Log3 $name,5,"time: $time";
+    my @dt = split(/\|/);
+    my ($h,$m) = split(/:/,$dt[0]);
+    my $minutes = $h * 60 + $m;
+    my $text = $dt[1];
+    Log3 $name,5,"minutes: $minutes";
+    push @times,$minutes;
     push @texts,$text;
-    push @times,$time;
   }
   my $daytime = $texts[scalar @texts - 1];
   for (my $x = 0; $x < scalar @times; $x++)
@@ -2831,8 +2831,8 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>HomeDaytimes</i></b><br>
-      space separated list of text|time pairs for possible daytimes starting with the first event of the day (lowest time)<br>
-      default: morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00
+      space separated list of time|text pairs for possible daytimes starting with the first event of the day (lowest time)<br>
+      default: 05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night
     </li>
     <li>
       <b><i>HomeEventsHolidayDevices</i></b><br>
