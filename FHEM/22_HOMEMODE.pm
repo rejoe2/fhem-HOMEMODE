@@ -1335,6 +1335,7 @@ sub HOMEMODE_Attr(@)
         return "$attr_value for $attr_name must be in format: morning|6:00 day|9:00 ..." if ($attr_value !~ /^(\w+\|\d{1,2}:\d{2})(\s\w+\|\d{1,2}:\d{2}){0,}$/);
         if ($attr_value_old ne $attr_value)
         {
+          # TODO: validate times order
           HOMEMODE_updateInternals($hash,1);
         }
       }
@@ -1343,7 +1344,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($init_done)
       {
-        return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})(\s\d{1,5}){0,2}$/);
+        return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
       }
     }
   }
@@ -2503,7 +2504,7 @@ sub HOMEMODE_checkIP($)
       start winter: December 1th
     </li>
     <li>
-      There's a special function, which you may use, which is converting given minutes (up to 5999.9) to a timestamp that can be used for creating at devices.<br>
+      There's a special function, which you may use, which is converting given minutes (up to 5999.99) to a timestamp that can be used for creating at devices.<br>
       This function is called HOMEMODE_hourMaker and the only value you need to pass is the number in minutes with max. 2 digit after the dot.
     </li>
     <li>
@@ -2815,7 +2816,7 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>HomeDaytimes</i></b><br>
-      space separated list of text|time pairs for possible daytimes starting with the first event of the day (lowest time)
+      space separated list of text|time pairs for possible daytimes starting with the first event of the day (lowest time)<br>
       default: morning|5:00 day|10:00 afternoon|14:00 evening|18:00 night|23:00
     </li>
     <li>
@@ -2835,7 +2836,7 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>HomeModeAlarmArmDelay</i></b><br>
       time in seconds for delaying modeAlarm arm... commands<br>
-      must be a single number (valid for alle modeAlarm arm... commands) or 3 space separated numbers for each modeAlarm arm... command individually (order: armaway armnight armhome)<br>
+      must be a single number (valid for all modeAlarm arm... commands) or 3 space separated numbers for each modeAlarm arm... command individually (order: armaway armnight armhome)<br>
       values from 0 to 99999<br>
       default: 0
     </li>
