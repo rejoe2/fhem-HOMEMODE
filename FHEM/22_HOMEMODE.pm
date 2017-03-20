@@ -149,7 +149,7 @@ sub HOMEMODE_Notify($$)
   }
   elsif ($attr{$name}{HomeSensorTemperatureOutside} && $devname eq $attr{$name}{HomeSensorTemperatureOutside})
   {
-    if (grep(/^(temperature|humidity):\s+/,@{$events}))
+    if (grep(/^(temperature|humidity):\s/,@{$events}))
     {
       my $temp;
       my $humi;
@@ -179,7 +179,7 @@ sub HOMEMODE_Notify($$)
   }
   elsif ($attr{$name}{HomeSensorHumidityOutside} && $devname eq $attr{$name}{HomeSensorHumidityOutside})
   {
-    if (grep(/^humidity:\s+/,@{$events}))
+    if (grep(/^humidity:\s/,@{$events}))
     {
       $hash->{helper}{externalHumidity} = 1;
       my $val;
@@ -202,14 +202,14 @@ sub HOMEMODE_Notify($$)
   }
   elsif ($attr{$name}{HomeEventsHolidayDevices} && grep(/^$devname$/,split /,/,$attr{$name}{HomeEventsHolidayDevices}))
   {
-    if (grep(/^state:\s+/,@{$events}))
+    if (grep(/^state:\s/,@{$events}))
     {
       my $event;
       foreach (@{$events})
       {
-        $event = $_ if (grep(/^state:\s+/,$_));
+        $event = $_ if (grep(/^state:\s/,$_));
       }
-      $event =~ s/^state:\s+//;
+      $event =~ s/^state:\s//;
       $event =~ s/\s+/-/g;
       HOMEMODE_EventCommands($hash,$devname,$event);
     }
@@ -828,7 +828,7 @@ sub HOMEMODE_RESIDENTS($;$)
       foreach (@{$events})
       {
         my $um = $_;
-        $um =~ s/.*:\s+//;
+        $um =~ s/.*:\s//;
         next if (!grep(/^$um$/,split /,/,$HOMEMODE_UserModesAll));
         $usermode = $um;
       } 
@@ -2294,7 +2294,7 @@ sub HOMEMODE_calcPowerAndEnergy($)
 sub HOMEMODE_calcPowerOrEnergy($$$$)
 {
   my ($hash,$trigger,$read,$event) = @_;
-  my $val = (split " ",(split /:\s+/,$event)[1])[0];
+  my $val = (split " ",(split /:\s/,$event)[1])[0];
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
   {
     next if ($_ eq $trigger);
