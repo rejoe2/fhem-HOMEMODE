@@ -2282,14 +2282,8 @@ sub HOMEMODE_calcPowerAndEnergy($)
   my $energy;
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=energy=.*:FILTER=power=.*"))
   {
-    my $p = ReadingsVal($_,"power",0);
-    my $e = ReadingsVal($_,"energy",0);
-    $p =~ s/^\s+//;
-    $e =~ s/^\s+//;
-    $p = (split " ",$p,1);
-    $e = (split " ",$e,1);
-    $power += $p;
-    $energy += $e;
+    $power += (split " ",ReadingsVal($_,"power",0),1);
+    $energy += (split " ",ReadingsVal($_,"energy",0),1);
   }
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"power",$power);
@@ -2304,10 +2298,7 @@ sub HOMEMODE_calcPowerOrEnergy($$$$)
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
   {
     next if ($_ eq $trigger);
-    my $v = ReadingsVal($_,$read,0);
-    $v =~ s/^\s+//;
-    $v = (split " ",$v)[0];
-    $val += $v;
+    $val += (split " ",ReadingsVal($_,$read,0))[0];
   }
   readingsSingleUpdate($hash,$read,$val,1);
 }
