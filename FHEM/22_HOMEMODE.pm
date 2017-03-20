@@ -2282,8 +2282,8 @@ sub HOMEMODE_calcPowerAndEnergy($)
   my $energy;
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=energy=.*:FILTER=power=.*"))
   {
-    $power += (split " ",ReadingsVal($_,"power",0),1);
-    $energy += (split " ",ReadingsVal($_,"energy",0),1);
+    $power += (split " ",ReadingsVal($_,"power",0))[0];
+    $energy += (split " ",ReadingsVal($_,"energy",0))[0];
   }
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"power",$power);
