@@ -642,12 +642,12 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm")
   {
-    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm") if ($defs{atTmp_modeAlarm_delayed_arm});
+    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if ($defs{"atTmp_modeAlarm_delayed_arm_$name"});
     my $delay;
     if ($option =~ /^arm/ && $attr{$name}{HomeModeAlarmArmDelay})
     {
-      my @delays = split(/\s+/,$attr{$name}{HomeModeAlarmArmDelay});
-      if ($delays[1])
+      my @delays = split(" ",$attr{$name}{HomeModeAlarmArmDelay});
+      if (defined $delays[1])
       {
         $delay = $delays[0] if ($option eq "armaway");
         $delay = $delays[1] if ($option eq "armnight");
@@ -661,7 +661,7 @@ sub HOMEMODE_Set($@)
     if ($delay)
     {
       my $hours = HOMEMODE_hourMaker(sprintf("%.2f",$delay / 60));
-      CommandDefine(undef,"-temporary atTmp_modeAlarm_delayed_arm at +$hours {HOMEMODE_set_modeAlarm(\"$name\",\"$option\",\"$amode\")}");
+      CommandDefine(undef,"-temporary atTmp_modeAlarm_delayed_arm_$name at +$hours {HOMEMODE_set_modeAlarm(\"$name\",\"$option\",\"$amode\")}");
     }
     else
     {
@@ -841,22 +841,22 @@ sub HOMEMODE_RESIDENTS($;$)
         elsif ($usermode eq "awoken")
         {
           my $hours = HOMEMODE_hourMaker($attr{$name}{"HomeAutoAwoken"});
-          CommandDelete(undef,"atTmp_awoken_$dev") if ($defs{"atTmp_awoken_$dev"});
-          CommandDefine(undef,"-temporary atTmp_awoken_$dev at +$hours set $dev:FILTER=state=awoken state home");
+          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if ($defs{"atTmp_awoken_".$dev."_$name"});
+          CommandDefine(undef,"-temporary atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
         }
       }
       if ($usermode eq "home" && ReadingsVal($dev,"lastState","") =~ /^(absent|gone)$/ && $attr{$name}{HomeAutoArrival})
       {
         my $hours = HOMEMODE_hourMaker($attr{$name}{HomeAutoArrival});
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
-        CommandDelete(undef,"atTmp_location_home_$dev") if ($defs{"atTmp_location_home_$dev"});
-        CommandDefine(undef,"-temporary atTmp_location_home_$dev at +$hours set $dev:FILTER=location=arrival location home")
+        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if ($defs{"atTmp_location_home_".$dev."_$name"});
+        CommandDefine(undef,"-temporary atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home")
       }
       if ($usermode eq "gotosleep" && $attr{$name}{HomeAutoAsleep})
       {
         my $hours = HOMEMODE_hourMaker($attr{$name}{HomeAutoAsleep});
-        CommandDelete(undef,"atTmp_asleep_$dev") if ($defs{"atTmp_asleep_$dev"});
-        CommandDefine(undef,"-temporary atTmp_asleep_$dev at +$hours set $dev:FILTER=state=gotosleep state asleep");
+        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if ($defs{"atTmp_asleep_".$dev."_$name"});
+        CommandDefine(undef,"-temporary atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
       }
       readingsBeginUpdate($hash);
       if (grep(/^presence:\sabsent$/,@{$events}))
@@ -1927,7 +1927,7 @@ sub HOMEMODE_TriggerState($;$;$;$)
         readingsBulkUpdate($hash,"lastContactClosed",$contact);
         readingsEndUpdate($hash,1);
         HOMEMODE_ContactCommands($hash,$contact,"closed",$kind);
-        my $timer = "atTmp_HomeOpenTimer_$contact";
+        my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
         CommandDelete(undef,$timer) if ($defs{$timer});
       }
     }
@@ -2094,7 +2094,7 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
         $donttrigger = 1 if (ReadingsVal($_,"state","") =~ /^($dtmode)$/);
       }
     }
-    my $timer = "atTmp_HomeOpenTimer_$contact";
+    my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
     CommandDelete(undef,$timer) if ($defs{$timer} && ($retrigger || $donttrigger));
     return if (!$retrigger && $donttrigger);
     my $season = ReadingsVal($name,"season","");
@@ -2278,8 +2278,22 @@ sub HOMEMODE_calcPowerAndEnergy($)
   my $energy;
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=energy=.*:FILTER=power=.*"))
   {
-    $power += (split(/\s+/,ReadingsVal($_,"power",0)))[0];
-    $energy += (split(/\s+/,ReadingsVal($_,"energy",0)))[0];
+    my $p = (split(" ",ReadingsVal($_,"power",0)))[0];
+    my $e = (split(" ",ReadingsVal($_,"energy",0)))[0];
+    # my $po = join(":",split(" ",ReadingsVal($_,"power",0)));
+    # my $eo = join(":",split(" ",ReadingsVal($_,"energy",0)));
+    # my $ps = join(":",split("\s+",ReadingsVal($_,"power",0)));
+    # my $es = join(":",split("\s+",ReadingsVal($_,"energy",0)));
+    # my $pr = join(":",split(/ /,ReadingsVal($_,"power",0)));
+    # my $er = join(":",split(/ /,ReadingsVal($_,"energy",0)));
+    # my $pn = join(":",split(/\s+/,ReadingsVal($_,"power",0)));
+    # my $en = join(":",split(/\s+/,ReadingsVal($_,"energy",0)));
+    # Debug "eo: '$eo', po: '$po'";
+    # Debug "er: '$er', pr: '$pr'";
+    # Debug "en: '$en', pn: '$pn'";
+    # Debug "es: '$es', ps: '$ps'";
+    $power += $p;
+    $energy += $e;
   }
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"power",$power);
@@ -2291,11 +2305,13 @@ sub HOMEMODE_calcPowerOrEnergy($$$$)
 {
   my ($hash,$trigger,$read,$event) = @_;
   my $val = (split(/\s+/,(split(/:\s+/,$event))[1]))[0];
-  foreach my $sensor (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
+  foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
   {
-
-    next if ($sensor eq $trigger);
-    $val += (split(/\s+/,ReadingsVal($sensor,$read,0)))[0];
+    next if ($_ eq $trigger);
+    my $v = ReadingsVal($_,$read,0);
+    $v =~ s/^\s+//;
+    my $nv = (split(/\s+/,$v))[0];
+    $val += $nv;
   }
   readingsSingleUpdate($hash,$read,$val,1);
 }
