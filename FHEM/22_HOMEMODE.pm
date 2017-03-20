@@ -593,7 +593,11 @@ sub HOMEMODE_Set($@)
     push @commands,$attr{$name}{"HomeCMDmode-$option"} if ($attr{$name}{"HomeCMDmode-$option"});
     CommandSetReading(undef,"$name:FILTER=presence!=$present presence $present");
     CommandSet(undef,"$name:FILTER=location!=$location location $location");
-    CommandSet(undef,"$name:FILTER=modeAlarm!=$namode modeAlarm $namode") if (AttrVal($name,"HomeAutoAlarmModes",1));
+    if (AttrVal($name,"HomeAutoAlarmModes",1))
+    {
+      CommandDelete(undef,"atTmp_modeAlarm_delayed_arm") if ($defs{"atTmp_modeAlarm_delayed_arm"});
+      CommandSet(undef,"$name:FILTER=modeAlarm!=$namode modeAlarm $namode");
+    }
     readingsBeginUpdate($hash);
     readingsBulkUpdate($hash,$cmd,$option);
     readingsBulkUpdate($hash,"prevMode",$mode);
@@ -642,7 +646,6 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm")
   {
-    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm") if ($defs{atTmp_modeAlarm_delayed_arm});
     my $delay;
     if ($option =~ /^arm/ && $attr{$name}{HomeModeAlarmArmDelay})
     {
