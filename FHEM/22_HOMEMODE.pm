@@ -39,7 +39,8 @@ sub HOMEMODE_Define($$)
   my ($hash,$def) = @_;
   my $de;
   $de = 1 if (AttrVal("global","language","EN") eq "DE");
-  my @args = split(/\s+/,$def);
+  my @args = split /\s+/,$def;
+  # my @args = split(/\s+/,$def);
   if (@args < 2 || @args > 3)
   {
     return "Benutzung: define <name> HOMEMODE [RESIDENTS-MASTER-GERAET]" if ($de);
@@ -158,12 +159,14 @@ sub HOMEMODE_Notify($$)
         $temp = $_ if ($_ =~ /^temperature/);
         $humi = $_ if ($_ =~ /^humidity/);
       }
-      $temp = (split(/\s+/,$temp))[1] if ($temp);
+      $temp = (split /\s+/,$temp)[1] if ($temp);
+      # $temp = (split(/\s+/,$temp))[1] if ($temp);
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash,"temperature",$temp);
       if (defined $humi && !$attr{$name}{HomeSensorHumidityOutside})
       {      
-        $humi = (split(/\s+/,$humi))[1];
+        $humi = (split /\s+/,$humi)[1];
+        # $humi = (split(/\s+/,$humi))[1];
         readingsBulkUpdate($hash,"humidity",$humi);
         $hash->{helper}{externalHumidity} = 1;
       }
@@ -187,7 +190,8 @@ sub HOMEMODE_Notify($$)
       {
         $val = $_ if ($_ =~ /^humidity/);
       }
-      $val = (split(/\s+/,$val))[1];
+      $val = (split /\s+/,$val)[1];
+      # $val = (split(/\s+/,$val))[1];
       readingsSingleUpdate($hash,"humidity",$val,1);
       HOMEMODE_ReadingTrend($hash,"humidity",$val);
     }
@@ -1028,7 +1032,8 @@ sub HOMEMODE_userattr($)
   my $name = $hash->{NAME};
   my $adv = HOMEMODE_AttrCheck($hash,"HomeAdvancedUserAttr",0);
   my @userattrAll;
-  my @userattrPrev = split(/\s+/,$attr{$name}{userattr}) if ($attr{$name}{userattr});
+  my @userattrPrev = split /\s+/,$attr{$name}{userattr} if ($attr{$name}{userattr});
+  # my @userattrPrev = split(/\s+/,$attr{$name}{userattr}) if ($attr{$name}{userattr});
   HOMEMODE_cleanUserattr($hash,devspec2array($name)) if (@userattrPrev);
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
@@ -1096,7 +1101,8 @@ sub HOMEMODE_userattr($)
       }
     }
   }
-  foreach (split(/\s+/,$daytimes))
+  foreach (split /\s+/,$daytimes)
+  # foreach (split(/\s+/,$daytimes))
   {
     my $text = (split(/\|/))[1];
     my $d = "HomeCMDdaytime-".$text.":textField-long";
@@ -1129,7 +1135,8 @@ sub HOMEMODE_cleanUserattr($@)
     {
       delete $defs{$dev}->{READINGS}{".pstate"} if (defined $defs{$dev}->{READINGS}{".pstate"} && $rem);
       my @stayattr;
-      foreach (split(/\s+/,$attr{$dev}{userattr}))
+      foreach (split /\s+/,$attr{$dev}{userattr})
+      # foreach (split(/\s+/,$attr{$dev}{userattr}))
       {
         if ($_ =~ /^Home/)
         {
@@ -1342,7 +1349,8 @@ sub HOMEMODE_Attr(@)
         if ($attr_value_old ne $attr_value)
         {
           my @ts;
-          foreach (split(/\s+/,$attr_value))
+          foreach (split /\s+/,$attr_value)
+          # foreach (split(/\s+/,$attr_value))
           {
             my $time = (split(/\|/))[0];
             my ($h,$m) = split(/:/,$time);
@@ -1743,7 +1751,8 @@ sub HOMEMODE_DayTime($)
   Log3 $name,5,"loctime: $loctime";
   my @texts;
   my @times;
-  foreach (split(/\s+/,$daytimes))
+  foreach (split /\s+/,$daytimes)
+  # foreach (split(/\s+/,$daytimes))
   {
     my ($dt,$text) = split(/\|/);
     my ($h,$m) = split(/:/,$dt);
@@ -1893,8 +1902,10 @@ sub HOMEMODE_TriggerState($;$;$;$)
   {
     my $otread = AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
     my $otcmd = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
-    my $oread = (split(/\s+/,$otread))[0];
-    my $tread = (split(/\s+/,$otread))[1] ? (split(/\s+/,$otread))[1] : "";
+    my $oread = (split /\s+/,$otread)[0];
+    my $tread = (split /\s+/,$otread)[1] ? (split /\s+/,$otread)[1] : "";
+    # my $oread = (split(/\s+/,$otread))[0];
+    # my $tread = (split(/\s+/,$otread))[1] ? (split(/\s+/,$otread))[1] : "";
     my $amodea = AttrVal($contact,"HomeModeAlarmActive","-");
     my $ostate = ReadingsVal($contact,$oread,"");
     my $tstate = ReadingsVal($contact,$tread,"") if ($tread);
@@ -1944,15 +1955,19 @@ sub HOMEMODE_TriggerState($;$;$;$)
   {
     my $otread = AttrVal($motion,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError luminance"));
     my $otcmd = AttrVal($motion,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
-    my $oread = (split(/\s+/,$otread))[0];
-    my $tread = (split(/\s+/,$otread))[1] ? (split(/\s+/,$otread))[1] : "";
-    my $lread = (split(/\s+/,$otread))[2] ? (split(/\s+/,$otread))[2] : "";
+    my $oread = (split /\s+/,$otread)[0];
+    my $tread = (split /\s+/,$otread)[1] ? (split /\s+/,$otread)[1] : "";
+    my $lread = (split /\s+/,$otread)[2] ? (split /\s+/,$otread)[2] : "";
+    # my $oread = (split(/\s+/,$otread))[0];
+    # my $tread = (split(/\s+/,$otread))[1] ? (split(/\s+/,$otread))[1] : "";
+    # my $lread = (split(/\s+/,$otread))[2] ? (split(/\s+/,$otread))[2] : "";
     my $amodea = AttrVal($motion,"HomeModeAlarmActive","-");
     my $ostate = ReadingsVal($motion,$oread,"");
     my $pstate = ReadingsVal($motion,".pstate","");
     my $tstate = ReadingsVal($motion,$tread,"") if ($tread);
     my $kind = AttrVal($motion,"HomeSensorLocation","inside");
-    my $lum = (split(/\s+/,ReadingsVal($motion,$lread,"10 lux")))[0] if ($lread);
+    my $lum = (split /\s+/,ReadingsVal($motion,$lread,"10 lux"))[0] if ($lread);
+    # my $lum = (split(/\s+/,ReadingsVal($motion,$lread,"10 lux")))[0] if ($lread);
     next if (!$ostate && !$tstate);
     if ($ostate =~ /^($otcmd)$/)
     {
@@ -2107,12 +2122,15 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
     my $wt = AttrVal($contact,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10"));
     my $waittime;
     Log3 $name,5,"$name: retrigger: $retrigger";
-    $waittime = (split(/\s+/,$wt))[$retrigger] if ((split(/\s+/,$wt))[$retrigger]);
-    $waittime = (split(/\s+/,$wt))[split(/\s+/,$wt)-1] if (!$waittime);
+    $waittime = (split /\s+/,$wt)[$retrigger] if ((split /\s+/,$wt)[$retrigger]);
+    # $waittime = (split(/\s+/,$wt))[$retrigger] if ((split(/\s+/,$wt))[$retrigger]);
+    $waittime = (split /\s+/,$wt)[split /\s+/,$wt -1] if (!$waittime);
+    # $waittime = (split(/\s+/,$wt))[split(/\s+/,$wt)-1] if (!$waittime);
     Log3 $name,5,"$name: waittime real: $waittime";
     if ($dividers && $season ne "summer" && AttrVal($contact,"HomeContactType","window") !~ /^door(inside|main)$/)
     {
-      my @dividers = split(/\s+/,$dividers);
+      my @dividers = split /\s+/,$dividers;
+      # my @dividers = split(/\s+/,$dividers);
       my $divider;
       $divider = $dividers[0] if ($season eq "autumn");
       $divider = $dividers[1] if ($season eq "winter");
@@ -2126,7 +2144,8 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
     $waittime = HOMEMODE_hourMaker($waittime);
     my $at = "{HOMEMODE_ContactOpenCheck(\"$name\",\"$contact\",\"\",$retrigger)}" if ($retrigger <= $maxtrigger);
     my $contactname = HOMEMODE_name2alias($contact,1);
-    my $contactread = (split(/\s+/,AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"))))[0];
+    my $contactread = (split /\s+/,AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")))[0];
+    # my $contactread = (split(/\s+/,AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"))))[0];
     $state = $state ? $state : ReadingsVal($contact,$contactread,"");
     my $opencmds = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
     if ($state =~ /^($opencmds|open)$/)
@@ -2282,20 +2301,14 @@ sub HOMEMODE_calcPowerAndEnergy($)
   my $energy;
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=energy=.*:FILTER=power=.*"))
   {
-    my $p = (split(" ",ReadingsVal($_,"power",0)))[0];
-    my $e = (split(" ",ReadingsVal($_,"energy",0)))[0];
-    # my $po = join(":",split(" ",ReadingsVal($_,"power",0)));
-    # my $eo = join(":",split(" ",ReadingsVal($_,"energy",0)));
-    # my $ps = join(":",split("\s+",ReadingsVal($_,"power",0)));
-    # my $es = join(":",split("\s+",ReadingsVal($_,"energy",0)));
-    # my $pr = join(":",split(/ /,ReadingsVal($_,"power",0)));
-    # my $er = join(":",split(/ /,ReadingsVal($_,"energy",0)));
-    # my $pn = join(":",split(/\s+/,ReadingsVal($_,"power",0)));
-    # my $en = join(":",split(/\s+/,ReadingsVal($_,"energy",0)));
-    # Debug "eo: '$eo', po: '$po'";
-    # Debug "er: '$er', pr: '$pr'";
-    # Debug "en: '$en', pn: '$pn'";
-    # Debug "es: '$es', ps: '$ps'";
+    my $p = ReadingsVal($_,"power",0);
+    my $e = ReadingsVal($_,"energy",0);
+    $p =~ s/^\s+//;
+    $e =~ s/^\s+//;
+    $p = (split /\s+/,$p)[0];
+    $e = (split /\s+/,$e)[0];
+    # $p = (split(/\s+/,$p))[0];
+    # $e = (split(/\s+/,$e))[0];
     $power += $p;
     $energy += $e;
   }
@@ -2308,14 +2321,16 @@ sub HOMEMODE_calcPowerAndEnergy($)
 sub HOMEMODE_calcPowerOrEnergy($$$$)
 {
   my ($hash,$trigger,$read,$event) = @_;
-  my $val = (split(/\s+/,(split(/:\s+/,$event))[1]))[0];
+  my $val = (split /\s+/,(split /:\s+/,$event)[1])[0];
+  # my $val = (split(/\s+/,(split(/:\s+/,$event))[1]))[0];
   foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
   {
     next if ($_ eq $trigger);
     my $v = ReadingsVal($_,$read,0);
     $v =~ s/^\s+//;
-    my $nv = (split(/\s+/,$v))[0];
-    $val += $nv;
+    $v = (split /\s+/,$v)[0];
+    # $v = (split(/\s+/,$v))[0];
+    $val += $v;
   }
   readingsSingleUpdate($hash,$read,$val,1);
 }
@@ -2356,7 +2371,8 @@ sub HOMEMODE_Twilight($$;$)
     my $pevent = ReadingsVal($name,"twilightEvent","");
     foreach my $event (@{$events})
     {
-      my $val = (split(/\s+/,$event))[1];
+      my $val = (split /\s+/,$event)[1];
+      # my $val = (split(/\s+/,$event))[1];
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash,"light",$val) if ($event =~ /^light:/);
       readingsBulkUpdate($hash,"twilight",$val) if ($event =~ /^twilight:/);
@@ -2387,8 +2403,10 @@ sub HOMEMODE_Icewarning($)
   my $ice = ReadingsVal($name,"icewarning",2);
   my $temp = ReadingsVal($name,"temperature",5);
   my $temps = AttrVal($name,"HomeIcewarningOnOffTemps","2 3");
-  my $iceon = (split(/\s+/,$temps))[0]*1;
-  my $iceoff = (split(/\s+/,$temps))[1] ? (split(/\s+/,$temps))[1]*1 : $iceon;
+  my $iceon = (split /\s+/,$temps)[0]*1;
+  # my $iceon = (split(/\s+/,$temps))[0]*1;
+  my $iceoff = (split /\s+/,$temps)[1] ? (split /\s+/,$temps)[1]*1 : $iceon;
+  # my $iceoff = (split(/\s+/,$temps))[1] ? (split(/\s+/,$temps))[1]*1 : $iceon;
   my $icewarning = 0;
   my $icewarningcmd = "off";
   $icewarning = 1 if ((!$ice && $temp <= $iceon) || ($ice && $temp <= $iceoff));
@@ -2433,7 +2451,8 @@ sub HOMEMODE_HolidayEvents($)
   foreach (@holidayfile)
   {
     next if ($_ =~ /^\s*(#|$)/);
-    my @parts = split(/\s+/,$_);
+    # my @parts = split(/\s+/,$_);
+    my @parts = split;
     my $part = $parts[0] =~ /^(1|2)$/ ? 2 : $parts[0] == 3 ? 4 : $parts[0] == 4 ? 3 : 5;
     for (my $p = 0; $p < $part; $p++)
     {
