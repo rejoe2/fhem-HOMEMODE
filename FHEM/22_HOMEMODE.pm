@@ -1578,7 +1578,7 @@ sub HOMEMODE_serializeCMD($@)
     my @newcmd;
     foreach (split(/\n+/,$cmd))
     {
-      next if ($_ =~ /^\s{0,}(#|$)/);
+      next if ($_ =~ /^\s*(#|$)/);
       $_ =~ s/\s{2,}/ /g;
       Log3 $name,5,"$name: cmdline: $_";
       push @newcmd,$_;
