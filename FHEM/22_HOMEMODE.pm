@@ -814,7 +814,7 @@ sub HOMEMODE_RESIDENTS($;$)
   if ($devtype eq "RESIDENTS")
   {
     $mode = ReadingsVal($dev,"state","");
-    $mode = $mode eq "home" && AttrVal($name,"HomeAutoDaytime",1) == 1 ? HOMEMODE_DayTime($hash) : $mode;
+    $mode = $mode eq "home" && AttrVal($name,"HomeAutoDaytime",1) ? HOMEMODE_DayTime($hash) : $mode;
     CommandSet(undef,"$name:FILTER=mode!=$mode mode $mode");
     return;
   }
@@ -2370,8 +2370,8 @@ sub HOMEMODE_Icewarning($)
   my $ice = ReadingsVal($name,"icewarning",2);
   my $temp = ReadingsVal($name,"temperature",5);
   my $temps = AttrVal($name,"HomeIcewarningOnOffTemps","2 3");
-  my $iceon = (split " ",$temps)[0]*1;
-  my $iceoff = (split " ",$temps)[1] ? (split " ",$temps)[1]*1 : $iceon;
+  my $iceon = (split " ",$temps)[0] * 1;
+  my $iceoff = (split " ",$temps)[1] ? (split " ",$temps)[1] * 1 : $iceon;
   my $icewarning = 0;
   my $icewarningcmd = "off";
   $icewarning = 1 if ((!$ice && $temp <= $iceon) || ($ice && $temp <= $iceoff));
