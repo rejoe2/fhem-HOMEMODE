@@ -270,7 +270,11 @@ sub HOMEMODE_Notify($$)
       }
     }
   }
-  HOMEMODE_execCMDs($hash,@commands);
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
   HOMEMODE_GetUpdate($hash) if ($hash->{".TRIGGERTIME_NEXT"}+1 < gettimeofday());
   return;
 }
@@ -688,7 +692,11 @@ sub HOMEMODE_Set($@)
   {
     HOMEMODE_HomebridgeMapping($hash);
   }
-  HOMEMODE_execCMDs($hash,@commands);
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
   return;
 }
 
@@ -704,7 +712,11 @@ sub HOMEMODE_set_modeAlarm($$$)
   readingsBulkUpdate($hash,"modeAlarm",$option);
   readingsEndUpdate($hash,1);
   HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
-  HOMEMODE_execCMDs($hash,@commands);
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
 }
 
 sub HOMEMODE_alarmTriggered($@)
@@ -723,8 +735,12 @@ sub HOMEMODE_alarmTriggered($@)
   {
     push @commands,$attr{$name}{"HomeCMDalarmTriggered-off"} if ($attr{$name}{"HomeCMDalarmTriggered-off"} && ReadingsVal($name,"alarmTriggered",""));
     readingsSingleUpdate($hash,"alarmTriggered","",1);
-  }  
-  HOMEMODE_execCMDs($hash,@commands) if (ReadingsAge($name,"modeAlarm","") > 5);
+  }
+  if (@commands && ReadingsAge($name,"modeAlarm","")>5)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
 }
 
 sub HOMEMODE_makeHR($@)
@@ -772,7 +788,11 @@ sub HOMEMODE_alarmTampered($@)
   {
     push @commands,$attr{$name}{"HomeCMDalarmTampered-off"} if ($attr{$name}{"HomeCMDalarmTampered-off"});
   }
-  HOMEMODE_execCMDs($hash,@commands);
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
 }
 
 sub HOMEMODE_RESIDENTS($;$)
@@ -870,7 +890,8 @@ sub HOMEMODE_RESIDENTS($;$)
   {
     if ($devtype eq "RESIDENTS")
     {
-      HOMEMODE_execCMDs($hash,@commands);
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
     }
     else
     {
@@ -1682,27 +1703,16 @@ sub HOMEMODE_execUserCMDs($)
 
 sub HOMEMODE_execCMDs($$;$)
 {
-  my ($hash,$commands,$resident) = @_;
-  return if (!$commands || $commands eq "1");
+  my ($hash,$cmds,$resident) = @_;
   my $name = $hash->{NAME};
-  my $cmds;
-  if (ref $commands eq "ARRAY")
-  {
-    Debug "ARRAY";
-    $cmds = HOMEMODE_replacePlaceholders($hash,HOMEMODE_serializeCMD($hash,@{$commands}),$resident);
-  }
-  else
-  {
-    Debug "NOT ARRAY";
-    $cmds = HOMEMODE_replacePlaceholders($hash,$commands,$resident);
-  }
-  my $error = AnalyzeCommandChain(undef,$cmds);
+  my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
+  my $error = AnalyzeCommandChain(undef,$cmd);
   if ($error)
   {
-    Log3 $name,2,"$name: error: >$error< in command: $cmds";
-    readingsSingleUpdate($hash,"lastCMDerror","error: >$error< in CMD: $cmds",1);
+    Log3 $name,2,"$name: error: >$error< in command: $cmd";
+    readingsSingleUpdate($hash,"lastCMDerror","error: >$error< in CMD: $cmd",1);
   }
-  Log3 $name,4,"executed CMDs: $cmds";
+  Log3 $name,4,"executed CMDs: $cmd";
   return;
 }
 
@@ -1763,7 +1773,11 @@ sub HOMEMODE_SetDaytime($)
     push @commands,$attr{$name}{HomeCMDdaytime} if ($attr{$name}{HomeCMDdaytime});
     push @commands,$attr{$name}{"HomeCMDdaytime-$dt"} if ($attr{$name}{"HomeCMDdaytime-$dt"});
     readingsSingleUpdate($hash,"daytime",$dt,1);
-    HOMEMODE_execCMDs($hash,@commands);
+    if (@commands)
+    {
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
+    }
   }
 }
 
@@ -1782,7 +1796,11 @@ sub HOMEMODE_SetSeason($)
     push @commands,$attr{$name}{HomeCMDseason} if ($attr{$name}{HomeCMDseason});
     push @commands,$attr{$name}{"HomeCMDseason-$season"} if ($attr{$name}{"HomeCMDseason-$season"});
     readingsSingleUpdate($hash,"season",$season,1);
-    HOMEMODE_execCMDs($hash,@commands);
+    if (@commands)
+    {
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
+    }
   }
 }
 
@@ -2130,7 +2148,11 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
           $cmd =~ s/%STATE%/$state/gm;
           push @commands,$cmd;
         }
-        HOMEMODE_execCMDs($hash,@commands);
+        if (@commands)
+        {
+          my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+          HOMEMODE_execCMDs($hash,$cmds);
+        }
       }
     }
   }
@@ -2165,15 +2187,16 @@ sub HOMEMODE_ContactCommands($$$$)
   if (@cmds)
   {
     my @commands;
-    foreach (@cmds)
+    foreach my $cmd (@cmds)
     {
       my $sta = $state eq "open" ? AttrVal($name,"HomeTextOpen","open") : AttrVal($name,"HomeTextClosed","closed");
-      $_ =~ s/%ALIAS%/$alias/gm;
-      $_ =~ s/%SENSOR%/$contact/gm;
-      $_ =~ s/%STATE%/$sta/gm;
-      push @commands,$_;
+      $cmd =~ s/%ALIAS%/$alias/gm;
+      $cmd =~ s/%SENSOR%/$contact/gm;
+      $cmd =~ s/%STATE%/$sta/gm;
+      push @commands,$cmd;
     }
-    HOMEMODE_execCMDs($hash,@commands);
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
   }
 }
 
@@ -2189,15 +2212,16 @@ sub HOMEMODE_MotionCommands($$$)
   if (@cmds)
   {
     my @commands;
-    foreach (@cmds)
+    foreach my $cmd (@cmds)
     {
       $state = $state eq "open" ? AttrVal($name,"HomeTextOpen","open") : AttrVal($name,"HomeTextClosed","closed");
-      $_ =~ s/%ALIAS%/$alias/gm;
-      $_ =~ s/%SENSOR%/$sensor/gm;
-      $_ =~ s/%STATE%/$state/gm;
-      push @commands,$_;
+      $cmd =~ s/%ALIAS%/$alias/gm;
+      $cmd =~ s/%SENSOR%/$sensor/gm;
+      $cmd =~ s/%STATE%/$state/gm;
+      push @commands,$cmd;
     }
-    HOMEMODE_execCMDs($hash,@commands);
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
   }
 }
 
@@ -2215,14 +2239,15 @@ sub HOMEMODE_EventCommands($$$)
     if (@cmds)
     {
       my @commands;
-      foreach (@cmds)
+      foreach my $cmd (@cmds)
       {
-        $_ =~ s/%CALENDAR%/$cal/gm;
-        $_ =~ s/%EVENT%/$event/gm;
-        $_ =~ s/%PREVEVENT%/$prevevent/gm;
-        push @commands,$_;
+        $cmd =~ s/%CALENDAR%/$cal/gm;
+        $cmd =~ s/%EVENT%/$event/gm;
+        $cmd =~ s/%PREVEVENT%/$prevevent/gm;
+        push @commands,$cmd;
       }
-      HOMEMODE_execCMDs($hash,@commands);
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
     }
   }
   readingsSingleUpdate($hash,"event-$cal",$event,1);
@@ -2335,7 +2360,11 @@ sub HOMEMODE_Twilight($$;$)
           my @commands;
           push @commands,$attr{$name}{"HomeCMDtwilight"} if ($attr{$name}{"HomeCMDtwilight"});
           push @commands,$attr{$name}{"HomeCMDtwilight-$val"} if ($attr{$name}{"HomeCMDtwilight-$val"});
-          HOMEMODE_execCMDs($hash,@commands);
+          if (@commands)
+          {
+            my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+            HOMEMODE_execCMDs($hash,$cmds);
+          }
         }
       }
       readingsEndUpdate($hash,1);
@@ -2361,7 +2390,11 @@ sub HOMEMODE_Icewarning($)
     my @commands;
     push @commands,$attr{$name}{"HomeCMDicewarning-$icewarningcmd"} if ($attr{$name}{"HomeCMDicewarning-$icewarningcmd"});
     readingsSingleUpdate($hash,"icewarning",$icewarning,1);
-    HOMEMODE_execCMDs($hash,@commands);
+    if (@commands)
+    {
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
+    }
   }
 }
 
@@ -2438,7 +2471,11 @@ sub HOMEMODE_checkIP($)
     my @commands;
     readingsSingleUpdate($hash,"publicIP",$ip,1);
     push @commands,$attr{$name}{"HomeCMDpublic-ip-change"} if ($attr{$name}{"HomeCMDpublic-ip-change"});
-    HOMEMODE_execCMDs($hash,@commands);
+    if (@commands)
+    {
+      my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+      HOMEMODE_execCMDs($hash,$cmds);
+    }
   }
   if ($attr{$name}{HomePublicIpCheckInterval})
   {
