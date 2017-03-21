@@ -1385,11 +1385,11 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow)$/)
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if ($attr_value !~ /^(.+)\|(.+)\|(.+)$/);
+      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if ($attr_value !~ /^([\w -]+)\|([\w -]+)\|([\w -]+)$/);
     }
     elsif ($attr_name eq "HomeTextClosedOpen")
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if ($attr_value !~ /^(.+)\|(.+)$/);
+      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if ($attr_value !~ /^([\w -]+)\|([\w -]+)$/);
     }
   }
   else
