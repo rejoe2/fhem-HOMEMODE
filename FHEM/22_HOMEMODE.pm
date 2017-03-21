@@ -1075,7 +1075,7 @@ sub HOMEMODE_userattr($)
   }
   foreach my $resident (split /,/,$hash->{RESIDENTS})
   {
-    my $devtype = defined $defs{$resident}?$defs{$resident}->{TYPE}:"";
+    my $devtype = defined $defs{$resident} ? $defs{$resident}->{TYPE} : "";
     next if (!$devtype);
     if ($adv)
     {
@@ -1382,6 +1382,14 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name eq "HomeModeAlarmArmDelay")
     {
       return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
+    }
+    elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow)$/)
+    {
+      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if ($attr_value !~ /^(.+)\|(.+)\|(.+)$/);
+    }
+    elsif ($attr_name eq "HomeTextClosedOpen")
+    {
+      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if ($attr_value !~ /^(.+)\|(.+)$/);
     }
   }
   else
