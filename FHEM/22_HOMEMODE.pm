@@ -1067,13 +1067,13 @@ sub HOMEMODE_userattr($)
   foreach my $cal (split /,/,$specialevents)
   {
     my $events = HOMEMODE_HolidayEvents($cal);
-    push @userattrAll,"HomeCMDevent-$cal";
-    push @userattrAll,"HomeCMDevent-$cal-none";
+    push @userattrAll,"HomeCMDevent-$cal-each";
     if ($adv)
     {
       foreach (@{$events})
       {
-        push @userattrAll,"HomeCMDevent-$cal-$_";
+        push @userattrAll,"HomeCMDevent-$cal-$_-begin";
+        push @userattrAll,"HomeCMDevent-$cal-$_-end";
       }
     }
   }
@@ -2251,13 +2251,14 @@ sub HOMEMODE_EventCommands($$$)
 {
   my ($hash,$cal,$event) = @_;
   my $name = $hash->{NAME};
-  my $prevevent = ReadingsVal($name,"event-$cal","none");
-  if ($prevevent ne $event)
+  my $prevevent = ReadingsVal($name,"event-$cal","");
+  if ($event ne $prevevent)
   {
+    my $se = $event eq "none" ? "end" : "begin";
     my @cmds;
     push @cmds,$attr{$name}{"HomeCMDevent"} if ($attr{$name}{"HomeCMDevent"});
-    push @cmds,$attr{$name}{"HomeCMDevent-$cal"} if ($attr{$name}{"HomeCMDevent-$cal"});
-    push @cmds,$attr{$name}{"HomeCMDevent-$cal-$event"} if ($attr{$name}{"HomeCMDevent-$cal-$event"});
+    push @cmds,$attr{$name}{"HomeCMDevent-$cal-each"} if ($attr{$name}{"HomeCMDevent-$cal-each"});
+    push @cmds,$attr{$name}{"HomeCMDevent-$cal-$event-$se"} if ($attr{$name}{"HomeCMDevent-$cal-$event-$se"});
     if (@cmds)
     {
       my @commands;
