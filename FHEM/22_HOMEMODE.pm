@@ -528,8 +528,8 @@ sub HOMEMODE_Set($@)
   $de = 1 if (AttrVal("global","language","EN") eq "DE");
   my $trans = $de ? "\"set $name\" benötigt mindestens ein und maximal drei Argumente" : "\"set $name\" needs at least one argument and maximum three arguments";
   return $trans if (@aa > 3);
-  my $option = (defined($args[0]))?$args[0]:undef;
-  my $value = (defined($args[1]))?$args[1]:undef;
+  my $option = defined $args[0] ? $args[0] : undef;
+  my $value = defined $args[1] ? $args[1] : undef;
   my $mode = ReadingsVal($name,"mode","");
   my $amode = ReadingsVal($name,"modeAlarm","");
   my $plocation = ReadingsVal($name,"location","");
@@ -587,6 +587,12 @@ sub HOMEMODE_Set($@)
     {
       push @commands,$attr{$name}{"HomeCMDpresence-absent"} if ($attr{$name}{"HomeCMDpresence-absent"} && $mode !~ /^(absent|gone)$/);
       $namode = ReadingsVal($name,"anyoneElseAtHome","off") eq "off" ? "armaway" : "armhome";
+      if ($attr{$name}{HomeModeAbsentBelatedTime} && $attr{$name}{"HomeCMDmode-absent-belated"})
+      {
+        my $hour = HOMEMODE_hourMaker($attr{$name}{HomeModeAbsentBelatedTime});
+        CommandDelete(undef,"atTmp_set_home_$name") if ($defs{"atTmp_set_home_$name"});
+        CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
+      }
     }
     HOMEMODE_ContactOpenCheckAfterModeChange($hash) if ($hash->{SENSORSCONTACT} && $option && $mode ne $option);
     push @commands,$attr{$name}{"HomeCMDmode"} if ($mode && $attr{$name}{"HomeCMDmode"});
@@ -712,6 +718,20 @@ sub HOMEMODE_set_modeAlarm($$$)
   readingsBulkUpdate($hash,"modeAlarm",$option);
   readingsEndUpdate($hash,1);
   HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
+  if (@commands)
+  {
+    my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+    HOMEMODE_execCMDs($hash,$cmds);
+  }
+}
+
+sub HOMEMODE_execCMDs_belated($$$)
+{
+  my ($name,$attrib,$option) = @_;
+  return if (!$attr{$name}{$attrib} || ReadingsVal($name,"mode","") ne $option);
+  my $hash = $defs{$name};
+  my @commands;
+  push @commands,$attr{$name}{$attrib};
   if (@commands)
   {
     my $cmds = HOMEMODE_serializeCMD($hash,@commands);
@@ -944,6 +964,7 @@ sub HOMEMODE_Attributes($)
     push @attribs,"HomeCMDlocation-$_:textField-long";
   }
   push @attribs,"HomeCMDmode:textField-long";
+  push @attribs,"HomeCMDmode-absent-belated:textField-long";
   foreach (split /,/,$HOMEMODE_UserModesAll)
   {
     push @attribs,"HomeCMDmode-$_:textField-long";
@@ -984,6 +1005,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
   push @attribs,"HomeModeAlarmArmDelay";
+  push @attribs,"HomeModeAbsentBelatedTime";
   push @attribs,"HomePresenceDeviceType";
   push @attribs,"HomePublicIpCheckInterval";
   push @attribs,"HomeResidentCmdDelay";
@@ -1162,9 +1184,9 @@ sub HOMEMODE_Attr(@)
   if ($cmd eq "set")
   {
     $hash->{helper}{lastChangedAttrValue} = $attr_value;
-    if ($attr_name =~ /^(HomeAutoAwoken|HomeAutoAsleep|HomeAutoArrival)$/)
+    if ($attr_name =~ /^(HomeAutoAwoken|HomeAutoAsleep|HomeAutoArrival|HomeModeAbsentBelatedTime)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.9." if ($attr_value !~ /^\d{1,4}(\.\d)?$/ || $attr_value > 5999.9 || $attr_value < 0);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.99." if ($attr_value !~ /^\d{1,4}(\.\d{1,2})?$/ || $attr_value > 5999.99 || $attr_value < 0);
     }
     elsif ($attr_name =~ /^(disable|HomeAdvancedUserAttr|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
     {
