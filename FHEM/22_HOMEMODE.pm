@@ -768,7 +768,7 @@ sub HOMEMODE_makeHR($@)
   my ($hash,@names) = @_;
   my $name = $hash->{NAME};
   my @aliases;
-  my $and = AttrVal($name,"HomeTextAnd","and");
+  my $and = (split /\|/,AttrVal($name,"HomeTextAndAreIs","and|are|is"))[0];
   my $text;
   foreach (@names)
   {
@@ -1009,6 +1009,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomePresenceDeviceType";
   push @attribs,"HomePublicIpCheckInterval";
   push @attribs,"HomeResidentCmdDelay";
+  push @attribs,"HomeSeasons:textField-long";
   push @attribs,"HomeSensorsContact";
   push @attribs,"HomeSensorsContactReadings";
   push @attribs,"HomeSensorsContactValues";
@@ -1023,14 +1024,9 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorTemperatureOutside";
   push @attribs,"HomeSpecialLocations";
   push @attribs,"HomeSpecialModes";
-  push @attribs,"HomeTextAfterTomorrow";
-  push @attribs,"HomeTextAnd";
-  push @attribs,"HomeTextAre";
-  push @attribs,"HomeTextClosed";
-  push @attribs,"HomeTextIs";
-  push @attribs,"HomeTextOpen";
-  push @attribs,"HomeTextToday";
-  push @attribs,"HomeTextTomorrow";
+  push @attribs,"HomeTextAndAreIs";
+  push @attribs,"HomeTextClosedOpen";
+  push @attribs,"HomeTextTodayTomorrowAfterTomorrow";
   push @attribs,"HomeTextWeatherForecastToday:textField-long";
   push @attribs,"HomeTextWeatherForecastTomorrow:textField-long";
   push @attribs,"HomeTextWeatherForecastInSpecDays:textField-long";
@@ -1677,9 +1673,7 @@ sub HOMEMODE_ForecastTXT($;$)
   my $text;
   if (defined $cond && defined $low && defined $high)
   {
-    my $today = AttrVal($name,"HomeTextToday","today");
-    my $tomorrow = AttrVal($name,"HomeTextTomorrow","tomorrow");
-    my $atomorrow = AttrVal($name,"HomeTextAfterTomorrow","day after tomorrow");
+    my ($today,$tomorrow,$atomorrow) = split /\|/,AttrVal($name,"HomeTextTodayTomorrowAfterTomorrow","today|tomorrow|day after tomorrow");
     my $d = $today;
     $d = $tomorrow  if ($day == 2);
     $d = $atomorrow if ($day == 3);
@@ -2164,7 +2158,8 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
         $cmd = $attr{$name}{HomeCMDcontactOpenWarningLast} if ($attr{$name}{HomeCMDcontactOpenWarningLast} && $retrigger == $maxtrigger + 1);
         if ($cmd)
         {
-          $state = $state =~ /^($opencmds|open)$/ ? AttrVal($name,"HomeTextOpen","open") : AttrVal($name,"HomeTextClosed","closed");
+          my ($c,$o) = split /\|/,AttrVal($name,"HomeTextClosedOpen","closed|open");
+          $state = $state =~ /^($opencmds)$/ ? $o : $c;
           $cmd =~ s/%ALIAS%/$contactname/gm;
           $cmd =~ s/%SENSOR%/$contact/gm;
           $cmd =~ s/%STATE%/$state/gm;
@@ -2211,7 +2206,8 @@ sub HOMEMODE_ContactCommands($$$$)
     my @commands;
     foreach my $cmd (@cmds)
     {
-      my $sta = $state eq "open" ? AttrVal($name,"HomeTextOpen","open") : AttrVal($name,"HomeTextClosed","closed");
+      my ($c,$o) = split /\|/,AttrVal($name,"HomeTextClosedOpen","closed|open");
+      my $sta = $state eq "open" ? $o : $c;
       $cmd =~ s/%ALIAS%/$alias/gm;
       $cmd =~ s/%SENSOR%/$contact/gm;
       $cmd =~ s/%STATE%/$sta/gm;
@@ -2236,7 +2232,8 @@ sub HOMEMODE_MotionCommands($$$)
     my @commands;
     foreach my $cmd (@cmds)
     {
-      $state = $state eq "open" ? AttrVal($name,"HomeTextOpen","open") : AttrVal($name,"HomeTextClosed","closed");
+      my ($c,$o) = split /\|/,AttrVal($name,"HomeTextClosedOpen","closed|open");
+      $state = $state eq "open" ? $o : $c;
       $cmd =~ s/%ALIAS%/$alias/gm;
       $cmd =~ s/%SENSOR%/$sensor/gm;
       $cmd =~ s/%STATE%/$state/gm;
@@ -2331,13 +2328,14 @@ sub HOMEMODE_Weather($$)
   my ($hash,$dev) = @_;
   my $name = $hash->{NAME};
   my $cond = ReadingsVal($dev,"condition","");
-  my $is = $cond =~ /(und|and|[Gg]ewitter|[Tt]hunderstorm|[Ss]chauer|[Ss]hower)/ ? AttrVal($name,"HomeTextAre","are") : AttrVal($name,"HomeTextIs","is");
+  my ($and,$are,$is) = split /\|/,AttrVal($name,"HomeTextAndAreIs","and|are|is");
+  my $be = $cond =~ /(und|and|[Gg]ewitter|[Tt]hunderstorm|[Ss]chauer|[Ss]hower)/ ? $are : $is;
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"humidity",ReadingsVal($dev,"humidity",5)) if (!$hash->{helper}{externalHumidity});
   readingsBulkUpdate($hash,"temperature",ReadingsVal($dev,"temperature",5)) if (!$attr{$name}{HomeSensorTemperatureOutside});
   readingsBulkUpdate($hash,"wind",ReadingsVal($dev,"wind",5));
   readingsBulkUpdate($hash,"pressure",ReadingsVal($dev,"pressure",5));
-  readingsBulkUpdate($hash,".be",$is);
+  readingsBulkUpdate($hash,".be",$be);
   readingsEndUpdate($hash,1);
   HOMEMODE_ReadingTrend($hash,"humidity") if (!$hash->{helper}{externalHumidity});
   HOMEMODE_ReadingTrend($hash,"temperature") if (!$attr{$name}{HomeSensorTemperatureOutside});
@@ -3067,47 +3065,20 @@ sub HOMEMODE_checkIP($)
       default:
     </li>
     <li>
-      <b><i>HomeTextAfterTomorrow</i></b><br>
-      your local translation for "day after tomorrow"<br>
+      <b><i>HomeTextAndAreIs</i></b><br>
+      pipe separated list of your local translations for "and", "are" and "is"<br>
+      default: and|are|is
+    </li>
+    <li>
+      <b><i>HomeTextClosedOpen</i></b><br>
+      pipe separated list of your local translation for "closed" and "open"<br>
+      default: closed|open
+    </li>
+    <li>
+      <b><i>HomeTextTodayTomorrowAfterTomorrow</i></b><br>
+      pipe separated list of your local translations for "today", "tomorrow" and "day after tomorrow"<br>
       this is used by weather forecast<br>
-      default: day after tomorrow
-    </li>
-    <li>
-      <b><i>HomeTextAnd</i></b><br>
-      your local translation for "and"<br>
-      default: and
-    </li>
-    <li>
-      <b><i>HomeTextAre</i></b><br>
-      your local translation for "are"<br>
-      default: are
-    </li>
-    <li>
-      <b><i>HomeTextClosed</i></b><br>
-      your local translation for "closed"<br>
-      default: closed
-    </li>
-    <li>
-      <b><i>HomeTextIs</i></b><br>
-      your local translation for "is"<br>
-      default: is
-    </li>
-    <li>
-      <b><i>HomeTextOpen</i></b><br>
-      your local translation for "open"<br>
-      default: open
-    </li>
-    <li>
-      <b><i>HomeTextToday</i></b><br>
-      your local translation for "today"<br>
-      this is used by weather forecast<br>
-      default: today
-    </li>
-    <li>
-      <b><i>HomeTextTomorrow</i></b><br>
-      your local translation for "tomorrow"<br>
-      this is used by weather forecast<br>
-      default: tomorrow
+      default: today|tomorrow|day after tomorrow
     </li>
     <li>
       <b><i>HomeTextWeatherForecastInSpecDays</i></b><br>
