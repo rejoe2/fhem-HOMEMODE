@@ -17,6 +17,7 @@ use Data::Dumper;
 
 my $HOMEMODE_version = "0.260";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
+my $HOMEMODE_Seasons = "01.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
 my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
@@ -986,10 +987,6 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDpresence-present-resident:textField-long";
   push @attribs,"HomeCMDpublic-ip-change:textField-long";
   push @attribs,"HomeCMDseason:textField-long";
-  push @attribs,"HomeCMDseason-spring:textField-long";
-  push @attribs,"HomeCMDseason-summer:textField-long";
-  push @attribs,"HomeCMDseason-autumn:textField-long";
-  push @attribs,"HomeCMDseason-winter:textField-long";
   push @attribs,"HomeCMDtwilight:textField-long";
   push @attribs,"HomeCMDtwilight-sr:textField-long";
   push @attribs,"HomeCMDtwilight-sr_astro:textField-long";
@@ -1052,6 +1049,7 @@ sub HOMEMODE_userattr($)
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
   my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
+  my $seasons = HOMEMODE_AttrCheck($hash,"HomeSeasons",$HOMEMODE_Seasons);
   foreach (split /,/,$specialmodes)
   {
     push @userattrAll,"HomeCMDmode-$_";
@@ -1121,6 +1119,12 @@ sub HOMEMODE_userattr($)
     my $m = "HomeCMDmode-".$text.":textField-long";
     push @userattrAll,$d if (!grep(/^$d$/,@userattrAll));
     push @userattrAll,$m if (!grep(/^$m$/,@userattrAll));
+  }
+  foreach (split " ",$seasons)
+  {
+    my $text = (split /\|/)[1];
+    my $s = "HomeCMDseason-".$text.":textField-long";
+    push @userattrAll,$s if (!grep(/^$s$/,@userattrAll));
   }
   my $userattrPrevList = join(" ",@userattrPrev) if (\@userattrPrev);
   Log3 $name,5,"$name: userattrPrevList: $userattrPrevList" if ($userattrPrevList);
@@ -1354,7 +1358,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
-      return "$attr_value for $attr_name must be in format: 06:00|morning 09:00|day ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|\w+)(\s[0-2]\d:[0-5]\d\|\w+){0,}$/);
+      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|\w+)(\s[0-2]\d:[0-5]\d\|\w+){0,}$/);
       if ($init_done)
       {
         if ($attr_value_old ne $attr_value)
@@ -1373,6 +1377,33 @@ sub HOMEMODE_Attr(@)
             else
             {
               return "Wrong times order in $attr_value";
+            }
+          }
+          HOMEMODE_userattr($hash);
+        }
+      }
+    }
+    elsif ($attr_name eq "HomeSeasons")
+    {
+      return "$attr_value for $attr_name must be a space separated list of date|text pairs with at least 4 values like: $HOMEMODE_Seasons ..." if (scalar (split " ",$attr_value) < 4 || scalar (split /\|/,$attr_value) < 5);
+      if ($init_done)
+      {
+        if ($attr_value_old ne $attr_value)
+        {
+          my @ds;
+          foreach (split " ",$attr_value)
+          {
+            my $time = (split /\|/)[0];
+            my ($m,$d) = split /\./,$time;
+            my $days = $m * 31 + $d;
+            my $lastdays = @ds ? $ds[scalar @ds - 1] : -1;
+            if ($days > $lastdays)
+            {
+              push @ds,$days;
+            }
+            else
+            {
+              return "Wrong dates order in $attr_value";
             }
           }
           HOMEMODE_userattr($hash);
