@@ -590,7 +590,7 @@ sub HOMEMODE_Set($@)
       if ($attr{$name}{HomeModeAbsentBelatedTime} && $attr{$name}{"HomeCMDmode-absent-belated"})
       {
         my $hour = HOMEMODE_hourMaker($attr{$name}{HomeModeAbsentBelatedTime});
-        CommandDelete(undef,"atTmp_set_home_$name") if ($defs{"atTmp_set_home_$name"});
+        CommandDelete(undef,"atTmp_absent_belated_$name") if ($defs{"atTmp_absent_belated_$name"});
         CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
       }
     }
@@ -1385,11 +1385,11 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow)$/)
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if ($attr_value !~ /^([\w -]+)\|([\w -]+)\|([\w -]+)$/);
+      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if (scalar (split /\|/,$attr_value) != 3);
     }
     elsif ($attr_name eq "HomeTextClosedOpen")
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if ($attr_value !~ /^([\w -]+)\|([\w -]+)$/);
+      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if (scalar (split /\|/,$attr_value) != 2);
     }
   }
   else
@@ -2780,11 +2780,19 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>HomeCMDevent</i></b><br>
-      cmds to execute on any calendar event
+      cmds to execute on each calendar event
     </li>
     <li>
-      <b><i>HomeCMDevent-&lt;calendar&gt;-&lt;event&gt;</i></b><br>
-      cmds to execute on a specific calendar event
+      <b><i>HomeCMDevent-&lt;%CALENDAR%&gt;-each</i></b><br>
+      cmds to execute on each event of the calendar
+    </li>
+    <li>
+      <b><i>HomeCMDevent-&lt;%CALENDAR%&gt;-&lt;%EVENT%&gt;-begin</i></b><br>
+      cmds to execute on start of a specific calendar event
+    </li>
+    <li>
+      <b><i>HomeCMDevent-&lt;%CALENDAR%&gt;-&lt;%EVENT%&gt;-end</i></b><br>
+      cmds to execute on end of a specific calendar event
     </li>
     <li>
       <b><i>HomeCMDicewarning-&lt;off/on&gt;</i></b><br>
@@ -2801,6 +2809,11 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>HomeCMDmode</i></b><br>
       cmds to execute on any mode change of the HOMEMODE device
+    </li>
+    <li>
+      <b><i>HomeCMDmode-absent-belated</i></b><br>
+      cmds to execute belated to absent<br>
+      belated time can be adjusted with attribute "HomeModeAbsentBelatedTime"
     </li>
     <li>
       <b><i>HomeCMDmode-&lt;mode/daytime&gt;</i></b><br>
@@ -2874,9 +2887,10 @@ sub HOMEMODE_checkIP($)
       default: 2 3
     </li>
     <li>
-      <b><i>HomePresenceDeviceAbsentCount-&lt;RESIDENT&gt;</i></b><br>
-      number of resident associated presence device to turn resident to absent<br>
-      default: maximum number of available presence device for each resident
+      <b><i>HomeModeAbsentBelatedTime</i></b><br>
+      time in minutes after changing to absent to execute "HomeCMDmode-absent-belated"<br>
+      if mode changes back (to home p.e.) in this time frame "HomeCMDmode-absent-belated" will not be executed<br>
+      default: 
     </li>
     <li>
       <b><i>HomeModeAlarmArmDelay</i></b><br>
@@ -2884,6 +2898,11 @@ sub HOMEMODE_checkIP($)
       must be a single number (valid for all modeAlarm arm... commands) or 3 space separated numbers for each modeAlarm arm... command individually (order: armaway armnight armhome)<br>
       values from 0 to 99999<br>
       default: 0
+    </li>
+    <li>
+      <b><i>HomePresenceDeviceAbsentCount-&lt;RESIDENT&gt;</i></b><br>
+      number of resident associated presence device to turn resident to absent<br>
+      default: maximum number of available presence device for each resident
     </li>
     <li>
       <b><i>HomePresenceDevicePresentCount-&lt;RESIDENT&gt;</i></b><br>
