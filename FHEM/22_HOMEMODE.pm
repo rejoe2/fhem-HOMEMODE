@@ -2815,7 +2815,7 @@ sub HOMEMODE_checkIP($)
       cmds to execute on any daytime change
     </li>
     <li>
-      <b><i>HomeCMDdaytime-&lt;morning/day/afternoon/evening/night&gt;</i></b><br>
+      <b><i>HomeCMDdaytime-&lt;%DAYTIME%&gt;</i></b><br>
       cmds to execute on specific day time change
     </li>
     <li>
@@ -2847,7 +2847,7 @@ sub HOMEMODE_checkIP($)
       cmds to execute on any location change of the HOMEMODE device
     </li>
     <li>
-      <b><i>HomeCMDlocation-&lt;location&gt;</i></b><br>
+      <b><i>HomeCMDlocation-&lt;%LOCATION%&gt;</i></b><br>
       cmds to execute on specific location change of the HOMEMODE device
     </li>
     <li>
@@ -2860,15 +2860,15 @@ sub HOMEMODE_checkIP($)
       belated time can be adjusted with attribute "HomeModeAbsentBelatedTime"
     </li>
     <li>
-      <b><i>HomeCMDmode-&lt;mode/daytime&gt;</i></b><br>
+      <b><i>HomeCMDmode-&lt;%MODE%&gt;</i></b><br>
       cmds to execute on specific mode change of the HOMEMODE device
     </li>
     <li>
-      <b><i>HomeCMDmode-&lt;usermode&gt;-resident</i></b><br>
+      <b><i>HomeCMDmode-&lt;%MODE%&gt;-resident</i></b><br>
       cmds to execute on specific mode change of the HOMEMODE device triggered by any resident
     </li>
     <li>
-      <b><i>HomeCMDmode-&lt;usermode&gt;-&lt;RESIDENT-NAME&gt;</i></b><br>
+      <b><i>HomeCMDmode-&lt;%MODE%&gt;-&lt;%RESIDENT%&gt;</i></b><br>
       cmds to execute on specific mode change of the HOMEMODE device triggered by a specific resident
     </li>
     <li>
@@ -2900,11 +2900,11 @@ sub HOMEMODE_checkIP($)
       cmds to execute on specific presence change of a specific resident
     </li>
     <li>
-      <b><i>HomeCMDpresence-&lt;absent/present&gt;-&lt;RESIDENT&gt;</i></b><br>
+      <b><i>HomeCMDpresence-&lt;absent/present&gt;-&lt;%RESIDENT%&gt;</i></b><br>
       cmds to execute on specific presence change of a specific resident
     </li>
     <li>
-      <b><i>HomeCMDpresence-&lt;absent/present&gt;-&lt;RESIDENT&gt;-&lt;DEVICE&gt;</i></b><br>
+      <b><i>HomeCMDpresence-&lt;absent/present&gt;-&lt;%RESIDENT%&gt;-&lt;%DEVICE%&gt;</i></b><br>
       cmds to execute on specific presence change of a specific resident's presence device<br>
       only available if more than one presence device is available for a resident
     </li>
@@ -2944,12 +2944,12 @@ sub HOMEMODE_checkIP($)
       default: 0
     </li>
     <li>
-      <b><i>HomePresenceDeviceAbsentCount-&lt;RESIDENT&gt;</i></b><br>
+      <b><i>HomePresenceDeviceAbsentCount-&lt;%RESIDENT%&gt;</i></b><br>
       number of resident associated presence device to turn resident to absent<br>
       default: maximum number of available presence device for each resident
     </li>
     <li>
-      <b><i>HomePresenceDevicePresentCount-&lt;RESIDENT&gt;</i></b><br>
+      <b><i>HomePresenceDevicePresentCount-&lt;%RESIDENT%&gt;</i></b><br>
       number of resident associated presence device to turn resident to home<br>
       default: 1
     </li>
@@ -3308,7 +3308,7 @@ sub HOMEMODE_checkIP($)
       calculated total energy
     </li>
     <li>
-      <b><i>event-&lt;CALENDAR&gt;</i></b><br>
+      <b><i>event-&lt;%CALENDAR%&gt;</i></b><br>
       current event of the (holiday) CALENDAR device(s)
     </li>
     <li>
