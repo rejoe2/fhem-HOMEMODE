@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13763 2017-03-21 19:47:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13772 2017-03-22 20:25:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.260";
+my $HOMEMODE_version = "0.261";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "01.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -1840,11 +1840,28 @@ sub HOMEMODE_SetSeason($)
 {
   my ($hash) = @_;
   my $name = $hash->{NAME};
+  my $seasons = HOMEMODE_AttrCheck($hash,"HomeSeasons",$HOMEMODE_Seasons);
   my ($sec,$min,$hour,$mday,$month,$year,$wday,$yday,$isdst) = localtime;
-  my $season = "winter";
-  $season = "spring" if ($month >= 2 && $month <  5);
-  $season = "summer" if ($month >= 5 && $month <  8);
-  $season = "autumn" if ($month >= 8 && $month < 11);
+  my $locdays = ($month + 1) * 31 + $mday;
+  Log3 $name,5,"locdays: $locdays";
+  my @texts;
+  my @dates;
+  foreach (split " ",$seasons)
+  {
+    my ($date,$text) = split /\|/;
+    my ($m,$d) = split /\./,$date;
+    my $days = $m * 31 + $d;
+    Log3 $name,5,"days: $days";
+    push @dates,$days;
+    push @texts,$text;
+  }
+  my $season = $texts[scalar @texts - 1];
+  for (my $x = 0; $x < scalar @dates; $x++)
+  {
+    my $y = $x + 1;
+    $y = 0 if ($x == scalar @dates - 1);
+    $season = $texts[$x] if ($y > $x && $locdays >= $dates[$x] && $locdays < $dates[$y]);
+  }
   if (ReadingsVal($name,"season","") ne $season)
   {
     my @commands;
@@ -2573,11 +2590,7 @@ sub HOMEMODE_checkIP($)
       Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".
     </li>
     <li>
-      Seasons will be set meteorological<br>
-      start spring: March 1th<br>
-      start summer: June 1th<br>
-      start autumn: September 1th<br>
-      start winter: December 1th
+      Seasons can also be adjusted (date and text) in attribute HomeSeasons
     </li>
     <li>
       There's a special function, which you may use, which is converting given minutes (up to 5999.99) to a timestamp that can be used for creating at devices.<br>
@@ -2900,7 +2913,7 @@ sub HOMEMODE_checkIP($)
       cmds to execute on any season change
     </li>
     <li>
-      <b><i>HomeCMDseason-&lt;autumn/spring/summer/winter&gt;</i></b><br>
+      <b><i>HomeCMDseason-&lt;%SEASON%&gt;</i></b><br>
       cmds to execute on specific season change
     </li>
     <li>
@@ -2955,6 +2968,11 @@ sub HOMEMODE_checkIP($)
       time in seconds to delay the execution of specific residents commands after the change of the residents master device<br>
       normally the resident events occur before the HOMEMODE events, to restore this behavior set this value to 0<br>
       default: 1 (second)
+    </li>
+    <li>
+      <b><i>HomeSeasons</i></b><br>
+      space separated list of date|text pairs for possible seasons starting with the first season of the year (lowest date)<br>
+      default: 01.01|spring 06.01|summer 09.01|autumn 12.01|winter
     </li>
     <li>
       <b><i>HomeSensorHumidityOutside</i></b><br>
@@ -3482,11 +3500,7 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>season</i></b><br>
-      current season (meteorological)<br>
-      start spring: March 1th<br>
-      start summer: June 1th<br>
-      start autumn: September 1th<br>
-      start winter: December 1th
+      current season as configured in HomeSeasons<br>
     </li>
     <li>
       <b><i>sensorsTampered</i></b><br>

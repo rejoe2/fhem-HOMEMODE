@@ -1,3 +1,6 @@
-added attribute HomeModeAlarmArmDelay
-added attribute HomeDaytimes for custom daytimes
-added more general informations to commandref
+	- added attribute HomeSeasons
+	- changed translation attributes HomeText
+	v0.259
+	- added attribute HomeModeAlarmArmDelay
+	- added attribute HomeDaytimes for custom daytimes
+	- added more general informations to commandref
