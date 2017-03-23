@@ -1032,6 +1032,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeTextWeatherShort:textField-long";
   push @attribs,"HomeTrendCalcAge:900,1800,2700,3600";
   push @attribs,"HomeTwilightDevice";
+  push @attribs,"HomeUWZ";
   push @attribs,"HomeYahooWeatherDevice";
   push @attribs,$readingFnAttributes;
   return join(" ",@attribs);
@@ -1422,6 +1423,18 @@ sub HOMEMODE_Attr(@)
     {
       return "$attr_value for $attr_name must be a pipe separated list with 2 values." if (scalar (split /\|/,$attr_value) != 2);
     }
+    elsif ($attr_name eq "HomeUWZ")
+    {
+      if ($init_done)
+      {
+        return "$attr_value must be a valid device of TYPE UWZ!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=UWZ"));
+        if ($attr_value_old ne $attr_value)
+        {
+          CommandDeleteReading(undef,"$name uwz.+");
+          HOMEMODE_updateInternals($hash,1);
+        }
+      }
+    }
   }
   else
   {
@@ -1468,9 +1481,14 @@ sub HOMEMODE_Attr(@)
       CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice} && $attr_name eq "HomeSensorHumidityOutside");
       HOMEMODE_updateInternals($hash,1);
     }
-    elsif ($attr_name eq "HomeDaytimes")
+    elsif ($attr_name =~ /^(HomeDaytimes|HomeSeasons)$/)
     {
       HOMEMODE_userattr($hash);
+    }
+    elsif ($attr_name eq "HomeUWZ")
+    {
+      CommandDeleteReading(undef,"$name uwz.+");
+      HOMEMODE_updateInternals($hash,1);
     }
   }
   return;
@@ -3195,6 +3213,11 @@ sub HOMEMODE_checkIP($)
       <b><i>HomeTrendCalcAge</i></b><br>
       time in seconds for the max age of the previous measured value for calculating trends<br>
       default: 900
+    </li>
+    <li>
+      <b><i>HomeUWZ</i></b><br>
+      your local UWZ device<br>
+      default:
     </li>
     <li>
       <b><i>HomeYahooWeatherDevice</i></b><br>
