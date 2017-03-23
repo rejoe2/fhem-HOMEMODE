@@ -1245,7 +1245,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeDividers")
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide 3 space separated numbers, p.e. 2 3 2" if ($attr_value !~ /^\d+(\.\d+)?(\s\d+(\.\d+)?){2}$/);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers for each season in order of the seasons provided in attribute HomeSeasons, p.e. 2 1 2 3.333" if ($attr_value !~ /^\d{1,2}(\.\d{1,3})?(\s\d{1,2}(\.\d{1,3})?){0,}$/ || $attr_value == 0);
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeMin")
     {
@@ -2192,23 +2192,31 @@ sub HOMEMODE_ContactOpenCheck($$;$;$)
     CommandDelete(undef,$timer) if ($defs{$timer} && ($retrigger || $donttrigger));
     return if (!$retrigger && $donttrigger);
     my $season = ReadingsVal($name,"season","");
+    my $seasons = AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
     my $dividers = AttrVal($contact,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers",""));
     my $mintime = AttrVal($name,"HomeSensorsContactOpenTimeMin",0);
     my $wt = AttrVal($contact,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10"));
     my $waittime;
     Log3 $name,5,"$name: retrigger: $retrigger";
     $waittime = (split " ",$wt)[$retrigger] if ((split " ",$wt)[$retrigger]);
-    $waittime = (split " ",$wt)[split " ",$wt -1] if (!$waittime);
+    $waittime = (split " ",$wt)[split " ",$wt - 1] if (!$waittime);
     Log3 $name,5,"$name: waittime real: $waittime";
-    if ($dividers && $season ne "summer" && AttrVal($contact,"HomeContactType","window") !~ /^door(inside|main)$/)
+    if ($dividers && AttrVal($contact,"HomeContactType","window") !~ /^door(inside|main)$/)
     {
-      my @dividers = split " ",$dividers;
+      my @divs = split " ",$dividers;
       my $divider;
-      $divider = $dividers[0] if ($season eq "autumn");
-      $divider = $dividers[1] if ($season eq "winter");
-      $divider = $dividers[2] if ($season eq "spring");
-      $waittime = $waittime / $divider;
-      $waittime = sprintf("%.2f",$waittime) * 1;
+      my $count = 0;
+      foreach (split " ",$seasons)
+      {
+        my ($date,$text) = split /\|/;
+        $divider = $divs[$count] if ($season eq $text);
+        $count++;
+      }
+      if ($divider)
+      {
+        $waittime = $waittime / $divider;
+        $waittime = sprintf("%.2f",$waittime) * 1;
+      }
     }
     $waittime = $mintime if ($mintime && $waittime < $mintime);
     $retrigger++;
@@ -3059,10 +3067,12 @@ sub HOMEMODE_checkIP($)
         </li>
         <li>
           <b><i>HomeOpenTimesDividers</i></b><br>
-          space separated list of 3 trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device, the set trigger time is always used for summer.<br>
-          dividers in order of: autumn winter spring<br>
-          dividers are not used for contact sensors of type doorinside!<br>
+          space separated list of trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device.<br>
+          dividers in same order as seasons in attribute HomeSeasons<br>
+          if less dividers are available than available seasons, the time will not be divided.<br>
+          dividers are not used for contact sensors of type doormain and doorinside!<br>
           this is the device setting which will override the global setting from attribute HomeSensorsContactOpenTimeDividers from the HOMEMODE device<br>
+          values from 0.001 to 99.999<br>
           default:
         </li>
       </ul>
@@ -3081,10 +3091,12 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>HomeSensorsContactOpenTimeDividers</i></b><br>
-      space separated list of 3 trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device, the set trigger time is always used for summer.<br>
-      dividers in order of: autumn winter spring<br>
-      dividers are not used for contact sensors of type doorinside!<br>
+      space separated list of trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device.<br>
+      dividers in same order as seasons in attribute HomeSeasons<br>
+      if less dividers are available than available seasons, the time will not be divided.<br>
+      dividers are not used for contact sensors of type doormain and doorinside!<br>
       this is the global setting, you can also set these dividers in each contact sensor individually in attribute HomeOpenTimesDividers once they are added to the HOMEMODE device<br>
+      values from 0.001 to 99.999<br>
       default:
     </li>
     <li>
