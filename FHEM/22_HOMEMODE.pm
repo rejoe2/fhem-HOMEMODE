@@ -215,6 +215,13 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_EventCommands($hash,$devname,$event);
     }
   }
+  elsif ($attr{$name}{HomeUWZ} && $devname eq $attr{$name}{HomeUWZ})
+  {
+    if (grep(/^WarnCount:\s/,@{$events}))
+    {
+      HOMEMODE_UWZCommands($hash,$events);
+    }
+  }
   elsif ($devtype =~ /^($prestype)$/ && grep(/^presence/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
   {
     my $resident;
@@ -422,6 +429,8 @@ sub HOMEMODE_updateInternals($;$)
         push @allMonitoredDevices,$_;
       }
     }
+    my $uwz = HOMEMODE_AttrCheck($hash,"HomeUWZ","");
+    push @allMonitoredDevices,$uwz if ($uwz);
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     Log3 $name,5,"$name: allMonitoredDevicesList: ".join(",",@allMonitoredDevices);
@@ -998,6 +1007,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDtwilight-ss_civil:textField-long";
   push @attribs,"HomeCMDtwilight-ss_indoor:textField-long";
   push @attribs,"HomeCMDtwilight-ss_weather:textField-long";
+  push @attribs,"HomeCMDuwz-warn-begin:textField-long";
+  push @attribs,"HomeCMDuwz-warn-end:textField-long";
   push @attribs,"HomeDaytimes:textField-long";
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
@@ -1245,7 +1256,14 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeDividers")
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers for each season in order of the seasons provided in attribute HomeSeasons, p.e. 2 1 2 3.333" if ($attr_value !~ /^\d{1,2}(\.\d{1,3})?(\s\d{1,2}(\.\d{1,3})?){0,}$/ || $attr_value == 0);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers for each season in order of the seasons provided in attribute HomeSeasons, p.e. 2 1 2 3.333" if ($attr_value !~ /^\d{1,2}(\.\d{1,3})?(\s\d{1,2}(\.\d{1,3})?){0,}$/);
+      my @seasons = split " ",AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
+      my @times = split " ",$attr_value;
+      return "Number of $attr_name values (".scalar @times.") not matching the number of available seasons (".scalar @seasons.") in HomeSeasons!" if (scalar @seasons != scalar @times);
+      foreach (@times)
+      {
+        return "Dividers can't be zero, because division by zero is not defined!" if ($_ == 0);
+      }
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeMin")
     {
@@ -1254,6 +1272,10 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name eq "HomeSensorsContactOpenTimes")
     {
       return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers, p.e. 5 10 15 17.5" if ($attr_value !~ /^\d{1,4}(\.\d)?((\s\d{1,4}(\.\d)?)?){0,}$/);
+      foreach (split " ",$attr_value)
+      {
+        return "Dividers can't be zero, because division by zero is not defined!" if ($_ == 0);
+      }
     }
     elsif ($attr_name eq "HomeResidentCmdDelay")
     {
@@ -2355,6 +2377,41 @@ sub HOMEMODE_EventCommands($$$)
   readingsSingleUpdate($hash,"event-$cal",$event,1);
 }
 
+sub HOMEMODE_UWZCommands($$)
+{
+  my ($hash,$events) = @_;
+  my $name = $hash->{NAME};
+  my $prev = ReadingsVal($name,"uwz_warnCount","");
+  my $count;
+  my $warning;
+  foreach (@{$events})
+  {
+    $count = $_ if (grep(/^WarnCount$/,$_))
+  }
+  if (defined $count)
+  {
+    $count =~ s/^WarnCount:\s//;
+    if ($count ne $prev)
+    {
+      my $se = $count > 0 ? "begin" : "end";
+      my @cmds;
+      push @cmds,$attr{$name}{"HomeCMDuwz-warn-$se"} if ($attr{$name}{"HomeCMDuwz-warn-$se"});
+      if (@cmds)
+      {
+        my @commands;
+        foreach my $cmd (@cmds)
+        {
+          # $cmd =~ s/%EVENT%/$count/gm;
+          push @commands,$cmd;
+        }
+        my $cmds = HOMEMODE_serializeCMD($hash,@commands);
+        HOMEMODE_execCMDs($hash,$cmds);
+      }
+    }
+    readingsSingleUpdate($hash,"uwz_warnCount",$count,1);
+  }
+}
+
 sub HOMEMODE_HomebridgeMapping($)
 {
   my ($hash) = @_;
@@ -3068,8 +3125,7 @@ sub HOMEMODE_checkIP($)
         <li>
           <b><i>HomeOpenTimesDividers</i></b><br>
           space separated list of trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device.<br>
-          dividers in same order as seasons in attribute HomeSeasons<br>
-          if less dividers are available than available seasons, the time will not be divided.<br>
+          dividers in same order and same number as seasons in attribute HomeSeasons<br>
           dividers are not used for contact sensors of type doormain and doorinside!<br>
           this is the device setting which will override the global setting from attribute HomeSensorsContactOpenTimeDividers from the HOMEMODE device<br>
           values from 0.001 to 99.999<br>
@@ -3092,8 +3148,7 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>HomeSensorsContactOpenTimeDividers</i></b><br>
       space separated list of trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device.<br>
-      dividers in same order as seasons in attribute HomeSeasons<br>
-      if less dividers are available than available seasons, the time will not be divided.<br>
+      dividers in same order and same number as seasons in attribute HomeSeasons<br>
       dividers are not used for contact sensors of type doormain and doorinside!<br>
       this is the global setting, you can also set these dividers in each contact sensor individually in attribute HomeOpenTimesDividers once they are added to the HOMEMODE device<br>
       values from 0.001 to 99.999<br>
