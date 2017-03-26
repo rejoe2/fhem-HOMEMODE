@@ -17,7 +17,7 @@ use Data::Dumper;
 
 my $HOMEMODE_version = "0.261";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
-my $HOMEMODE_Seasons = "01.01|spring 06.01|summer 09.01|autumn 12.01|winter";
+my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
 my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
@@ -2382,6 +2382,7 @@ sub HOMEMODE_UWZCommands($$)
   my ($hash,$events) = @_;
   my $name = $hash->{NAME};
   my $prev = ReadingsVal($name,"uwz_warnCount","");
+  my $uwz = $attr{$name}{HomeUWZ};
   my $count;
   my $warning;
   foreach (@{$events})
@@ -2398,10 +2399,23 @@ sub HOMEMODE_UWZCommands($$)
       push @cmds,$attr{$name}{"HomeCMDuwz-warn-$se"} if ($attr{$name}{"HomeCMDuwz-warn-$se"});
       if (@cmds)
       {
+        my $textShort;
+        my $textLong;
+        for (my $i = 0; $i <= $count; $i++)
+        {
+          my $read = "Warn_$count";
+          $textShort .= " " if ($i > 0);
+          $textLong .= " " if ($i > 0);
+          $textShort .= $i + 1 . ". " if ($count > 1);
+          $textLong .= $i + 1 . ". " if ($count > 1);
+          $textShort .= ReadingsVal($uwz,$read."_ShortText","");
+          $textLong .= ReadingsVal($uwz,$read."_LongText","");
+        }
         my @commands;
         foreach my $cmd (@cmds)
         {
-          # $cmd =~ s/%EVENT%/$count/gm;
+          $cmd =~ s/%UWZSHORT%/$textShort/gm;
+          $cmd =~ s/%UWZLONG%/$textLong/gm;
           push @commands,$cmd;
         }
         my $cmds = HOMEMODE_serializeCMD($hash,@commands);
