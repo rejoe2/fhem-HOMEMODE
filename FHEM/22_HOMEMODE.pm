@@ -3014,6 +3014,10 @@ sub HOMEMODE_checkIP($)
       cmds to execute on specific season change
     </li>
     <li>
+      <b><i>HomeCMDuwz-warn-&lt;begin/end&gt;</i></b><br>
+      cmds to execute on UWZ warning begin/end
+    </li>
+    <li>
       <b><i>HomeDaytimes</i></b><br>
       space separated list of time|text pairs for possible daytimes starting with the first event of the day (lowest time)<br>
       default: 05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night
@@ -3396,12 +3400,7 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>daytime</i></b><br>
-      current daytime (morning,day,afternoon,evening,night) - independent from the mode of the HOMEMODE device<br>
-      morning starts at 5 AM<br>
-      day starts at 10 AM<br>
-      afternoon starts at 2 PM<br>
-      evening starts at 6 PM<br>
-      night starts at 11 PM
+      current daytime (as configured in HomeDaytimes) - independent from the mode of the HOMEMODE device<br>
     </li>
     <li>
       <b><i>dnd</i></b><br>
@@ -3638,6 +3637,10 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>twilightEvent</i></b><br>
       current twilight event
+    </li>
+    <li>
+      <b><i>uwz_warnCount</i></b><br>
+      current UWZ warn count
     </li>
     <li>
       <b><i>wind</i></b><br>
@@ -3906,6 +3909,14 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>%TWILIGHTEVENT%</i></b><br>
       current twilight event
+    </li>
+    <li>
+      <b><i>%UWZLONG%</i></b><br>
+      all current UWZ warnings as long text
+    </li>
+    <li>
+      <b><i>%UWZSHORT%</i></b><br>
+      all current UWZ warnings as short text
     </li>
     <li>
       <b><i>%WEATHER%</i></b><br>
