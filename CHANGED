@@ -1,6 +1,10 @@
-	- added attribute HomeSeasons
-	- changed translation attributes HomeText
-	v0.259
-	- added attribute HomeModeAlarmArmDelay
-	- added attribute HomeDaytimes for custom daytimes
-	- added more general informations to commandref
+    v0.262
+    - added UWZ test integration
+    - fix HomeSensorsContactOpenTimeDividers
+    v0.261
+    - added attribute HomeSeasons
+    - changed translation attributes HomeText
+    v0.259
+    - added attribute HomeModeAlarmArmDelay
+    - added attribute HomeDaytimes for custom daytimes
+    - added more general informations to commandref
