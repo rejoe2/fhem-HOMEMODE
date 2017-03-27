@@ -1800,7 +1800,77 @@ sub HOMEMODE_execCMDs($$;$)
 {
   my ($hash,$cmds,$resident) = @_;
   my $name = $hash->{NAME};
-  my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
+  # my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
+  $resident = $resident ? $resident : ReadingsVal($name,"lastActivityByResident","");
+  my $pdevice = ReadingsVal($name,"lastActivityByPresenceDevice","");
+  my $ure = $hash->{RESIDENTS};
+  $ure =~ s/,/\|/g;
+  my $arrivers = HOMEMODE_makeHR($hash,devspec2array("$ure:FILTER=location=arrival"));
+  my $sensor = $attr{$name}{HomeYahooWeatherDevice};
+  my %specials = (
+    "%ADDRESS"          => InternalVal($pdevice,"ADDRESS",""),
+    "%ALARM"            => ReadingsVal($name,"alarmTriggered",0),
+    "%ALIAS"            => AttrVal($resident,"alias",""),
+    "%AMODE"            => ReadingsVal($name,"modeAlarm",""),
+    "%AEAH"             => ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0,
+    "%ARRIVERS"         => $arrivers,
+    "%AUDIO"            => AttrVal($resident,"msgContactAudio",""),
+    "%CONDITION"        => ReadingsVal($sensor,"condition",""),
+    "%CONTACT"          => ReadingsVal($name,"lastContact",""),
+    "%DAYTIME"          => HOMEMODE_DayTime($hash),
+    "%DEVICE"           => $pdevice,
+    "%DEVICEA"          => ReadingsVal($name,"lastAbsentByPresenceDevice",""),
+    "%DEVICEP"          => ReadingsVal($name,"lastPresentByPresenceDevice",""),
+    "%DND"              => ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0,
+    "%DURABSENCE"       => ReadingsVal($resident,"durTimerAbsence_cr",0),
+    "%DURABSENCELAST"   => ReadingsVal($resident,"lastDurAbsence_cr",0),
+    "%DURPRESENCE"      => ReadingsVal($resident,"durTimerPresence_cr",0),
+    "%DURPRESENCELAST"  => ReadingsVal($resident,"lastDurPresence_cr",0),
+    "%DURSLEEP"         => ReadingsVal($resident,"durTimerSleep_cr",0),
+    "%DURSLEEPLAST"     => ReadingsVal($resident,"lastDurSleep_cr",0),
+    "%FORECAST"         => HOMEMODE_ForecastTXT($hash),
+    "%FORECASTTODAY"    => HOMEMODE_ForecastTXT($hash,1),
+    "%HUMIDITY"         => ReadingsVal($name,"humidity",0),
+    "%HUMIDITYTREND"    => ReadingsVal($name,"humidityTrend",0),
+    "%ICE"              => ReadingsVal($name,"icewarning",0),
+    "%IP"               => ReadingsVal($name,"publicIP",""),
+    "%LIGHT"            => ReadingsVal($name,"light",0),
+    "%LOCATION"         => ReadingsVal($name,"location",""),
+    "%LOCATIONR"        => ReadingsVal($resident,"location",""),
+    "%LUMINANCE"        => ReadingsVal($name,"luminance",0),
+    "%LUMINANCETREND"   => ReadingsVal($name,"luminanceTrend",0),
+    "%MODE"             => ReadingsVal($name,"mode",""),
+    "%MOTION"           => ReadingsVal($name,"lastMotion",""),
+    "%NAME"             => $name,
+    "%OPEN"             => ReadingsVal($name,"contactsOutsideOpen_hr",""),
+    "%OPENCT"           => ReadingsVal($name,"sensorsTampered_ct",""),
+    "%RESIDENT"         => $resident,
+    "%PRESENT"          => ReadingsVal($name,"presence","") eq "present" ? 1 : 0,
+    "%PRESENTR"         => ReadingsVal($resident,"presence","") eq "present" ? 1 : 0,
+    "%PRESSURE"         => ReadingsVal($name,"pressure",""),
+    "%PRESSURETREND"    => ReadingsVal($sensor,"pressure_trend_txt",""),
+    "%PREVAMODE"        => ReadingsVal($name,"prevModeAlarm",""),
+    "%PREVCONTACT"      => ReadingsVal($name,"prevContact",""),
+    "%PREVMODE"         => ReadingsVal($name,"prevMode",""),
+    "%PREVMODER"        => ReadingsVal($resident,"lastState",""),
+    "%PREVMOTION"       => ReadingsVal($name,"prevMotion",""),
+    "%SEASON"           => ReadingsVal($name,"season",""),
+    "%SELF"             => $name,
+    "%SENSORSCONTACT"   => $hash->{SENSORSCONTACT},
+    "%SENSORSMOTION"    => $hash->{SENSORSMOTION},
+    "%TAMPERED"         => ReadingsVal($name,"sensorsTampered_hr",""),
+    "%TAMPEREDCT"       => ReadingsNum($name,"sensorsTampered_ct",0),
+    "%TEMPERATURE"      => ReadingsVal($name,"temperature",0),
+    "%TEMPERATURETREND" => ReadingsVal($name,"temperatureTrend","constant"),
+    "%TOBE"             => ReadingsVal($name,".be",""),
+    "%TWILIGHT"         => ReadingsVal($name,"twilight",0),
+    "%TWILIGHTEVENT"    => ReadingsVal($name,"twilightEvent",""),
+    "%WEATHER"          => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort","")),
+    "%WEATHERLONG"      => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong","")),
+    "%WIND"             => ReadingsVal($name,"wind",0),
+    "%WINDCHILL"        => ReadingsVal($sensor,"wind_chill",0),
+  );
+  my $cmd = EvalSpecials($cmds,%specials);
   my $error = AnalyzeCommandChain(undef,$cmd);
   if ($error)
   {
@@ -3891,6 +3961,10 @@ sub HOMEMODE_checkIP($)
     <li>
       <b><i>%TAMPERED%</i></b><br>
       will return all tampered sensors
+    </li>
+    <li>
+      <b><i>%TAMPEREDCT%</i></b><br>
+      will return the number of tampered sensors
     </li>
     <li>
       <b><i>%TEMPERATURE%</i></b><br>
