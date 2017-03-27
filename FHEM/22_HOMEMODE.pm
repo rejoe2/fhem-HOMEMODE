@@ -2046,7 +2046,7 @@ sub HOMEMODE_addSensorsuserattr($;$)
   }
 }
 
-sub HOMEMODE_TriggerState($;$;$;$)
+sub HOMEMODE_TriggerState($;$$$)
 {
   my ($hash,$getter,$type,$trigger) = @_;
   my $exit = 1 if (!$getter && !$type && $trigger);
@@ -2260,7 +2260,7 @@ sub HOMEMODE_name2alias($;$)
   return $ret;
 }
 
-sub HOMEMODE_ContactOpenCheck($$;$;$)
+sub HOMEMODE_ContactOpenCheck($$;$$)
 {
   my ($name,$contact,$state,$retrigger) = @_;
   $retrigger = 0 if (!$retrigger);
