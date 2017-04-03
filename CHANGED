@@ -1,9 +1,10 @@
     v0.262
-    - added UWZ test integration
+    - added UWZ integration (experimental)
     - fix HomeSensorsContactOpenTimeDividers
     v0.261
     - added attribute HomeSeasons
-    - changed translation attributes HomeText
+    - changed translation attributes HomeText !!! YOU HAVE TO CHANGE YOUR
+      TRANSLATIONS TO THE NEW ATTRIBUTES !!!
     v0.259
     - added attribute HomeModeAlarmArmDelay
     - added attribute HomeDaytimes for custom daytimes
