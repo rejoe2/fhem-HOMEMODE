@@ -57,7 +57,7 @@ sub HOMEMODE_Define($$)
     }
     if (scalar @resdevs == 1)
     {
-      return "$resdevs[0] doesn't exists" if (!$defs{$resdevs[0]});
+      return "$resdevs[0] doesn't exists" if (!$IsDevice($resdevs[0]));
       $hash->{DEF} = $resdevs[0];
     }
     elsif (scalar @resdevs > 1)
@@ -295,12 +295,12 @@ sub HOMEMODE_updateInternals($;$)
   delete $hash->{helper}{allMonitoredDevices} if ($force);
   my $name = $hash->{NAME};
   my $resdev = $hash->{DEF};
-  if (!defined $defs{$resdev})
+  if (!IsDevice($resdev))
   {
     my $trans= $de ? "$resdev ist nicht definiert!" : "$resdev is not defined!";
     $hash->{STATE} = $trans;
   }
-  elsif ($defs{$resdev}->{TYPE} ne "RESIDENTS")
+  elsif (!IsDevice($resdev,"RESIDENTS"))
   {
     my $trans= $de ? "$resdev ist kein valides RESIDENTS Gerät!" : "$resdev is not a valid RESIDENTS device!";
     $hash->{STATE} = $trans;
@@ -582,7 +582,7 @@ sub HOMEMODE_Set($@)
         if ($attr{$name}{HomeAutoArrival})
         {
           my $hour = HOMEMODE_hourMaker($attr{$name}{HomeAutoArrival});
-          CommandDelete(undef,"atTmp_set_home_$name") if ($defs{"atTmp_set_home_$name"});
+          CommandDelete(undef,"atTmp_set_home_$name") if (IsDevice("atTmp_set_home_$name"));
           CommandDefine(undef,"-temporary atTmp_set_home_$name at +$hour set $name:FILTER=location=arrival location home");
           $location = "arrival";
         }
@@ -600,7 +600,7 @@ sub HOMEMODE_Set($@)
       if ($attr{$name}{HomeModeAbsentBelatedTime} && $attr{$name}{"HomeCMDmode-absent-belated"})
       {
         my $hour = HOMEMODE_hourMaker($attr{$name}{HomeModeAbsentBelatedTime});
-        CommandDelete(undef,"atTmp_absent_belated_$name") if ($defs{"atTmp_absent_belated_$name"});
+        CommandDelete(undef,"atTmp_absent_belated_$name") if (IsDevice("atTmp_absent_belated_$name"));
         CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
       }
     }
@@ -611,7 +611,7 @@ sub HOMEMODE_Set($@)
     CommandSet(undef,"$name:FILTER=location!=$location location $location");
     if (AttrVal($name,"HomeAutoAlarmModes",1))
     {
-      CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if ($defs{"atTmp_modeAlarm_delayed_arm_$name"});
+      CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (IsDevice("atTmp_modeAlarm_delayed_arm_$name"));
       CommandSet(undef,"$name:FILTER=modeAlarm!=$namode modeAlarm $namode");
     }
     readingsBeginUpdate($hash);
@@ -626,7 +626,7 @@ sub HOMEMODE_Set($@)
     return $trans if (!$option || !$value);
     my $timer = $name."_alarmMode_for_timer_$option";
     my $time = HOMEMODE_hourMaker($value);
-    CommandDelete(undef,$timer) if ($defs{$timer});
+    CommandDelete(undef,$timer) if (IsDevice($timer));
     CommandDefine(undef,"$timer at +$time set $name:FILTER=modeAlarm!=$amode modeAlarm $amode");
     CommandSet(undef,"$name:FILTER=modeAlarm!=$option modeAlarm $option");
   }
@@ -638,7 +638,7 @@ sub HOMEMODE_Set($@)
     return $trans if (ReadingsVal($name,"dnd","off") eq "on");
     my $timer = $name."_dnd_for_timer";
     my $time = HOMEMODE_hourMaker($option);
-    CommandDelete(undef,$timer) if ($defs{$timer});
+    CommandDelete(undef,$timer) if (IsDevice($timer));
     CommandDefine(undef,"$timer at +$time set $name:FILTER=dnd!=off dnd off");
     CommandSet(undef,"$name:FILTER=dnd!=on dnd on");
   }
@@ -662,7 +662,7 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm")
   {
-    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if ($defs{"atTmp_modeAlarm_delayed_arm_$name"});
+    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (IsDevice("atTmp_modeAlarm_delayed_arm_$name"));
     my $delay;
     if ($option =~ /^arm/ && $attr{$name}{HomeModeAlarmArmDelay})
     {
@@ -875,7 +875,7 @@ sub HOMEMODE_RESIDENTS($;$)
         elsif ($usermode eq "awoken")
         {
           my $hours = HOMEMODE_hourMaker($attr{$name}{"HomeAutoAwoken"});
-          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if ($defs{"atTmp_awoken_".$dev."_$name"});
+          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (IsDevice("atTmp_awoken_".$dev."_$name"));
           CommandDefine(undef,"-temporary atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
         }
       }
@@ -883,13 +883,13 @@ sub HOMEMODE_RESIDENTS($;$)
       {
         my $hours = HOMEMODE_hourMaker($attr{$name}{HomeAutoArrival});
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
-        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if ($defs{"atTmp_location_home_".$dev."_$name"});
+        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (IsDevice("atTmp_location_home_".$dev."_$name"));
         CommandDefine(undef,"-temporary atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home")
       }
       if ($usermode eq "gotosleep" && $attr{$name}{HomeAutoAsleep})
       {
         my $hours = HOMEMODE_hourMaker($attr{$name}{HomeAutoAsleep});
-        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if ($defs{"atTmp_asleep_".$dev."_$name"});
+        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (IsDevice("atTmp_asleep_".$dev."_$name"));
         CommandDefine(undef,"-temporary atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
       }
       readingsBeginUpdate($hash);
@@ -1085,7 +1085,7 @@ sub HOMEMODE_userattr($)
   }
   foreach my $resident (split /,/,$hash->{RESIDENTS})
   {
-    my $devtype = defined $defs{$resident} ? $defs{$resident}->{TYPE} : "";
+    my $devtype = IsDevice($resident) ? $defs{$resident}->{TYPE} : "";
     next if (!$devtype);
     if ($adv)
     {
@@ -1234,7 +1234,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($init_done)
       {
-        return "$attr_value must be a valid TYPE" if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value"));
+        return "$attr_value must be a valid TYPE" if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value:FILTER=presence=.*"));
         HOMEMODE_updateInternals($hash,1);
       }
     }
@@ -1779,7 +1779,7 @@ sub HOMEMODE_CheckIfIsValidDevspec($)
   my @names;
   foreach (devspec2array($spec))
   {
-    next if (!$defs{$_});
+    next unless (IsDevice($_));
     push @names,$_;
   }
   return if (!@names);
@@ -2044,7 +2044,7 @@ sub HOMEMODE_TriggerState($;$$$)
         readingsEndUpdate($hash,1);
         HOMEMODE_ContactCommands($hash,$contact,"closed",$kind);
         my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
-        CommandDelete(undef,$timer) if ($defs{$timer});
+        CommandDelete(undef,$timer) if (IsDevice($timer));
       }
     }
     if ($tread && $tstate =~ /^($otcmd)$/)
@@ -2211,7 +2211,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
       }
     }
     my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
-    CommandDelete(undef,$timer) if ($defs{$timer} && ($retrigger || $donttrigger));
+    CommandDelete(undef,$timer) if (IsDevice($timer) && ($retrigger || $donttrigger));
     return if (!$retrigger && $donttrigger);
     my $season = ReadingsVal($name,"season","");
     my $seasons = AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
@@ -2251,7 +2251,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     my $opencmds = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
     if ($state =~ /^($opencmds|open)$/)
     {
-      CommandDefine(undef,"-temporary $timer at +$waittime $at") if ($at && !$defs{$timer});
+      CommandDefine(undef,"-temporary $timer at +$waittime $at") if ($at && !IsDevice($timer));
       if ($retrigger > 1)
       {
         my @commands;
@@ -2569,7 +2569,7 @@ sub HOMEMODE_CheckHolidayDevices($)
   my @wrongdevices;
   foreach (split /,/,$specs)
   {
-    push @wrongdevices,$_ if (!$defs{$_} || $defs{$_}->{TYPE} ne "holiday");
+    push @wrongdevices,$_ if (!IsDevice($_,"holiday"));
   }
   return \@wrongdevices if (@wrongdevices);
   return;
