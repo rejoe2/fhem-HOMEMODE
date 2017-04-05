@@ -57,7 +57,7 @@ sub HOMEMODE_Define($$)
     }
     if (scalar @resdevs == 1)
     {
-      return "$resdevs[0] doesn't exists" if (!$IsDevice($resdevs[0]));
+      return "$resdevs[0] doesn't exists" if (!IsDevice($resdevs[0]));
       $hash->{DEF} = $resdevs[0];
     }
     elsif (scalar @resdevs > 1)
