@@ -1288,7 +1288,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeSensorsContactReadings|HomeSensorsMotionReadings)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, p.e. state sabotageError" if ($attr_value !~ /^[\w-\.]+\s[\w-\.]+(\s[\w-\.]+)?$/);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, p.e. state sabotageError" if ($attr_value !~ /^[\w-\.]+\s[\w-\.]+$/);
     }
     elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues)$/)
     {
@@ -3285,7 +3285,7 @@ sub HOMEMODE_checkIP($)
         </li>
         <li>
           <b><i>HomeReadings</i></b><br>
-          min. 2 max. 3 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
+          2 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
           this is the device setting which will override the global setting from attribute HomeSensorsMotionReadings from the HOMEMODE device<br>
           default: state sabotageError
         </li>
@@ -3299,7 +3299,7 @@ sub HOMEMODE_checkIP($)
     </li>
     <li>
       <b><i>HomeSensorsMotionReadings</i></b><br>
-      min. 2 max. 3 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
+      2 space separated readings for motion sensors open/closed state and tamper alert<br>
       this is the global setting, you can also set these readings in each motion sensor individually in attribute HomeReadings once they are added to the HOMEMODE device<br>
       default: state sabotageError
     </li>
