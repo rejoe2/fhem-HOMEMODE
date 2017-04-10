@@ -3285,7 +3285,7 @@ sub HOMEMODE_checkIP($)
         </li>
         <li>
           <b><i>HomeReadings</i></b><br>
-          2 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
+          2 space separated readings for motion sensors open/closed state and tamper alert<br>
           this is the device setting which will override the global setting from attribute HomeSensorsMotionReadings from the HOMEMODE device<br>
           default: state sabotageError
         </li>
