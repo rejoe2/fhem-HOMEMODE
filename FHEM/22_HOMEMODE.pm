@@ -111,7 +111,6 @@ sub HOMEMODE_Notify($$)
   return if (!$events);
   my $prestype = AttrVal($name,"HomePresenceDeviceType","PRESENCE");
   my @allMonitoredDevices = @{$hash->{helper}{allMonitoredDevices}} if ($hash->{helper}{allMonitoredDevices});
-
   if (grep(/^INITIALIZED$/,@{$events}))
   {
     HOMEMODE_updateInternals($hash);
@@ -493,7 +492,7 @@ sub HOMEMODE_updateInternals($;$)
     HOMEMODE_PowerEnergy($hash) if ($hash->{SENSORSENERGY});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
-    HOMEMODE_Luminance($hash) if ($luminance);
+    HOMEMODE_Luminance($hash) if ($hash->{SENSORSLUMINANCE});
   }
   return;
 }
