@@ -111,6 +111,7 @@ sub HOMEMODE_Notify($$)
   return if (!$events);
   my $prestype = AttrVal($name,"HomePresenceDeviceType","PRESENCE");
   my @allMonitoredDevices = @{$hash->{helper}{allMonitoredDevices}} if ($hash->{helper}{allMonitoredDevices});
+
   if (grep(/^INITIALIZED$/,@{$events}))
   {
     HOMEMODE_updateInternals($hash);
@@ -132,23 +133,36 @@ sub HOMEMODE_Notify($$)
   {
     $devtype eq "RESIDENTS" ? HOMEMODE_RESIDENTS($hash) : HOMEMODE_RESIDENTS($hash,$devname);
   }
-  elsif ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
+  if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
   {
-    HOMEMODE_TriggerState($hash,undef,undef,$devname);
+    my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^$oread:\s.*$/,@{$events}));
   }
-  elsif ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
+  if ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
   {
-    HOMEMODE_TriggerState($hash,undef,undef,$devname);
+    my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError"));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^$oread:\s.*$/,@{$events}));
   }
-  elsif ($attr{$name}{HomeYahooWeatherDevice} && grep(/^$devname$/,split /,/,$attr{$name}{HomeYahooWeatherDevice}))
+  if ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
+  {
+    my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
+    my $lum;
+    foreach (@{$events})
+    {
+      next unless ($_ =~ /^$read:\s.*$/);
+      $lum = (split " ",$_)[1];
+    }
+    HOMEMODE_Luminance($hash,$devname,$lum) if (grep(/^$read:\s.*$/,@{$events}));
+  }
+  if ($attr{$name}{HomeYahooWeatherDevice} && grep(/^$devname$/,split /,/,$attr{$name}{HomeYahooWeatherDevice}))
   {
     HOMEMODE_Weather($hash,$devname);
   }
-  elsif ($attr{$name}{HomeTwilightDevice} && grep(/^$devname$/,split /,/,$attr{$name}{HomeTwilightDevice}))
+  if ($attr{$name}{HomeTwilightDevice} && grep(/^$devname$/,split /,/,$attr{$name}{HomeTwilightDevice}))
   {
     HOMEMODE_Twilight($hash,$devname);
   }
-  elsif ($attr{$name}{HomeSensorTemperatureOutside} && $devname eq $attr{$name}{HomeSensorTemperatureOutside})
+  if ($attr{$name}{HomeSensorTemperatureOutside} && $devname eq $attr{$name}{HomeSensorTemperatureOutside})
   {
     if (grep(/^(temperature|humidity):\s/,@{$events}))
     {
@@ -178,7 +192,7 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_Icewarning($hash);
     }
   }
-  elsif ($attr{$name}{HomeSensorHumidityOutside} && $devname eq $attr{$name}{HomeSensorHumidityOutside})
+  if ($attr{$name}{HomeSensorHumidityOutside} && $devname eq $attr{$name}{HomeSensorHumidityOutside})
   {
     if (grep(/^humidity:\s/,@{$events}))
     {
@@ -193,15 +207,15 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_ReadingTrend($hash,"humidity",$val);
     }
   }
-  elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
+  if ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
   {
     foreach (@{$events})
     {
-      HOMEMODE_calcPowerOrEnergy($hash,$devname,"energy",$_) if ($_ =~ /^energy:/);
-      HOMEMODE_calcPowerOrEnergy($hash,$devname,"power",$_) if ($_ =~ /^power:/);
+      HOMEMODE_PowerEnergy($hash,$devname,"energy",$_) if ($_ =~ /^energy:/);
+      HOMEMODE_PowerEnergy($hash,$devname,"power",$_) if ($_ =~ /^power:/);
     }
   }
-  elsif ($attr{$name}{HomeEventsHolidayDevices} && grep(/^$devname$/,split /,/,$attr{$name}{HomeEventsHolidayDevices}))
+  if ($attr{$name}{HomeEventsHolidayDevices} && grep(/^$devname$/,split /,/,$attr{$name}{HomeEventsHolidayDevices}))
   {
     if (grep(/^state:\s/,@{$events}))
     {
@@ -215,14 +229,14 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_EventCommands($hash,$devname,$event);
     }
   }
-  elsif ($attr{$name}{HomeUWZ} && $devname eq $attr{$name}{HomeUWZ})
+  if ($attr{$name}{HomeUWZ} && $devname eq $attr{$name}{HomeUWZ})
   {
     if (grep(/^WarnCount:\s/,@{$events}))
     {
       HOMEMODE_UWZCommands($hash,$events);
     }
   }
-  elsif ($devtype =~ /^($prestype)$/ && grep(/^presence/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
+  if ($devtype =~ /^($prestype)$/ && grep(/^presence/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
   {
     my $resident;
     my $residentregex;
@@ -238,7 +252,7 @@ sub HOMEMODE_Notify($$)
     if (ReadingsVal($devname,"presence","") !~ /^maybe/)
     {
       my @presentdevicespresent;
-      foreach (devspec2array("TYPE=$prestype:FILTER=presence=.*"))
+      foreach (devspec2array("TYPE=$prestype:FILTER=presence=^(maybe\s)?(absent|present|appeared|disappeared)"))
       {
         next if (lc($_) !~ /$residentregex/);
         push @presentdevicespresent,$_ if (ReadingsVal($_,"presence","absent") eq "present");
@@ -314,6 +328,7 @@ sub HOMEMODE_updateInternals($;$)
     delete $hash->{SENSORSCONTACT};
     delete $hash->{SENSORSMOTION};
     delete $hash->{SENSORSENERGY};
+    delete $hash->{SENSORSLUMINANCE};
     $hash->{VERSION} = $HOMEMODE_version;
     my @residents;
     push @residents,$defs{$resdev}->{ROOMMATES} if ($defs{$resdev}->{ROOMMATES});
@@ -334,7 +349,7 @@ sub HOMEMODE_updateInternals($;$)
     push @allMonitoredDevices,$resdev;
     my $autopresence = HOMEMODE_AttrCheck($hash,"HomeAutoPresence",0);
     my $presencetype = HOMEMODE_AttrCheck($hash,"HomePresenceDeviceType","PRESENCE");
-    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=.*");
+    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=^(maybe\s)?(absent|present|appeared|disappeared)");
     my @residentsshort;
     my @logtexte;
     foreach my $resident (split /,/,$hash->{RESIDENTS})
@@ -380,13 +395,13 @@ sub HOMEMODE_updateInternals($;$)
     my $contacts = HOMEMODE_AttrCheck($hash,"HomeSensorsContact");
     if ($contacts)
     {
-      my @conts;
+      my @sensors;
       foreach (devspec2array($contacts))
       {
-        push @conts,$_;
+        push @sensors,$_;
         push @allMonitoredDevices,$_;
       }
-      $hash->{SENSORSCONTACT} = join(",",@conts) if (scalar @conts);
+      $hash->{SENSORSCONTACT} = join(",",sort @sensors) if (scalar @sensors);
     }
     my $motion = HOMEMODE_AttrCheck($hash,"HomeSensorsMotion");
     if ($motion)
@@ -397,18 +412,18 @@ sub HOMEMODE_updateInternals($;$)
         push @sensors,$_;
         push @allMonitoredDevices,$_;
       }
-      $hash->{SENSORSMOTION} = join(",",@sensors) if (scalar @sensors);
+      $hash->{SENSORSMOTION} = join(",",sort @sensors) if (scalar @sensors);
     }
     my $power = HOMEMODE_AttrCheck($hash,"HomeSensorsPowerEnergy");
     if ($power)
     {
-      my @powers;
+      my @sensors;
       foreach (devspec2array($power))
       {
-        push @powers,$_;
+        push @sensors,$_;
         push @allMonitoredDevices,$_;
       }
-      $hash->{SENSORSENERGY} = join(",",@powers) if (scalar @powers);
+      $hash->{SENSORSENERGY} = join(",",sort @sensors) if (scalar @sensors);
     }
     my $weather = HOMEMODE_AttrCheck($hash,"HomeYahooWeatherDevice");
     push @allMonitoredDevices,$weather if ($weather);
@@ -431,6 +446,18 @@ sub HOMEMODE_updateInternals($;$)
     }
     my $uwz = HOMEMODE_AttrCheck($hash,"HomeUWZ","");
     push @allMonitoredDevices,$uwz if ($uwz);
+    my $luminance = HOMEMODE_AttrCheck($hash,"HomeSensorsLuminance");
+    if ($luminance)
+    {
+      my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
+      my @sensors;
+      foreach (devspec2array($luminance))
+      {
+        push @sensors,$_;
+        push @allMonitoredDevices,$_;
+      }
+      $hash->{SENSORSLUMINANCE} = join(",",sort @sensors) if (scalar @sensors);
+    }
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     Log3 $name,5,"$name: allMonitoredDevicesList: ".join(",",@allMonitoredDevices);
@@ -445,9 +472,10 @@ sub HOMEMODE_updateInternals($;$)
     HOMEMODE_RESIDENTS($hash);
     HOMEMODE_userattr($hash);
     HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
-    HOMEMODE_calcPowerAndEnergy($hash) if ($hash->{SENSORSENERGY});
+    HOMEMODE_PowerEnergy($hash) if ($hash->{SENSORSENERGY});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
+    HOMEMODE_Luminance($hash) if ($luminance);
   }
   return;
 }
@@ -1024,6 +1052,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorsContactOpenTimeDividers";
   push @attribs,"HomeSensorsContactOpenTimeMin";
   push @attribs,"HomeSensorsContactOpenTimes";
+  push @attribs,"HomeSensorsLuminance";
+  push @attribs,"HomeSensorsLuminanceReading";
   push @attribs,"HomeSensorsMotion";
   push @attribs,"HomeSensorsMotionReadings";
   push @attribs,"HomeSensorsMotionValues";
@@ -1234,7 +1264,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($init_done)
       {
-        return "$attr_value must be a valid TYPE" if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value:FILTER=presence=.*"));
+        return "$attr_value must be a valid TYPE" if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value","presence"));
         HOMEMODE_updateInternals($hash,1);
       }
     }
@@ -1309,7 +1339,6 @@ sub HOMEMODE_Attr(@)
         return "$attr_value must be a valid devspec" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
         if ($attr_value_old ne $attr_value)
         {
-          CommandDeleteReading(undef,"$name lastMotion|prevMotion|motions.*");
           HOMEMODE_updateInternals($hash,1);
           HOMEMODE_addSensorsuserattr($hash,$attr_value);
         }
@@ -1357,7 +1386,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($init_done)
       {
-        return "$attr_value must be a valid device with temperature reading!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=temperature=.*"));
+        return "$attr_value must be a valid device with temperature reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"temperature"));
         delete $attr{$name}{HomeSensorHumidityOutside} if ($attr{$name}{HomeSensorHumidityOutside} && $attr_value eq $attr{$name}{HomeSensorHumidityOutside});
         if ($attr_value_old ne $attr_value)
         {
@@ -1371,7 +1400,7 @@ sub HOMEMODE_Attr(@)
       return "You have to omit this attribute if it should have the same value like HomeSensorTemperatureOutside!" if ($attr_value eq $attr{$name}{HomeSensorTemperatureOutside});
       if ($init_done)
       {
-        return "$attr_value must be a valid device with humidity reading!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=humidity=.*"));
+        return "$attr_value must be a valid device with humidity reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"humidity"));
         if ($attr_value_old ne $attr_value)
         {
           CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice});
@@ -1445,17 +1474,16 @@ sub HOMEMODE_Attr(@)
     {
       return "$attr_value for $attr_name must be a pipe separated list with 2 values." if (scalar (split /\|/,$attr_value) != 2);
     }
-    elsif ($attr_name eq "HomeUWZ")
+    elsif ($attr_name eq "HomeUWZ" && $init_done)
     {
-      if ($init_done)
-      {
-        return "$attr_value must be a valid device of TYPE UWZ!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=UWZ"));
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name uwz.+");
-          HOMEMODE_updateInternals($hash,1);
-        }
-      }
+      return "$attr_value must be a valid device of TYPE UWZ!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=UWZ"));
+      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+    }
+    elsif ($attr_name eq "HomeSensorsLuminance" && $init_done)
+    {
+      my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
+      return "$attr_name must be a valid device with a \"$read\" reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
+      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
   }
   else
@@ -1507,9 +1535,10 @@ sub HOMEMODE_Attr(@)
     {
       HOMEMODE_userattr($hash);
     }
-    elsif ($attr_name eq "HomeUWZ")
+    elsif ($attr_name =~ /^(HomeUWZ|HomeSensorsLuminance)$/)
     {
-      CommandDeleteReading(undef,"$name uwz.+");
+      CommandDeleteReading(undef,"$name uwz.*") if ($attr_name eq "HomeUWZ");
+      CommandDeleteReading(undef,"$name luminance.*") if ($attr_name eq "HomeSensorsLuminance");
       HOMEMODE_updateInternals($hash,1);
     }
   }
@@ -1773,16 +1802,17 @@ sub HOMEMODE_ForecastTXT($;$)
   return $text;
 }
 
-sub HOMEMODE_CheckIfIsValidDevspec($)
+sub HOMEMODE_CheckIfIsValidDevspec($;$)
 {
-  my ($spec) = @_;
+  my ($spec,$read) = @_;
   my @names;
   foreach (devspec2array($spec))
   {
     next unless (IsDevice($_));
+    next if ($read && !defined ReadingsVal($_,$read,undef));
     push @names,$_;
   }
-  return if (!@names);
+  return if (!scalar @names);
   return \@names;
 }
 
@@ -1976,6 +2006,26 @@ sub HOMEMODE_addSensorsuserattr($;$)
   }
 }
 
+sub HOMEMODE_Luminance($;$$)
+{
+  my ($hash,$dev,$lum) = @_;
+  my $name = $hash->{NAME};
+  my @sensors = split /,/,$hash->{SENSORSLUMINANCE};
+  my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
+  $lum = 0 if (!$lum);
+  foreach (@sensors)
+  {
+    my $val = (split " ",ReadingsVal($_,$read,""))[0];
+    $lum += $val if (!$dev || $dev ne $_);
+  }
+  my $lumval = defined $lum ? int ($lum / scalar @sensors) : undef;
+  if (defined $lumval)
+  {
+    readingsSingleUpdate($hash,"luminance",$lumval,1);
+    HOMEMODE_ReadingTrend($hash,"luminance",$lumval);
+  }
+}
+
 sub HOMEMODE_TriggerState($;$$$)
 {
   my ($hash,$getter,$type,$trigger) = @_;
@@ -2000,109 +2050,96 @@ sub HOMEMODE_TriggerState($;$$$)
   my @alarmSensors;
   my @lightSensors;
   my $amode = ReadingsVal($name,"modeAlarm","");
-  my $luminance = undef;
-  foreach my $contact (devspec2array($contacts))
+  foreach (devspec2array($contacts))
   {
-    my $otread = AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
-    my $otcmd = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
-    my $oread = (split " ",$otread)[0];
-    my $tread = (split " ",$otread)[1] ? (split " ",$otread)[1] : "";
-    my $amodea = AttrVal($contact,"HomeModeAlarmActive","-");
-    my $ostate = ReadingsVal($contact,$oread,"");
-    my $tstate = ReadingsVal($contact,$tread,"") if ($tread);
-    my $kind = AttrVal($contact,"HomeContactType","window");
+    my ($oread,$tread) = split " ",AttrVal($_,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
+    my $otcmd = AttrVal($_,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
+    my $amodea = AttrVal($_,"HomeModeAlarmActive","-");
+    my $ostate = ReadingsVal($_,$oread,"");
+    my $tstate = ReadingsVal($_,$tread,"") if ($tread);
+    my $kind = AttrVal($_,"HomeContactType","window");
     next if (!$ostate && !$tstate);
     if ($ostate =~ /^($otcmd)$/)
     {
-      push @contactsOpen,$contact;
-      push @insideOpen,$contact if ($kind eq "doorinside");
-      push @doorsOOpen,$contact if ($kind && $kind eq "dooroutside");
-      push @doorsMOpen,$contact if ($kind && $kind eq "doormain");
-      push @outsideOpen,$contact if ($kind =~ /^(dooroutside|doormain|window)$/);
-      push @windowsOpen,$contact if ($kind eq "window");
+      push @contactsOpen,$_;
+      push @insideOpen,$_ if ($kind eq "doorinside");
+      push @doorsOOpen,$_ if ($kind && $kind eq "dooroutside");
+      push @doorsMOpen,$_ if ($kind && $kind eq "doormain");
+      push @outsideOpen,$_ if ($kind =~ /^(dooroutside|doormain|window)$/);
+      push @windowsOpen,$_ if ($kind eq "window");
       if (grep(/^($amodea)$/,$amode))
       {
-        push @alarmSensors,$contact;
+        push @alarmSensors,$_;
       }
-      if (defined $exit && $trigger eq $contact && grep(/^$oread:/,@{$events}))
+      if (defined $exit && $trigger eq $_ && grep(/^$oread:/,@{$events}))
       {
         readingsBeginUpdate($hash);
         readingsBulkUpdate($hash,"prevContact",ReadingsVal($name,"lastContact",""));
-        readingsBulkUpdate($hash,"lastContact",$contact);
+        readingsBulkUpdate($hash,"lastContact",$_);
         readingsEndUpdate($hash,1);
-        HOMEMODE_ContactCommands($hash,$contact,"open",$kind);
-        HOMEMODE_ContactOpenCheck($name,$contact,"open");
+        HOMEMODE_ContactCommands($hash,$_,"open",$kind);
+        HOMEMODE_ContactOpenCheck($name,$_,"open");
       }
     }
     else
     {
-      if (defined $exit && $trigger eq $contact && grep(/^$oread:/,@{$events}))
+      if (defined $exit && $trigger eq $_ && grep(/^$oread:/,@{$events}))
       {
         readingsBeginUpdate($hash);
         readingsBulkUpdate($hash,"prevContactClosed",ReadingsVal($name,"lastContactClosed",""));
-        readingsBulkUpdate($hash,"lastContactClosed",$contact);
+        readingsBulkUpdate($hash,"lastContactClosed",$_);
         readingsEndUpdate($hash,1);
-        HOMEMODE_ContactCommands($hash,$contact,"closed",$kind);
-        my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
+        HOMEMODE_ContactCommands($hash,$_,"closed",$kind);
+        my $timer = "atTmp_HomeOpenTimer_".$_."_$name";
         CommandDelete(undef,$timer) if (IsDevice($timer));
       }
     }
     if ($tread && $tstate =~ /^($otcmd)$/)
     {
-      push @sensorsTampered,$contact;
+      push @sensorsTampered,$_;
     }
   }
-  foreach my $motion (devspec2array($motions))
+  foreach (devspec2array($motions))
   {
-    my $otread = AttrVal($motion,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError luminance"));
-    my $otcmd = AttrVal($motion,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
-    my $oread = (split " ",$otread)[0];
-    my $tread = (split " ",$otread)[1] ? (split " ",$otread)[1] : "";
-    my $lread = (split " ",$otread)[2] ? (split " ",$otread)[2] : "";
-    my $amodea = AttrVal($motion,"HomeModeAlarmActive","-");
-    my $ostate = ReadingsVal($motion,$oread,"");
-    my $pstate = ReadingsVal($motion,".pstate","");
-    my $tstate = ReadingsVal($motion,$tread,"") if ($tread);
-    my $kind = AttrVal($motion,"HomeSensorLocation","inside");
-    my $lum = (split " ",ReadingsVal($motion,$lread,"10 lux"))[0] if ($lread);
+    my ($oread,$tread) = split " ",AttrVal($_,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
+    my $otcmd = AttrVal($_,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
+    my $amodea = AttrVal($_,"HomeModeAlarmActive","-");
+    my $ostate = ReadingsVal($_,$oread,"");
+    my $tstate = ReadingsVal($_,$tread,"") if ($tread);
+    my $kind = AttrVal($_,"HomeSensorLocation","inside");
     next if (!$ostate && !$tstate);
     if ($ostate =~ /^($otcmd)$/)
     {
-      push @motionsOpen,$motion;
-      push @motionsInsideOpen,$motion if ($kind eq "inside");
-      push @motionsOutsideOpen,$motion if ($kind eq "outside");
+      push @motionsOpen,$_;
+      push @motionsInsideOpen,$_ if ($kind eq "inside");
+      push @motionsOutsideOpen,$_ if ($kind eq "outside");
       if (grep(/^($amodea)$/,$amode))
       {
-        push @alarmSensors,$motion;
+        push @alarmSensors,$_;
       }
-      if (defined $exit && $trigger eq $motion && grep(/^$oread:/,@{$events}))
+      if (defined $exit && $trigger eq $_ && grep(/^$oread:/,@{$events}))
       {
         readingsBeginUpdate($hash);
         readingsBulkUpdate($hash,"prevMotion",ReadingsVal($name,"lastMotion",""));
-        readingsBulkUpdate($hash,"lastMotion",$motion);
+        readingsBulkUpdate($hash,"lastMotion",$_);
         readingsEndUpdate($hash,1);
-        HOMEMODE_MotionCommands($hash,$motion,"open");
+        HOMEMODE_MotionCommands($hash,$_,"open");
       }
     }
     else
     {
-      if (defined $exit && $trigger eq $motion && grep(/^$oread:/,@{$events}))
+      if (defined $exit && $trigger eq $_ && grep(/^$oread:/,@{$events}))
       {
         readingsBeginUpdate($hash);
         readingsBulkUpdate($hash,"prevMotionClosed",ReadingsVal($name,"lastMotionClosed",""));
-        readingsBulkUpdate($hash,"lastMotionClosed",$motion);
+        readingsBulkUpdate($hash,"lastMotionClosed",$_);
         readingsEndUpdate($hash,1);
-        HOMEMODE_MotionCommands($hash,$motion,"closed");
+        HOMEMODE_MotionCommands($hash,$_,"closed");
       }
     }
     if ($tread && $tstate =~ /^($otcmd)$/)
     {
-      push @sensorsTampered,$motion;
-    }
-    if (defined $lum)
-    {
-      push @lightSensors,$motion;
-      $luminance += $lum;
+      push @sensorsTampered,$_;
     }
   }
   HOMEMODE_alarmTriggered($hash,@alarmSensors);
@@ -2138,10 +2175,8 @@ sub HOMEMODE_TriggerState($;$$$)
   readingsBulkUpdate($hash,"contactsWindowsOpen",$openw);
   readingsBulkUpdate($hash,"contactsWindowsOpen_ct",@windowsOpen);
   readingsBulkUpdate($hash,"contactsWindowsOpen_hr",HOMEMODE_makeHR($hash,@windowsOpen));
-  my $lumval = defined $luminance ? int ($luminance / scalar @lightSensors) : undef;
   if ($motions)
   {
-    readingsBulkUpdate($hash,"luminance",$lumval) if (defined $lumval);
     readingsBulkUpdate($hash,"motionsSensors",$openm);
     readingsBulkUpdate($hash,"motionsSensors_ct",@motionsOpen);
     readingsBulkUpdate($hash,"motionsSensors_hr",HOMEMODE_makeHR($hash,@motionsOpen));
@@ -2153,7 +2188,6 @@ sub HOMEMODE_TriggerState($;$$$)
     readingsBulkUpdate($hash,"motionsOutside_hr",HOMEMODE_makeHR($hash,@motionsOutsideOpen));
   }
   readingsEndUpdate($hash,1);
-  HOMEMODE_ReadingTrend($hash,"luminance",$lumval) if (defined $lumval);
   HOMEMODE_alarmTampered($hash,@sensorsTampered) if (join(",",@sensorsTampered) ne $tampered);
   if ($getter eq "contactsOpen")
   {
@@ -2448,32 +2482,37 @@ sub HOMEMODE_HomebridgeMapping($)
   return;
 }
 
-sub HOMEMODE_calcPowerAndEnergy($)
-{
-  my ($hash) = @_;
-  my $power;
-  my $energy;
-  foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=energy=.*:FILTER=power=.*"))
-  {
-    $power += (split " ",ReadingsVal($_,"power",0))[0];
-    $energy += (split " ",ReadingsVal($_,"energy",0))[0];
-  }
-  readingsBeginUpdate($hash);
-  readingsBulkUpdate($hash,"power",$power);
-  readingsBulkUpdate($hash,"energy",$energy);
-  readingsEndUpdate($hash,1);
-}
-
-sub HOMEMODE_calcPowerOrEnergy($$$$)
+sub HOMEMODE_PowerEnergy($;$$$)
 {
   my ($hash,$trigger,$read,$event) = @_;
-  my $val = (split " ",(split /:\s/,$event)[1])[0];
-  foreach (devspec2array("$hash->{SENSORSENERGY}:FILTER=$read=.*"))
+  if ($trigger && $read && $event)
   {
-    next if ($_ eq $trigger);
-    $val += (split " ",ReadingsVal($_,$read,0))[0];
+    my $e = (split /:\s/,$event)[1];
+    my ($val) = split " ",$e,1;
+    foreach (devspec2array($hash->{SENSORSENERGY}))
+    {
+      next if ($_ eq $trigger);
+      my ($v) = split " ",ReadingsVal($_,$read,undef),1;
+      $val += $v if (defined $v);
+    }
+    readingsSingleUpdate($hash,$read,$val,1);
   }
-  readingsSingleUpdate($hash,$read,$val,1);
+  else
+  {
+    my $power;
+    my $energy;
+    foreach (devspec2array($hash->{SENSORSENERGY}))
+    {
+      my ($p) = split " ",ReadingsVal($_,"power",undef),1;
+      my ($e) = split " ",ReadingsVal($_,"energy",undef),1;
+      $power += $p if (defined $p);
+      $energy += $e if (defined $e);
+    }
+    readingsBeginUpdate($hash);
+    readingsBulkUpdate($hash,"power",$power);
+    readingsBulkUpdate($hash,"energy",$energy);
+    readingsEndUpdate($hash,1);
+  }
 }
 
 sub HOMEMODE_Weather($$)
@@ -3206,7 +3245,7 @@ sub HOMEMODE_checkIP($)
           <b><i>HomeReadings</i></b><br>
           min. 2 max. 3 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
           this is the device setting which will override the global setting from attribute HomeSensorsMotionReadings from the HOMEMODE device<br>
-          default: state sabotageError luminance
+          default: state sabotageError
         </li>
         <li>
           <b><i>HomeValues</i></b><br>
@@ -3220,7 +3259,7 @@ sub HOMEMODE_checkIP($)
       <b><i>HomeSensorsMotionReadings</i></b><br>
       min. 2 max. 3 space separated readings for motion sensors open/closed state, tamper alert and luminance<br>
       this is the global setting, you can also set these readings in each motion sensor individually in attribute HomeReadings once they are added to the HOMEMODE device<br>
-      default: state sabotageError luminance
+      default: state sabotageError
     </li>
     <li>
       <b><i>HomeSensorsMotionValues</i></b><br>
