@@ -2,6 +2,7 @@
     - added attribute HomeSensorsLuminance and separated luminance calculation
       from HomeSensorsMotion
     - added attribute HomeSensorsPowerEnergyReadings
+    - enhanced presence capabilities with appeared/disappeared
     - fixed repeated alarm triggers
 
     v0.262

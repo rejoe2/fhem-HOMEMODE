@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13965 2017-04-10 23:24:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13970 2017-04-11 19:48:00Z deespe $
 #
 # Usage
 # 
@@ -245,7 +245,7 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_UWZCommands($hash,$events);
     }
   }
-  if ($devtype =~ /^($prestype)$/ && grep(/^presence/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
+  if ($devtype =~ /^($prestype)$/ && grep(/^presence:\s.*$/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
   {
     my $resident;
     my $residentregex;
@@ -261,12 +261,12 @@ sub HOMEMODE_Notify($$)
     if (ReadingsVal($devname,"presence","") !~ /^maybe/)
     {
       my @presentdevicespresent;
-      foreach (devspec2array("TYPE=$prestype:FILTER=presence=^(maybe\s)?(absent|present|appeared|disappeared)"))
+      foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=(maybe\s)?(absent|present|appeared|disappeared)"))
       {
-        next if (lc($_) !~ /$residentregex/);
-        push @presentdevicespresent,$_ if (ReadingsVal($_,"presence","absent") eq "present");
+        next if (lc($device) !~ /$residentregex/);
+        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","absent") eq "present");
       }
-      if (grep(/\:\spresent$/,@{$events}))
+      if (grep(/^.*:\s(present|appeared)$/,@{$events}))
       {
         push @commands,$attr{$name}{"HomeCMDpresence-present-device"} if ($attr{$name}{"HomeCMDpresence-present-device"});
         push @commands,$attr{$name}{"HomeCMDpresence-present-$resident-device"} if ($attr{$name}{"HomeCMDpresence-present-$resident-device"});
@@ -281,7 +281,7 @@ sub HOMEMODE_Notify($$)
         readingsBulkUpdate($hash,"lastPresentByPresenceDevice",$devname);
         readingsEndUpdate($hash,1);
       }
-      elsif (grep(/\:\sabsent$/,@{$events}))
+      elsif (grep(/^.*:\s(absent|disappeared)$/,@{$events}))
       {
         push @commands,$attr{$name}{"HomeCMDpresence-absent-device"} if ($attr{$name}{"HomeCMDpresence-absent-device"});
         push @commands,$attr{$name}{"HomeCMDpresence-absent-$resident-device"} if ($attr{$name}{"HomeCMDpresence-absent-$resident-device"});
