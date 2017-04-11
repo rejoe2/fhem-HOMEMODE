@@ -43,8 +43,8 @@ sub HOMEMODE_Define($$)
   my @args = split " ",$def;
   if (@args < 2 || @args > 3)
   {
-    return "Benutzung: define <name> HOMEMODE [RESIDENTS-MASTER-GERAET]" if ($de);
-    return "Usage: define <name> HOMEMODE [RESIDENTS-MASTER-DEVICE]";
+    my $trans = $de ? "Usage: define <name> HOMEMODE [RESIDENTS-MASTER-DEVICE]" : "Benutzung: define <name> HOMEMODE [RESIDENTS-MASTER-GERAET]";
+    return $trans;
   }
   RemoveInternalTimer($hash);
   my ($name,$type,$resdev) = @args;
@@ -135,12 +135,12 @@ sub HOMEMODE_Notify($$)
   if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
   {
     my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
-    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^$oread:\s.*$/,@{$events}));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^($oread|$tread):\s.*$/,@{$events}));
   }
   if ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
   {
     my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError"));
-    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^$oread:\s.*$/,@{$events}));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep(/^($oread|$tread):\s.*$/,@{$events}));
   }
   if ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
   {
@@ -2202,12 +2202,9 @@ sub HOMEMODE_TriggerState($;$$$)
     readingsBulkUpdateIfChanged($hash,"contactsWindowsOpen_ct",@windowsOpen);
     readingsBulkUpdateIfChanged($hash,"contactsWindowsOpen_hr",HOMEMODE_makeHR($hash,@windowsOpen));
   }
-  if (@sensorsTampered)
-  {
-    readingsBulkUpdateIfChanged($hash,"sensorsTampered",$tamp);
-    readingsBulkUpdateIfChanged($hash,"sensorsTampered_ct",@sensorsTampered);
-    readingsBulkUpdateIfChanged($hash,"sensorsTampered_hr",HOMEMODE_makeHR($hash,@sensorsTampered));
-  }
+  readingsBulkUpdateIfChanged($hash,"sensorsTampered",$tamp);
+  readingsBulkUpdateIfChanged($hash,"sensorsTampered_ct",@sensorsTampered);
+  readingsBulkUpdateIfChanged($hash,"sensorsTampered_hr",HOMEMODE_makeHR($hash,@sensorsTampered));
   if ($motions)
   {
     readingsBulkUpdateIfChanged($hash,"motionsSensors",$openm);
