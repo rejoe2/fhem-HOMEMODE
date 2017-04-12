@@ -245,7 +245,7 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_UWZCommands($hash,$events);
     }
   }
-  if ($devtype =~ /^($prestype)$/ && grep(/^presence:\s.*$/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
+  if ($devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}) && AttrVal($name,"HomeAutoPresence",0) == 1)
   {
     my $resident;
     my $residentregex;
@@ -264,7 +264,7 @@ sub HOMEMODE_Notify($$)
       foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=(maybe\s)?(absent|present|appeared|disappeared)"))
       {
         next if (lc($device) !~ /$residentregex/);
-        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","absent") eq "present");
+        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","absent") =~ /^(present|appeared)$/);
       }
       if (grep(/^.*:\s(present|appeared)$/,@{$events}))
       {
@@ -649,7 +649,7 @@ sub HOMEMODE_Set($@)
         CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
       }
     }
-    HOMEMODE_ContactOpenCheckAfterModeChange($hash) if ($hash->{SENSORSCONTACT} && $option && $mode ne $option);
+    HOMEMODE_ContactOpenCheckAfterModeChange($hash,$option,$mode) if ($hash->{SENSORSCONTACT} && $option && $mode ne $option);
     push @commands,$attr{$name}{"HomeCMDmode"} if ($mode && $attr{$name}{"HomeCMDmode"});
     push @commands,$attr{$name}{"HomeCMDmode-$option"} if ($attr{$name}{"HomeCMDmode-$option"});
     CommandSetReading(undef,"$name:FILTER=presence!=$present presence $present");
@@ -960,6 +960,7 @@ sub HOMEMODE_RESIDENTS($;$)
       readingsBulkUpdate($hash,"prevActivityByResident",$lad);
       readingsEndUpdate($hash,1);
     }
+    HOMEMODE_ContactOpenCheckAfterModeChange($hash,undef,undef,$dev);
   }
   if (@commands)
   {
@@ -2343,16 +2344,30 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
   }
 }
 
-sub HOMEMODE_ContactOpenCheckAfterModeChange($)
+sub HOMEMODE_ContactOpenCheckAfterModeChange($$$;$)
 {
-  my ($hash) = @_;
+  my ($hash,$mode,$pmode,$resident) = @_;
   my $name = $hash->{NAME};
   my $contacts = ReadingsVal($name,"contactsOpen","");
+  $mode = ReadingsVal($name,"mode","") if (!$mode);
+  $pmode = ReadingsVal($name,"prevMode","") if (!$pmode);
+  my $state = ReadingsVal($resident,"state","") if ($resident);
+  my $pstate = ReadingsVal($resident,"lastState","") if ($resident);
   if ($contacts)
   {
     foreach (split /,/,$contacts)
     {
-      HOMEMODE_ContactOpenCheck($name,$_);
+      my $m = AttrVal($_,"HomeOpenDontTriggerModes","");
+      my $r = AttrVal($_,"HomeOpenDontTriggerModesResidents","");
+      $r = s/,/\|/g;
+      if ($resident && $m && $r && $resident =~ /^($r)$/ && $state =~ /^($m)$/ && $pstate !~ /^($m)$/)
+      {
+        HOMEMODE_ContactOpenCheck($name,$_,"open");
+      }
+      elsif ($m && !$r && $pmode =~ /^($m)$/ && $mode !~ /^($m)$/)
+      {
+        HOMEMODE_ContactOpenCheck($name,$_,"open");
+      }
     }
   }
 }
@@ -2524,6 +2539,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
       my $v = (split " ",ReadingsVal($_,$read,"0 kWhW"))[0];
       $val += $v if ($v);
     }
+    $val = sprintf("%.2f",$val);
     readingsSingleUpdate($hash,$read,$val,1);
   }
   else
@@ -2537,6 +2553,8 @@ sub HOMEMODE_PowerEnergy($;$$$)
       $power += $p if ($p);
       $energy += $e if ($e);
     }
+    $power = sprintf("%.2f",$power);
+    $energy = sprintf("%.2f",$energy);
     readingsBeginUpdate($hash);
     readingsBulkUpdate($hash,"power",$power);
     readingsBulkUpdate($hash,"energy",$energy);
