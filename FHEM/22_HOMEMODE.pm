@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13970 2017-04-11 19:48:00Z deespe $
+# $Id: 22_HOMEMODE.pm 13982 2017-04-13 10:50:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.263";
+my $HOMEMODE_version = "0.264";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -566,8 +566,7 @@ sub HOMEMODE_Get($@)
   }
   elsif ($cmd eq "publicIP")
   {
-    HOMEMODE_checkIP($hash);
-    return;
+    return HOMEMODE_checkIP($hash,1);
   }
   else
   {
@@ -1293,11 +1292,11 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, p.e. open|tilted|on" if ($attr_value !~ /^[\w-\.]+(\|[\w-\.]+){0,}?$/);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, p.e. open|tilted|on" if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(\|[\w-äÄöÖüÜß\.]+){0,}?$/);
     }
     elsif ($attr_name eq "HomeSpecialModes")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\.-]+(,[\w\.-]+){0,}$/);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(,[\w-äÄöÖüÜß\.]+){0,}$/);
     }
     elsif ($attr_name eq "HomeIcewarningOnOffTemps")
     {
@@ -1332,7 +1331,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSpecialLocations")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\.-]+(,[\w\.-]+){0,}$/);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(,[\w-äÄöÖüÜß\.]+){0,}$/);
     }
     elsif ($attr_name eq "HomePublicIpCheckInterval")
     {
@@ -1428,7 +1427,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
-      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w-\.]+)(\s[0-2]\d:[0-5]\d\|[\w-\.]+){0,}$/);
+      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w-äÄöÖüÜß\.]+)(\s[0-2]\d:[0-5]\d\|[\w-äÄöÖüÜß\.]+){0,}$/);
       if ($init_done)
       {
         if ($attr_value_old ne $attr_value)
@@ -2710,9 +2709,9 @@ sub HOMEMODE_devStateIcon($;$)
   return;
 }
 
-sub HOMEMODE_checkIP($)
+sub HOMEMODE_checkIP($;$)
 {
-  my ($hash) = @_;
+  my ($hash,$r) = @_;
   my $name = $hash->{NAME};
   my $ip = GetFileFromURL("http://icanhazip.com/");
   $ip =~ s/\s+//g;
@@ -2733,6 +2732,7 @@ sub HOMEMODE_checkIP($)
     my $timer = gettimeofday() + 60 * $attr{$name}{HomePublicIpCheckInterval};
     $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
   }
+  return $ip if ($r);
   return;
 }
 

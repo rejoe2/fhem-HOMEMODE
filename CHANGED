@@ -1,3 +1,7 @@
+    v0.264
+    - fixed restart windows open triggers after mode change
+    - return IP address while "get <name> publicIP"
+    - less restrictive regex for validation of HomeDaytimes and HomeSeasons
     v0.263
     - added attribute HomeSensorsLuminance and separated luminance calculation
       from HomeSensorsMotion
