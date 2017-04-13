@@ -229,11 +229,12 @@ sub HOMEMODE_Notify($$)
       my $event;
       foreach my $evt (@{$events})
       {
-        if (grep(/^state:\s(.*)$/,$evt))
+        if (grep(/^state:\s/,$evt))
         {
-          $event = $1;
+          $event = $evt;
         }
       }
+      $event =~ s/^state:\s//;
       $event =~ s/\s+/-/g;
       HOMEMODE_EventCommands($hash,$devname,$event);
     }
@@ -261,7 +262,7 @@ sub HOMEMODE_Notify($$)
     if (ReadingsVal($devname,"presence","") !~ /^maybe/)
     {
       my @presentdevicespresent;
-      foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=(maybe\s)?(absent|present|appeared|disappeared)"))
+      foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=(maybe.)?(absent|present|appeared|disappeared)"))
       {
         next if (lc($device) !~ /$residentregex/);
         push @presentdevicespresent,$device if (ReadingsVal($device,"presence","absent") =~ /^(present|appeared)$/);
@@ -358,7 +359,7 @@ sub HOMEMODE_updateInternals($;$)
     push @allMonitoredDevices,$resdev;
     my $autopresence = HOMEMODE_AttrCheck($hash,"HomeAutoPresence",0);
     my $presencetype = HOMEMODE_AttrCheck($hash,"HomePresenceDeviceType","PRESENCE");
-    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=^(maybe\s)?(absent|present|appeared|disappeared)");
+    my @presdevs = devspec2array("TYPE=$presencetype:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)");
     my @residentsshort;
     my @logtexte;
     foreach my $resident (split /,/,$hash->{RESIDENTS})
@@ -1288,15 +1289,15 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeSensorsContactReadings|HomeSensorsMotionReadings)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, p.e. state sabotageError" if ($attr_value !~ /^[\w-\.]+\s[\w-\.]+$/);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, p.e. state sabotageError" if ($attr_value !~ /^[\w\-\.]+\s[\w\-\.]+$/);
     }
     elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, p.e. open|tilted|on" if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(\|[\w-äÄöÖüÜß\.]+){0,}?$/);
+      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, p.e. open|tilted|on" if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(\|[\w\-äÄöÖüÜß\.]+){0,}?$/);
     }
     elsif ($attr_name eq "HomeSpecialModes")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(,[\w-äÄöÖüÜß\.]+){0,}$/);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(,[\w\-äÄöÖüÜß\.]+){0,}$/);
     }
     elsif ($attr_name eq "HomeIcewarningOnOffTemps")
     {
@@ -1331,7 +1332,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSpecialLocations")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w-äÄöÖüÜß\.]+(,[\w-äÄöÖüÜß\.]+){0,}$/);
+      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(,[\w\-äÄöÖüÜß\.]+){0,}$/);
     }
     elsif ($attr_name eq "HomePublicIpCheckInterval")
     {
@@ -1427,7 +1428,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeDaytimes")
     {
-      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w-äÄöÖüÜß\.]+)(\s[0-2]\d:[0-5]\d\|[\w-äÄöÖüÜß\.]+){0,}$/);
+      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w\-äÄöÖüÜß\.]+)(\s[0-2]\d:[0-5]\d\|[\w\-äÄöÖüÜß\.]+){0,}$/);
       if ($init_done)
       {
         if ($attr_value_old ne $attr_value)
@@ -1504,12 +1505,12 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergyReadings" && $init_done)
     {
-      return "$attr_name must be two valid readings for power and energy!" if ($attr_value !~ /^([\w-\.]+)\s([\w-\.]+)$/);
+      return "$attr_name must be two valid readings for power and energy!" if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsLuminanceReading" && $init_done)
     {
-      return "$attr_name must be a single valid reading!" if ($attr_value !~ /^([\w-\.]+)$/);
+      return "$attr_name must be a single valid reading!" if ($attr_value !~ /^([\w\-\.]+)$/);
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
   }
