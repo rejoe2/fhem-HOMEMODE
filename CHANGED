@@ -1,3 +1,9 @@
+    v0.265
+    - added missing german error message translations to AttrFn
+    - added validation of readings of HomeSensorsPowerEnergy
+    - minor changes in translations handling
+    - changed some ReadingsVal to ReadingsNum
+    - removed function for devStateIcon
     v0.264
     - fixed restart windows open triggers after mode change
     - return IP address while "get <name> publicIP"

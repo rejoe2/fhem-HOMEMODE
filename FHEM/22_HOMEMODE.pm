@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 13982 2017-04-13 10:50:00Z deespe $
+# $Id: 22_HOMEMODE.pm 14019 2017-04-17 22:10:00Z deespe $
 #
 # Usage
 # 
@@ -15,13 +15,14 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.264";
+my $HOMEMODE_version = "0.265";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
 my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
 my $HOMEMODE_Locations = "arrival,home,bed,underway,wayhome";
+my $HOMEMODE_de;
 
 sub HOMEMODE_Initialize($)
 {
@@ -38,12 +39,14 @@ sub HOMEMODE_Initialize($)
 sub HOMEMODE_Define($$)
 {
   my ($hash,$def) = @_;
-  my $de;
-  $de = 1 if (AttrVal("global","language","EN") eq "DE");
+  $HOMEMODE_de = 1 if (AttrVal("global","language","EN") eq "DE");
   my @args = split " ",$def;
+  my $trans;
   if (@args < 2 || @args > 3)
   {
-    my $trans = $de ? "Usage: define <name> HOMEMODE [RESIDENTS-MASTER-DEVICE]" : "Benutzung: define <name> HOMEMODE [RESIDENTS-MASTER-GERAET]";
+    $trans = $HOMEMODE_de?
+      "Benutzung: define <name> HOMEMODE [RESIDENTS-MASTER-GERAET]":
+      "Usage: define <name> HOMEMODE [RESIDENTS-MASTER-DEVICE]";
     return $trans;
   }
   RemoveInternalTimer($hash);
@@ -57,18 +60,25 @@ sub HOMEMODE_Define($$)
     }
     if (scalar @resdevs == 1)
     {
-      return "$resdevs[0] doesn't exists" if (!IsDevice($resdevs[0]));
+      $trans = $HOMEMODE_de?
+        "$resdevs[0] existiert nicht":
+        "$resdevs[0] doesn't exists";
+      return $trans if (!IsDevice($resdevs[0]));
       $hash->{DEF} = $resdevs[0];
     }
     elsif (scalar @resdevs > 1)
     {
-      return "Es gibt zu viele RESIDENTS Geräte! Bitte das Master RESIDENTS Gerät angeben! Verfügbare RESIDENTS Geräte: ".join(",",@resdevs) if ($de);
-      return "Found too many available RESIDENTS devives! Please specify the RESIDENTS master device! Available RESIDENTS devices: ".join(",",@resdevs);
+      $trans = $HOMEMODE_de?
+        "Es gibt zu viele RESIDENTS Geräte! Bitte das Master RESIDENTS Gerät angeben! Verfügbare RESIDENTS Geräte:":
+        "Found too many available RESIDENTS devives! Please specify the RESIDENTS master device! Available RESIDENTS devices:";
+      return "$trans ".join(",",@resdevs);
     }
     else
     {
-      return "Kein RESIDENTS Gerät gefunden! Bitte erst ein RESIDENTS Gerät anlegen und ein paar ROOMMATE/GUEST und ihre korrespondierenden PRESENCE Geräte hinzufügen um Spaß mit diesem Modul zu haben!" if ($de);
-      return "No RESIDENTS device found! Please define a RESIDENTS device first and add some ROOMMATE/GUEST and their PRESENCE device(s) to have fun with this module!";
+      $trans = $HOMEMODE_de?
+        "Kein RESIDENTS Gerät gefunden! Bitte erst ein RESIDENTS Gerät anlegen und ein paar ROOMMATE/GUEST und ihre korrespondierenden PRESENCE Geräte hinzufügen um Spaß mit diesem Modul zu haben!":
+        "No RESIDENTS device found! Please define a RESIDENTS device first and add some ROOMMATE/GUEST and their PRESENCE device(s) to have fun with this module!";
+      return $trans;
     }
   }
   if ($init_done && !defined $hash->{OLDDEF})
@@ -211,10 +221,10 @@ sub HOMEMODE_Notify($$)
   }
   if ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
   {
+    my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+    $read =~ s/ /\|/g;
     foreach my $evt (@{$events})
     {
-      my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-      $read =~ s/ /\|/g;
       if ($evt =~ /^($read):\s(.*)$/)
       {
         my $val = (split " ",$2)[0];
@@ -314,19 +324,23 @@ sub HOMEMODE_Notify($$)
 sub HOMEMODE_updateInternals($;$)
 {
   my ($hash,$force) = @_;
-  my $de;
-  $de = 1 if (AttrVal("global","language","EN") eq "DE");
+  $HOMEMODE_de = 1 if (AttrVal("global","language","EN") eq "DE");
   delete $hash->{helper}{allMonitoredDevices} if ($force);
   my $name = $hash->{NAME};
   my $resdev = $hash->{DEF};
+  my $trans;
   if (!IsDevice($resdev))
   {
-    my $trans= $de ? "$resdev ist nicht definiert!" : "$resdev is not defined!";
+    $trans = $HOMEMODE_de?
+      "$resdev ist nicht definiert!":
+      "$resdev is not defined!";
     $hash->{STATE} = $trans;
   }
   elsif (!IsDevice($resdev,"RESIDENTS"))
   {
-    my $trans= $de ? "$resdev ist kein valides RESIDENTS Gerät!" : "$resdev is not a valid RESIDENTS device!";
+    $trans = $HOMEMODE_de?
+      "$resdev ist kein gültiges RESIDENTS Gerät!":
+      "$resdev is not a valid RESIDENTS device!";
     $hash->{STATE} = $trans;
   }
   else
@@ -345,7 +359,9 @@ sub HOMEMODE_updateInternals($;$)
     push @residents,$defs{$resdev}->{GUESTS} if ($defs{$resdev}->{GUESTS});
     if (scalar @residents < 1)
     {
-      my $trans= $de ? "Keine verfügbaren ROOMMATE/GUEST im RESIDENTS Gerät $resdev" : "No available ROOMMATE/GUEST in RESIDENTS device $resdev";
+      $trans = $HOMEMODE_de?
+        "Keine verfügbaren ROOMMATE/GUEST im RESIDENTS Gerät $resdev":
+        "No available ROOMMATE/GUEST in RESIDENTS device $resdev";
       Log3 $name,2,$trans;
       readingsSingleUpdate($hash,"HomeInfo",$trans,1);
       return;
@@ -381,13 +397,17 @@ sub HOMEMODE_updateInternals($;$)
         if ($c)
         {
           my $devlist = join(",",@residentspresdevs);
-          my $trans= $de ? "Gefunden wurden ".@residentspresdevs." übereinstimmende(s) Anwesenheits Gerät(e) vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"! Übereinstimmende Geräte: \"$devlist\"" : "Found ".@residentspresdevs." matching presence devices of devspec \"TYPE=$presencetype\" for resident \"$resident\"! Matching devices: \"$devlist\"";
+          $trans = $HOMEMODE_de?
+            "Gefunden wurden ".scalar @residentspresdevs." übereinstimmende(s) Anwesenheits Gerät(e) vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"! Übereinstimmende Geräte: \"$devlist\"":
+            "Found ".scalar @residentspresdevs." matching presence devices of devspec \"TYPE=$presencetype\" for resident \"$resident\"! Matching devices: \"$devlist\"";
           push @logtexte,$trans;
           $attr{$name}{"HomePresenceDeviceAbsentCount-$resident"} = $c if ($init_done && $c > int AttrVal($name,"HomePresenceDeviceAbsentCount-$resident",1));
         }
         else
         {
-          my $trans= $de ? "Keine Geräte mit Reading presence gefunden vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"!" : "NO devices with presence reading found of devspec \"TYPE=$presencetype\" for resident \"$resident\"!";
+          $trans = $HOMEMODE_de?
+            "Keine Geräte mit presence Reading gefunden vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"!":
+            "No devices with presence reading found of devspec \"TYPE=$presencetype\" for resident \"$resident\"!";
           push @logtexte,$trans;
         }
         $hash->{helper}{presdevs}{$resident} = \@residentspresdevs if (scalar @residentspresdevs > 1);
@@ -395,7 +415,9 @@ sub HOMEMODE_updateInternals($;$)
     }
     if (@logtexte && $force)
     {
-      my $trans= $de ? "Falls ein oder mehr Anweseheits Geräte falsch zugeordnet wurden, so benenne diese bitte so um dass die Bewohner Namen (".join(",",@residentsshort).") nicht Bestandteil des Namen sind.\nNach dem Umbenennen führe einfach \"set $name updateInternalsForce\" aus um diese Überprüfung zu wiederholen." : "If any recognized presence device is wrong, please rename this device so that it will NOT match the residents names (".join(",",@residentsshort).") somewhere in the device name.\nAfter renaming simply execute \"set $name updateInternalsForce\" to redo this check.";
+      $trans = $HOMEMODE_de?
+        "Falls ein oder mehr Anweseheits Geräte falsch zugeordnet wurden, so benenne diese bitte so um dass die Bewohner Namen (".join(",",@residentsshort).") nicht Bestandteil des Namen sind.\nNach dem Umbenennen führe einfach \"set $name updateInternalsForce\" aus um diese Überprüfung zu wiederholen.":
+        "If any recognized presence device is wrong, please rename this device so that it will NOT match the residents names (".join(",",@residentsshort).") somewhere in the device name.\nAfter renaming simply execute \"set $name updateInternalsForce\" to redo this check.";
       push @logtexte,"\n$trans";
       my $log = join("\n",@logtexte);
       Log3 $name,3,"$name: $log";
@@ -428,9 +450,9 @@ sub HOMEMODE_updateInternals($;$)
     if ($power)
     {
       my @sensors;
+      my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
       foreach my $s (devspec2array($power))
       {
-        my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
         if (defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef))
         {
           push @sensors,$s;
@@ -519,14 +541,13 @@ sub HOMEMODE_Get($@)
 {
   my ($hash,$name,@aa) = @_;
   my ($cmd,@args) = @aa;
-  my $de;
-  $de = 1 if (AttrVal("global","language","EN") eq "DE");
   my $params;
   $params .= "contactsOpen:all,doorsinside,doorsoutside,doorsmain,outside,windows" if ($hash->{SENSORSCONTACT});
   $params .= " " if ($params);
   $params .=  "sensorsTampered:noArg" if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
   $params .= " " if ($params);
   $params .= "publicIP:noArg";
+  my $trans;
   if ($attr{$name}{HomeYahooWeatherDevice})
   {
     $params .= " " if ($params);
@@ -541,19 +562,25 @@ sub HOMEMODE_Get($@)
   my $value = $args[0];
   if ($cmd =~ /^contactsOpen$/)
   {
-    my $trans = $de ? "$cmd benötigt ein Argument" : "$cmd needs one argument!";
+    $trans = $HOMEMODE_de?
+      "$cmd benötigt ein Argument":
+      "$cmd needs one argument!";
     return $trans if (!$value);
     HOMEMODE_TriggerState($hash,$cmd,$value);
   }
   elsif ($cmd =~ /^sensorsTampered$/)
   {
-    my $trans = $de ? "$cmd benötigt kein Argument" : "$cmd needs no argument!";
+    $trans = $HOMEMODE_de?
+      "$cmd benötigt kein Argument":
+      "$cmd needs no argument!";
     return $trans if ($value);
     HOMEMODE_TriggerState($hash,$cmd);
   }
   elsif ($cmd eq "weather")
   {
-    my $trans = $de ? "$cmd benötigt ein Argument, entweder long oder short!" : "$cmd needs one argument of long or short!";
+    $trans = $HOMEMODE_de?
+      "$cmd benötigt ein Argument, entweder long oder short!":
+      "$cmd needs one argument of long or short!";
     return $trans if (!$value || $value !~ /^(long|short)$/);
     my $m = "Long";
     $m = "Short" if ($value eq "short");
@@ -561,7 +588,9 @@ sub HOMEMODE_Get($@)
   }
   elsif ($cmd eq "weatherForecast")
   {
-    my $trans = $de ? "Der Wert für $cmd muss zwischen 1 und 10 sein. Falls der Wert weggelassen wird, so wird 2 (für morgen) benutzt." : "Value for $cmd must be from 1 to 10. If omitted the value will be 2 for tomorrow.";
+    $trans = $HOMEMODE_de?
+      "Der Wert für $cmd muss zwischen 1 und 10 sein. Falls der Wert weggelassen wird, so wird 2 (für morgen) benutzt.":
+      "Value for $cmd must be from 1 to 10. If omitted the value will be 2 for tomorrow.";
     return $trans if ($value && $value !~ /^[1-9]0?$/ && ($value < 1 || $value > 10));
     HOMEMODE_ForecastTXT($hash,$value);
   }
@@ -579,9 +608,9 @@ sub HOMEMODE_Set($@)
 {
   my ($hash,$name,@aa) = @_;
   my ($cmd,@args) = @aa;
-  my $de;
-  $de = 1 if (AttrVal("global","language","EN") eq "DE");
-  my $trans = $de ? "\"set $name\" benötigt mindestens ein und maximal drei Argumente" : "\"set $name\" needs at least one argument and maximum three arguments";
+  my $trans = $HOMEMODE_de?
+    "\"set $name\" benötigt mindestens ein und maximal drei Argumente":
+    "\"set $name\" needs at least one argument and maximum three arguments";
   return $trans if (@aa > 3);
   my $option = defined $args[0] ? $args[0] : undef;
   my $value = defined $args[1] ? $args[1] : undef;
@@ -667,7 +696,9 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm-for-minutes")
   {
-    $trans = $de ? "$cmd benötigt zwei Parameter: einen modeAlarm und die Minuten" : "$cmd needs two paramters: a modeAlarm and minutes";
+    $trans = $HOMEMODE_de?
+      "$cmd benötigt zwei Parameter: einen modeAlarm und die Minuten":
+      "$cmd needs two paramters: a modeAlarm and minutes";
     return $trans if (!$option || !$value);
     my $timer = $name."_alarmMode_for_timer_$option";
     my $time = HOMEMODE_hourMaker($value);
@@ -677,9 +708,13 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "dnd-for-minutes")
   {
-    $trans = $de ? "$cmd benötigt einen Paramter: Minuten" : "$cmd needs one paramter: minutes";
+    $trans = $HOMEMODE_de?
+      "$cmd benötigt einen Paramter: Minuten":
+      "$cmd needs one paramter: minutes";
     return $trans if (!$option);
-    $trans = $de ? "$name darf nicht im dnd Modus sein um diesen Modus für bestimmte Minuten zu setzen! Bitte deaktiviere den dnd Modus zuerst!" : "$name can't be in dnd mode to turn dnd on for minutes! Please disable dnd mode first!";
+    $trans = $HOMEMODE_de?
+      "$name darf nicht im dnd Modus sein um diesen Modus für bestimmte Minuten zu setzen! Bitte deaktiviere den dnd Modus zuerst!":
+      "$name can't be in dnd mode to turn dnd on for minutes! Please disable dnd mode first!";
     return $trans if (ReadingsVal($name,"dnd","off") eq "on");
     my $timer = $name."_dnd_for_timer";
     my $time = HOMEMODE_hourMaker($option);
@@ -735,7 +770,9 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "anyoneElseAtHome")
   {
-    $trans = $de ? "Zulässige Werte für $cmd sind nur on oder off!" : "Values for $cmd can only be on or off!";
+    $trans = $HOMEMODE_de?
+      "Zulässige Werte für $cmd sind nur on oder off!":
+      "Values for $cmd can only be on or off!";
     return $trans if ($option !~ /^(on|off)$/);
     push @commands,$attr{$name}{"HomeCMDanyoneElseAtHome-$option"} if ($attr{$name}{"HomeCMDanyoneElseAtHome-$option"});
     if (AttrVal($name,"HomeAutoAlarmModes",1))
@@ -1242,29 +1279,33 @@ sub HOMEMODE_Attr(@)
   delete $hash->{helper}{lastChangedAttrValue};
   my $attr_value_old = AttrVal($name,$attr_name,"");
   $hash->{helper}{lastChangedAttr} = $attr_name;
+  my $trans;
   if ($cmd eq "set")
   {
     $hash->{helper}{lastChangedAttrValue} = $attr_value;
     if ($attr_name =~ /^(HomeAutoAwoken|HomeAutoAsleep|HomeAutoArrival|HomeModeAbsentBelatedTime)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.99." if ($attr_value !~ /^\d{1,4}(\.\d{1,2})?$/ || $attr_value > 5999.99 || $attr_value < 0);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Muss eine Zahl von 0 bis 5999.99 sein.":
+        "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.99.";
+      return $trans if ($attr_value !~ /^(\d{1,4})(\.\d{1,2})?$/ || $1 >= 6000 || $1 < 0);
     }
     elsif ($attr_name =~ /^(disable|HomeAdvancedUserAttr|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be 1 or 0 set, default is 0." if ($attr_value !~ /^[01]$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur 1 oder 0 sein, Vorgabewert ist 0.":
+        "Invalid value $attr_value for attribute $attr_name. Must be 1 or 0 set, default is 0.";
+      return $trans if ($attr_value !~ /^[01]$/);
       RemoveInternalTimer($hash) if ($attr_name eq "disable" && $attr_value == 1);
       HOMEMODE_GetUpdate($hash) if ($attr_name eq "disable" && !$attr_value);
       HOMEMODE_updateInternals($hash,1) if ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence)$/ && $init_done);
     }
-    elsif ($attr_name =~ /^HomeCMD/)
+    elsif ($attr_name =~ /^HomeCMD/ && $init_done)
     {
-      if ($init_done)
+      if ($attr_value_old ne $attr_value)
       {
-        if ($attr_value_old ne $attr_value)
-        {
-          my $err = perlSyntaxCheck($attr_value);
-          return $err if ($err);
-        }
+        my $err = perlSyntaxCheck($attr_value);
+        return $err if ($err);
       }
     }
     elsif ($attr_name eq "HomeEventsHolidayDevices" && $init_done)
@@ -1272,245 +1313,319 @@ sub HOMEMODE_Attr(@)
       my $wd = HOMEMODE_CheckHolidayDevices($attr_value);
       if ($wd)
       {
-        return "Not valid holiday device(s) found: ".join(",",@{$wd});
+        $trans = $HOMEMODE_de?
+          "Ungültige holiday Geräte gefunden: ":
+          "Invalid holiday device(s) found: ";
+        return $trans.join(",",@{$wd});
       }
       else
       {
         HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name =~ /^(HomePresenceDeviceType)$/)
+    elsif ($attr_name =~ /^(HomePresenceDeviceType)$/ && $init_done)
     {
-      if ($init_done)
-      {
-        return "$attr_value must be a valid TYPE" if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value","presence"));
-        HOMEMODE_updateInternals($hash,1);
-      }
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger TYPE sein":
+        "$attr_value must be a valid TYPE";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value","presence"));
+      HOMEMODE_updateInternals($hash,1);
     }
     elsif ($attr_name =~ /^(HomeSensorsContactReadings|HomeSensorsMotionReadings)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, p.e. state sabotageError" if ($attr_value !~ /^[\w\-\.]+\s[\w\-\.]+$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden wenigstens 2 Leerzeichen separierte Readings benötigt! z.B. state sabotageError":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, e.g. state sabotageError";
+      return $trans if ($attr_value !~ /^[\w\-\.]+\s[\w\-\.]+$/);
     }
     elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues)$/)
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, p.e. open|tilted|on" if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(\|[\w\-äÄöÖüÜß\.]+){0,}?$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird wenigstens ein Wert oder mehrere Pipe separierte Readings benötigt! z.B. open|tilted|on":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, e.g. open|tilted|on";
+      return $trans if ($attr_value !~ /^[\w\-äöüß\.]+(\|[\w\-äöüß\.]+){0,}?$/i);
     }
     elsif ($attr_name eq "HomeSpecialModes")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(,[\w\-äÄöÖüÜß\.]+){0,}$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Muss eine Komma separierte Liste aus Wörtern sein!":
+        "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words!";
+      return $trans if ($attr_value !~ /^[\w\-äöüß\.]+(,[\w\-äöüß\.]+){0,}$/i);
     }
     elsif ($attr_name eq "HomeIcewarningOnOffTemps")
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide 2 space separated temperatures, p.e. -0.1 2.5" if ($attr_value !~ /^-?\d{1,2}(\.\d)?\s-?\d{1,2}(\.\d)?$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden wenigstens 2 Leerzeichen separierte Temperaturen benötigt, z.B. -0.1 2.5":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide 2 space separated temperatures, e.g. -0.1 2.5";
+      return $trans if ($attr_value !~ /^-?\d{1,2}(\.\d)?\s-?\d{1,2}(\.\d)?$/);
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeDividers")
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers for each season in order of the seasons provided in attribute HomeSeasons, p.e. 2 1 2 3.333" if ($attr_value !~ /^\d{1,2}(\.\d{1,3})?(\s\d{1,2}(\.\d{1,3})?){0,}$/);
-      my @seasons = split " ",AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden Leerzeichen separierte Zahlen für jede Jahreszeit (aus Attribut HomeSeasons) benötigt, z.B. 2 1 2 3.333":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers for each season in order of the seasons provided in attribute HomeSeasons, e.g. 2 1 2 3.333";
+      return $trans if ($attr_value !~ /^\d{1,2}(\.\d{1,3})?(\s\d{1,2}(\.\d{1,3})?){0,}$/);
       my @times = split " ",$attr_value;
-      return "Number of $attr_name values (".scalar @times.") not matching the number of available seasons (".scalar @seasons.") in HomeSeasons!" if (scalar @seasons != scalar @times);
+      my $s = scalar split " ",AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
+      my $t = scalar @times;
+      $trans = $HOMEMODE_de?
+        "Anzahl von $attr_name Werten ($t) ungleich zu den verfügbaren Jahreszeiten ($s) im Attribut HomeSeasons!":
+        "Number of $attr_name values ($t) not matching the number of available seasons ($s) in attribute HomeSeasons!";
+      return $trans if ($s != $t);
       foreach (@times)
       {
-        return "Dividers can't be zero, because division by zero is not defined!" if ($_ == 0);
+        $trans = $HOMEMODE_de?
+          "Teiler dürfen nicht 0 sein, denn Division durch 0 ist nicht definiert!":
+          "Dividers can't be zero, because division by zero is not defined!";
+        return $trans if ($_ == 0);
       }
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimeMin")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Numbers from 1 to 9.9 are allowed only!" if ($attr_value !~ /^[1-9](\.\d)?$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Zahlen von 1 bis 9.9 sind nur erlaubt!":
+        "Invalid value $attr_value for attribute $attr_name. Numbers from 1 to 9.9 are allowed only!";
+      return $trans if ($attr_value !~ /^[1-9](\.\d)?$/);
     }
     elsif ($attr_name eq "HomeSensorsContactOpenTimes")
     {
-      return "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers, p.e. 5 10 15 17.5" if ($attr_value !~ /^\d{1,4}(\.\d)?((\s\d{1,4}(\.\d)?)?){0,}$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden Leerzeichen separierte Zahlen benötigt, z.B. 5 10 15 17.5":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide space separated numbers, e.g. 5 10 15 17.5";
+      return $trans if ($attr_value !~ /^\d{1,4}(\.\d)?((\s\d{1,4}(\.\d)?)?){0,}$/);
       foreach (split " ",$attr_value)
       {
-        return "Dividers can't be zero, because division by zero is not defined!" if ($_ == 0);
+        $trans = $HOMEMODE_de?
+          "Teiler dürfen nicht 0 sein, denn Division durch 0 ist nicht definiert!":
+          "Dividers can't be zero, because division by zero is not defined!";
+        return $trans if ($_ == 0);
       }
     }
     elsif ($attr_name eq "HomeResidentCmdDelay")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Numbers from 0 to 9999 are allowed only." if ($attr_value !~ /^\d{1,4}$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Zahlen von 0 bis 9999 sind nur erlaubt!":
+        "Invalid value $attr_value for attribute $attr_name. Numbers from 0 to 9999 are allowed only!";
+      return $trans if ($attr_value !~ /^\d{1,4}$/);
     }
     elsif ($attr_name eq "HomeSpecialLocations")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words." if ($attr_value !~ /^[\w\-äÄöÖüÜß\.]+(,[\w\-äÄöÖüÜß\.]+){0,}$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Muss eine Komma separierte Liste von Wörtern sein!":
+        "Invalid value $attr_value for attribute $attr_name. Must be a comma separated list of words!";
+      return $trans if ($attr_value !~ /^[\w\-äöüß\.]+(,[\w\-äöüß\.]+){0,}$/i);
     }
     elsif ($attr_name eq "HomePublicIpCheckInterval")
     {
-      return "Invalid value $attr_value for attribute $attr_name. Must be a number from 1-99999 for interval in minutes." if ($attr_value !~ /^\d{1,5}$/);
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Muss eine Zahl von 1 bis 99999 für das Interval in Minuten sein!":
+        "Invalid value $attr_value for attribute $attr_name. Must be a number from 1 to 99999 for interval in minutes!";
+      return $trans if ($attr_value !~ /^\d{1,5}$/);
     }
-    elsif ($attr_name eq "HomeSensorsContact")
+    elsif ($attr_name eq "HomeSensorsContact" && $init_done)
     {
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec sein!":
+        "$attr_value must be a valid devspec!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid devspec" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name lastContact|prevContact|contacts.*");
-          HOMEMODE_updateInternals($hash,1);
-          HOMEMODE_addSensorsuserattr($hash,$attr_value);
-        }
+        CommandDeleteReading(undef,"$name lastContact|prevContact|contacts.*");
+        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_addSensorsuserattr($hash,$attr_value);
       }
     }
-    elsif ($attr_name eq "HomeSensorsMotion")
+    elsif ($attr_name eq "HomeSensorsMotion" && $init_done)
     {
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec sein!":
+        "$attr_value must be a valid devspec!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid devspec" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-        if ($attr_value_old ne $attr_value)
-        {
-          HOMEMODE_updateInternals($hash,1);
-          HOMEMODE_addSensorsuserattr($hash,$attr_value);
-        }
+        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_addSensorsuserattr($hash,$attr_value);
       }
     }
-    elsif ($attr_name eq "HomeSensorsPowerEnergy")
+    elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
-      if ($init_done)
+      my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec mit $p und $e Readings sein!":
+        "$attr_value must be a valid devspec with $p and $e readings!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$p) || !HOMEMODE_CheckIfIsValidDevspec($attr_value,$e));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid devspec" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-        if ($attr_value_old ne $attr_value)
-        {
-          HOMEMODE_updateInternals($hash,1);
-        }
+        HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name eq "HomeTwilightDevice")
+    elsif ($attr_name eq "HomeTwilightDevice" && $init_done)
     {
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät vom TYPE Twilight sein!":
+        "$attr_value must be a valid device of TYPE Twilight!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Twilight"));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid device of TYPE Twilight!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Twilight"));
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name light|twilight|twilightEvent");
-          HOMEMODE_updateInternals($hash,1);
-        }
+        CommandDeleteReading(undef,"$name light|twilight|twilightEvent");
+        HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name eq "HomeYahooWeatherDevice")
+    elsif ($attr_name eq "HomeYahooWeatherDevice" && $init_done)
     {
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät vom TYPE Weather sein!":
+        "$attr_value must be a valid device of TYPE Weather!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Weather"));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid device of TYPE Weather!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Weather"));
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name pressure|condition|wind|wind_chill");
-          CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeSensorTemperatureOutside});
-          CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeSensorHumidityOutside});
-          HOMEMODE_updateInternals($hash,1);
-        }
+        CommandDeleteReading(undef,"$name pressure|condition|wind|wind_chill");
+        CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeSensorTemperatureOutside});
+        CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeSensorHumidityOutside});
+        HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name eq "HomeSensorTemperatureOutside")
+    elsif ($attr_name eq "HomeSensorTemperatureOutside" && $init_done)
     {
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec mit temperature Reading sein!":
+        "$attr_value must be a valid device with temperature reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"temperature"));
+      delete $attr{$name}{HomeSensorHumidityOutside} if ($attr{$name}{HomeSensorHumidityOutside} && $attr_value eq $attr{$name}{HomeSensorHumidityOutside});
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid device with temperature reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"temperature"));
-        delete $attr{$name}{HomeSensorHumidityOutside} if ($attr{$name}{HomeSensorHumidityOutside} && $attr_value eq $attr{$name}{HomeSensorHumidityOutside});
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeYahooWeatherDevice});
-          HOMEMODE_updateInternals($hash,1);
-        }
+        CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeYahooWeatherDevice});
+        HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name eq "HomeSensorHumidityOutside")
+    elsif ($attr_name eq "HomeSensorHumidityOutside" && $init_done)
     {
-      return "You have to omit this attribute if it should have the same value like HomeSensorTemperatureOutside!" if ($attr_value eq $attr{$name}{HomeSensorTemperatureOutside});
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "Dieses Attribut ist wegzulassen wenn es den gleichen Wert haben sollte wie HomeSensorTemperatureOutside!":
+        "You have to omit this attribute if it should have the same value like HomeSensorTemperatureOutside!";
+      return $trans if ($attr_value eq $attr{$name}{HomeSensorTemperatureOutside});
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec mit humidity Reading sein!":
+        "$attr_value must be a valid device with humidity reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"humidity"));
+      if ($attr_value_old ne $attr_value)
       {
-        return "$attr_value must be a valid device with humidity reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"humidity"));
-        if ($attr_value_old ne $attr_value)
-        {
-          CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice});
-          HOMEMODE_updateInternals($hash,1);
-        }
+        CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice});
+        HOMEMODE_updateInternals($hash,1);
       }
     }
-    elsif ($attr_name eq "HomeDaytimes")
+    elsif ($attr_name eq "HomeDaytimes" && $init_done)
     {
-      return "$attr_value for $attr_name must be a space separated list of time|text pairs like: $HOMEMODE_Daytimes ..." if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w\-äÄöÖüÜß\.]+)(\s[0-2]\d:[0-5]\d\|[\w\-äÄöÖüÜß\.]+){0,}$/);
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value für $attr_name muss eine Leerzeichen separierte Liste aus Uhrzeit|Text Paaren sein! z.B. $HOMEMODE_Daytimes":
+        "$attr_value for $attr_name must be a space separated list of time|text pairs! e.g. $HOMEMODE_Daytimes";
+      return $trans if ($attr_value !~ /^([0-2]\d:[0-5]\d\|[\w\-äöüß\.]+)(\s[0-2]\d:[0-5]\d\|[\w\-äöüß\.]+){0,}$/i);
+      if ($attr_value_old ne $attr_value)
       {
-        if ($attr_value_old ne $attr_value)
+        my @ts;
+        foreach (split " ",$attr_value)
         {
-          my @ts;
-          foreach (split " ",$attr_value)
+          my $time = (split /\|/)[0];
+          my ($h,$m) = split /:/,$time;
+          my $minutes = $h * 60 + $m;
+          my $lastminutes = @ts ? $ts[scalar @ts - 1] : -1;
+          if ($minutes > $lastminutes)
           {
-            my $time = (split /\|/)[0];
-            my ($h,$m) = split /:/,$time;
-            my $minutes = $h * 60 + $m;
-            my $lastminutes = @ts ? $ts[scalar @ts - 1] : -1;
-            if ($minutes > $lastminutes)
-            {
-              push @ts,$minutes;
-            }
-            else
-            {
-              return "Wrong times order in $attr_value";
-            }
+            push @ts,$minutes;
           }
-          HOMEMODE_userattr($hash);
+          else
+          {
+            $trans = $HOMEMODE_de?
+              "Falsche Reihenfolge der Zeiten in $attr_value":
+              "Wrong times order in $attr_value";
+            return $trans;
+          }
         }
+        HOMEMODE_userattr($hash);
       }
     }
-    elsif ($attr_name eq "HomeSeasons")
+    elsif ($attr_name eq "HomeSeasons" && $init_done)
     {
-      return "$attr_value for $attr_name must be a space separated list of date|text pairs with at least 4 values like: $HOMEMODE_Seasons ..." if (scalar (split " ",$attr_value) < 4 || scalar (split /\|/,$attr_value) < 5);
-      if ($init_done)
+      $trans = $HOMEMODE_de?
+        "$attr_value für $attr_name muss eine Leerzeichen separierte Liste aus Datum|Text Paaren mit mindestens 4 Werten sein! z.B. $HOMEMODE_Seasons":
+        "$attr_value for $attr_name must be a space separated list of date|text pairs with at least 4 values! e.g. $HOMEMODE_Seasons";
+      return $trans if (scalar (split " ",$attr_value) < 4 || scalar (split /\|/,$attr_value) < 5);
+      if ($attr_value_old ne $attr_value)
       {
-        if ($attr_value_old ne $attr_value)
+        my @ds;
+        foreach (split " ",$attr_value)
         {
-          my @ds;
-          foreach (split " ",$attr_value)
+          my $time = (split /\|/)[0];
+          my ($m,$d) = split /\./,$time;
+          my $days = $m * 31 + $d;
+          my $lastdays = @ds ? $ds[scalar @ds - 1] : -1;
+          if ($days > $lastdays)
           {
-            my $time = (split /\|/)[0];
-            my ($m,$d) = split /\./,$time;
-            my $days = $m * 31 + $d;
-            my $lastdays = @ds ? $ds[scalar @ds - 1] : -1;
-            if ($days > $lastdays)
-            {
-              push @ds,$days;
-            }
-            else
-            {
-              return "Wrong dates order in $attr_value";
-            }
+            push @ds,$days;
           }
-          HOMEMODE_userattr($hash);
+          else
+          {
+            $trans = $HOMEMODE_de?
+              "Falsche Reihenfolge der Datumsangaben in $attr_value":
+              "Wrong dates order in $attr_value";
+            return $trans;
+          }
         }
+        HOMEMODE_userattr($hash);
       }
     }
     elsif ($attr_name eq "HomeModeAlarmArmDelay")
     {
-      return "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999" if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
+      $trans = $HOMEMODE_de?
+        "$attr_value für $attr_name muss eine einzelne Zahl sein für die Verzögerung in Sekunden oder 3 Leerzeichen separierte Zeiten in Sekunden für jeden modeAlarm individuell (Reihenfolge: armaway armnight armhome), höhster Wert ist 99999":
+        "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999";
+      return $trans if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
     }
     elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow)$/)
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 3 values." if (scalar (split /\|/,$attr_value) != 3);
+      $trans = $HOMEMODE_de?
+        "$attr_value für $attr_name muss eine Pipe separierte Liste mit 3 Werten sein!":
+        "$attr_value for $attr_name must be a pipe separated list with 3 values!";
+      return $trans if (scalar (split /\|/,$attr_value) != 3);
     }
     elsif ($attr_name eq "HomeTextClosedOpen")
     {
-      return "$attr_value for $attr_name must be a pipe separated list with 2 values." if (scalar (split /\|/,$attr_value) != 2);
+      $trans = $HOMEMODE_de?
+        "$attr_value für $attr_name muss eine Pipe separierte Liste mit 2 Werten sein!":
+        "$attr_value for $attr_name must be a pipe separated list with 2 values!";
+      return $trans if (scalar (split /\|/,$attr_value) != 2);
     }
     elsif ($attr_name eq "HomeUWZ" && $init_done)
     {
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät vom TYPE Weather sein!":
+        "$attr_value must be a valid device of TYPE Weather!";
       return "$attr_value must be a valid device of TYPE UWZ!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=UWZ"));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsLuminance" && $init_done)
     {
       my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
-      return "$attr_name must be a valid device with a \"$read\" reading!" if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
+        "$attr_name must be a valid device with a $read reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergyReadings" && $init_done)
     {
-      return "$attr_name must be two valid readings for power and energy!" if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
+      $trans = $HOMEMODE_de?
+        "$attr_name müssen zwei gültige Readings für power und energy sein!":
+        "$attr_name must be two valid readings for power and energy!";
+      return $trans if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsLuminanceReading" && $init_done)
     {
-      return "$attr_name must be a single valid reading!" if ($attr_value !~ /^([\w\-\.]+)$/);
+      $trans = $HOMEMODE_de?
+        "$attr_name muss ein einzelnes gültiges Reading sein!":
+        "$attr_name must be a single valid reading!";
+      return $trans if ($attr_value !~ /^([\w\-\.]+)$/);
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
   }
@@ -1815,7 +1930,7 @@ sub HOMEMODE_ForecastTXT($;$)
     $d = $atomorrow if ($day == 3);
     $d = $day-1     if ($day >  3);
     $text = AttrVal($name,"HomeTextWeatherForecastToday","");
-    $text = AttrVal($name,"HomeTextWeatherForecastTomorrow","")    if ($day =~ /^(2|3)$/);
+    $text = AttrVal($name,"HomeTextWeatherForecastTomorrow","")    if ($day =~ /^[23]$/);
     $text = AttrVal($name,"HomeTextWeatherForecastInSpecDays","")  if ($day > 3);
     $text =~ s/%CONDITION%/$cond/gm;
     $text =~ s/%DAY%/$d/gm;
@@ -1977,7 +2092,10 @@ sub HOMEMODE_SetSeason($)
 sub HOMEMODE_hourMaker($)
 {
   my ($minutes) = @_;
-  return "no valid minutes given" if ($minutes !~ /^\d{1,4}(\.\d{0,2})?$/ || $minutes > 5999.99 || $minutes < 0.01);
+  my $trans = $HOMEMODE_de?
+    "keine gültigen Minuten übergeben":
+    "no valid minutes given";
+  return $trans if ($minutes !~ /^(\d{1,4})(\.\d{0,2})?$/ || $1 >= 6000 || $minutes < 0.01);
   my $hours = int($minutes/60);
   $hours = length "$hours" > 1 ? $hours : "0$hours";
   my $min = $minutes%60;
@@ -2043,7 +2161,7 @@ sub HOMEMODE_Luminance($;$$)
   $lum = 0 if (!$lum);
   foreach (@sensors)
   {
-    my $val = (split " ",ReadingsVal($_,$read,""))[0];
+    my $val = ReadingsNum($_,$read,0);
     $lum += $val if (!$dev || $dev ne $_);
   }
   my $lumval = defined $lum ? int ($lum / scalar @sensors) : undef;
@@ -2536,7 +2654,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
     foreach (split /,/,$hash->{SENSORSENERGY})
     {
       next if ($_ eq $trigger);
-      my $v = (split " ",ReadingsVal($_,$read,"0 kWhW"))[0];
+      my $v = ReadingsNum($_,$read,0);
       $val += $v if ($v);
     }
     $val = sprintf("%.2f",$val);
@@ -2546,10 +2664,11 @@ sub HOMEMODE_PowerEnergy($;$$$)
   {
     my $power;
     my $energy;
+    my ($pr,$er) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
     foreach (split /,/,$hash->{SENSORSENERGY})
     {
-      my $p = (split " ",ReadingsVal($_,(split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy"))[0],"0 W"))[0];
-      my $e = (split " ",ReadingsVal($_,(split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy"))[1],"0 kWh"))[0];
+      my $p = ReadingsNum($_,$pr,0);
+      my $e = ReadingsNum($_,$er,0);
       $power += $p if ($p);
       $energy += $e if ($e);
     }
@@ -2688,28 +2807,6 @@ sub HOMEMODE_HolidayEvents($)
   return (\@events);
 }
 
-sub HOMEMODE_devStateIcon($;$)
-{
-  my ($hash,$state) = @_; 
-  $hash = $defs{$hash} if (ref $hash ne "HASH");
-  return if (!$hash);
-  my $name = $hash->{NAME};
-  my $val = ReadingsVal($name,"state","");
-  return ".*:weather_sunrise:dnd+on"          if ($val eq "morning");
-  return ".*:weather_sun:dnd+on"              if ($val eq "day");
-  return ".*:weather_summer:dnd+on"           if ($val eq "afternoon");
-  return ".*:weather_sunset:dnd+on"           if ($val eq "evening");
-  return ".*:weather_moon_phases_2:dnd+on"    if ($val eq "night");
-  return ".*:user_away:dnd+on"                if ($val eq "absent");
-  return ".*:user_ext_away:dnd+on"            if ($val eq "gone");
-  return ".*:audio_volume_mute:dnd+off"       if ($val eq "dnd");
-  return ".*:scene_sleeping:dnd+on"           if ($val eq "gotosleep");
-  return ".*:scene_sleeping_alternat:dnd+on"  if ($val eq "asleep");
-  return ".*:weather_sunrise:dnd+on"          if ($val eq "awoken");
-  return ".*:status_available:dnd+on"         if ($val eq "home");
-  return;
-}
-
 sub HOMEMODE_checkIP($;$)
 {
   my ($hash,$r) = @_;
@@ -2740,7 +2837,7 @@ sub HOMEMODE_checkIP($;$)
 1;
 
 =pod
-=item device
+=item helper
 =item summary    provides a HOMEMODE device with ROOMMATE/GUEST and PRESENCE integration for basic automations and more
 =item summary_DE stellt ein HOMEMODE Ger&auml;t mit ROOMMATE/GUEST und PRESENCE Integration für grundlegende Automationen und mehr zur Verf&uuml;gung
 =begin html
@@ -2758,20 +2855,20 @@ sub HOMEMODE_checkIP($;$)
   There is also a daytime reading and associated HomeCMD attributes that will execute the HOMEMODE state CMDs independend of the presence of any RESIDENT.<br>
   A lot of placeholders are available for usage within the HomeCMD or HomeText attributes (see Placeholders).<br>
   All your energy and power measuring sensors can be added and calculated total readings for energy and power will be created.<br>
-  You can also add your local outside temperature and humidity sensors and you'll get ice warning p.e.<br>
+  You can also add your local outside temperature and humidity sensors and you'll get ice warning e.g.<br>
   If you also add your Yahoo weather device you'll also get short and long weather informations and weather forecast.<br>
   You can monitor added contact and motion sensors and execute CMDs depending on their state.<br>
   A simple alarm system is included, so your contact and motion sensors can trigger alarms depending on the current alarm mode.<br>
-  A lot of customizations are possible, p.e. special event (holiday) calendars and locations.<br>
+  A lot of customizations are possible, e.g. special event (holiday) calendars and locations.<br>
   <p><b>General information:</b></p>
   <ul>
     <li>
       The HOMEMODE device is refreshing itselfs every 5 seconds by calling HOMEMODE_GetUpdate and subfunctions.<br>
-      This is the reason why some automations (p.e. daytime or season) are delayed up to 4 seconds.<br>
+      This is the reason why some automations (e.g. daytime or season) are delayed up to 4 seconds.<br>
       All automations triggered by external events (other devices monitored by HOMEMODE) and the execution of the HomeCMD attributes will not be delayed.
     </li>
     <li>
-      Each created timer will be created as temporary at device and its name will start with "atTmp_". You may list them with "list TYPE=at:FILTER=NAME=atTmp.*".
+      Each created timer will be created as temporary at device and its name will start with "atTmp_" and end with "_<name of your HOMEMODE device>". You may list them with "list TYPE=at:FILTER=NAME=atTmp_.*_<name of your HOMEMODE device>".
     </li>
     <li>
       Seasons can also be adjusted (date and text) in attribute HomeSeasons
@@ -2798,14 +2895,14 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>anyoneElseAtHome &lt;on/off&gt;</i></b><br>
       turn this on if anyone else is alone at home who is not a registered resident<br>
-      p.e. an animal or unregistered guest<br>
-      if turned on the alarm mode will be set to armhome instead of armaway while leaving, if turned on after leaving the alarm mode will change from armaway to armhome, p.e. to disable motion sensors alerts<br>
+      e.g. an animal or unregistered guest<br>
+      if turned on the alarm mode will be set to armhome instead of armaway while leaving, if turned on after leaving the alarm mode will change from armaway to armhome, e.g. to disable motion sensors alerts<br>
       placeholder %AEAH% is available in all HomeCMD attributes
     </li>
     <li>
       <b><i>dnd &lt;on/off&gt;</i></b><br>
       turn "do not disturb" mode off or on<br>
-      p.e. to disable notification or alarms or, or, or...<br>
+      e.g. to disable notification or alarms or, or, or...<br>
       placeholder %DND% is available in all HomeCMD attributes
     </li>
     <li>
@@ -2840,7 +2937,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>updateInternalForce</i></b><br>
       will force update all internals of the HOMEMODE device<br>
-      use this if you just reload this module after an update or if you made changes on any HOMEMODE monitored device, p.e. after adding residents/guest or after adding new sensors with the same devspec as before
+      use this if you just reload this module after an update or if you made changes on any HOMEMODE monitored device, e.g. after adding residents/guest or after adding new sensors with the same devspec as before
     </li>
   </ul>  
   <br>
@@ -3121,7 +3218,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>HomeModeAbsentBelatedTime</i></b><br>
       time in minutes after changing to absent to execute "HomeCMDmode-absent-belated"<br>
-      if mode changes back (to home p.e.) in this time frame "HomeCMDmode-absent-belated" will not be executed<br>
+      if mode changes back (to home e.g.) in this time frame "HomeCMDmode-absent-belated" will not be executed<br>
       default: 
     </li>
     <li>
@@ -3765,7 +3862,7 @@ sub HOMEMODE_checkIP($;$)
       <b><i>%ALARM%</i></b><br>
       value of the alarmTriggered reading of the HOMEMODE device<br>
       will return 0 if no alarm is triggered or a list of triggered sensors if alarm is triggered<br>
-      can be used for sending msg p.e.
+      can be used for sending msg e.g.
     </li>
     <li>
       <b><i>%AMODE%</i></b><br>
@@ -3779,13 +3876,13 @@ sub HOMEMODE_checkIP($;$)
       <b><i>%ARRIVERS%</i></b><br>
       will return a list of aliases of all registered residents/guests with location arrival<br>
       this can be used to welcome residents after main door open/close<br>
-      p.e. Peter, Paul and Marry
+      e.g. Peter, Paul and Marry
     </li>
     <li>
       <b><i>%AUDIO%</i></b><br>
       audio device of the last triggered resident (attribute msgContactAudio)<br>
       if attribute msgContactAudio of the resident has no value the value is trying to be taken from device globalMsg (if available)<br>
-      can be used to address resident specific msg(s) of type audio, p.e. night/morning wishes
+      can be used to address resident specific msg(s) of type audio, e.g. night/morning wishes
     </li>
     <li>
       <b><i>%BE%</i></b><br>
@@ -3870,7 +3967,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%HUMIDITY%</i></b><br>
       value of the humidity reading of the HOMEMODE device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
       <b><i>%HUMIDITYTREND%</i></b><br>
@@ -3880,7 +3977,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%ICE%</i></b><br>
       will return 1 if ice warning is on, will return 0 if ice warning is off<br>
-      can be used to send ice warning specific msg(s) in specific situations, p.e. to warn leaving residents
+      can be used to send ice warning specific msg(s) in specific situations, e.g. to warn leaving residents
     </li>
     <li>
       <b><i>%IP%</i></b><br>
@@ -3919,7 +4016,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%OPEN%</i></b><br>
       value of the contactsOutsideOpen_hr reading of the HOMEMODE device<br>
-      can be used to send msg(s) in specific situations, p.e. to warn leaving residents of open contact sensors
+      can be used to send msg(s) in specific situations, e.g. to warn leaving residents of open contact sensors
     </li>
     <li>
       <b><i>%OPENCT%</i></b><br>
@@ -3943,12 +4040,12 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%PRESSURE%</i></b><br>
       value of the pressure reading of the HOMEMODE device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
       <b><i>%PRESSURETREND%</i></b><br>
       value of the pressure_trend_txt reading of the Yahoo weather device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
       <b><i>%PREVAMODE%</i></b><br>
@@ -4001,7 +4098,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%TEMPERATURE%</i></b><br>
       value of the temperature reading of the HOMEMODE device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
       <b><i>%TEMPERATURETREND%</i></b><br>
@@ -4027,22 +4124,22 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%WEATHER%</i></b><br>
       value of "get &lt;HOMEMODE&gt; weather short"<br>
-      can be used for for msg weather info p.e.
+      can be used for for msg weather info e.g.
     </li>
     <li>
       <b><i>%WEATHERLONG%</i></b><br>
       value of "get &lt;HOMEMODE&gt; weather long"<br>
-      can be used for for msg weather info p.e.
+      can be used for for msg weather info e.g.
     </li>
     <li>
       <b><i>%WIND%</i></b><br>
       value of the wind reading of the HOMEMODE device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
       <b><i>%WINDCHILL%</i></b><br>
       value of the wind_chill reading of the Yahoo weather device<br>
-      can be used for weather info in HomeTextWeather attributes p.e.
+      can be used for weather info in HomeTextWeather attributes e.g.
     </li>
   </ul>
   <p>These placeholders can only be used within HomeTextWeatherForecast attributes</p>
