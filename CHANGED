@@ -1,3 +1,7 @@
+    v0.266
+    - changed initial STATE to reading state
+    - changed NOTIFYDEV
+    - changed NTFY_ORDER
     v0.265
     - added missing german error message translations to AttrFn
     - added validation of readings of HomeSensorsPowerEnergy

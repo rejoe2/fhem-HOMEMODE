@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14019 2017-04-17 22:10:00Z deespe $
+# $Id: 22_HOMEMODE.pm 14062 2017-04-21 20:47:00Z deespe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.265";
+my $HOMEMODE_version = "0.266";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -34,6 +34,7 @@ sub HOMEMODE_Initialize($)
   $hash->{SetFn}        = "HOMEMODE_Set";
   $hash->{UndefFn}      = "HOMEMODE_Undef";
   $hash->{AttrList}     = HOMEMODE_Attributes($hash);
+  $hash->{NotifyOrderPrefix} = "51-";
 }
 
 sub HOMEMODE_Define($$)
@@ -81,6 +82,7 @@ sub HOMEMODE_Define($$)
       return $trans;
     }
   }
+  $hash->{NOTIFYDEV} = "global";
   if ($init_done && !defined $hash->{OLDDEF})
   {
     $attr{$name}{devStateIcon}  = "absent:user_away:dnd+on\n".
@@ -98,6 +100,10 @@ sub HOMEMODE_Define($$)
     $attr{$name}{icon}          = "floor";
     $attr{$name}{room}          = "HOMEMODE";
     $attr{$name}{webCmd}        = "modeAlarm";
+    readingsBeginUpdate($hash);
+    readingsBulkUpdate($hash,"dnd","off") if (!defined ReadingsVal($name,"dnd",undef));
+    readingsBulkUpdate($hash,"anyoneElseAtHome","off") if (!defined ReadingsVal($name,"anyoneElseAtHome",undef));
+    readingsEndUpdate($hash,0);
     HOMEMODE_updateInternals($hash);
   }
   return;
@@ -114,13 +120,13 @@ sub HOMEMODE_Notify($$)
 {
   my ($hash,$dev) = @_;
   my $name = $hash->{NAME};
+  return if (AttrVal($name,"disable",0) == 1);
   my $devname = $dev->{NAME};
   my $devtype = $dev->{TYPE};
-  return if (AttrVal($name,"disable",0) == 1);
   my $events = deviceEvents($dev,1);
   return if (!$events);
   my $prestype = AttrVal($name,"HomePresenceDeviceType","PRESENCE");
-  my @allMonitoredDevices = @{$hash->{helper}{allMonitoredDevices}} if ($hash->{helper}{allMonitoredDevices});
+  my @allMonitoredDevices = split /,/,$hash->{NOTIFYDEV};
   if (grep(/^INITIALIZED$/,@{$events}))
   {
     HOMEMODE_updateInternals($hash);
@@ -133,7 +139,7 @@ sub HOMEMODE_Notify($$)
   {
     HOMEMODE_updateInternals($hash,1);
   }
-  return if (!@allMonitoredDevices || !grep(/^$devname$/,@allMonitoredDevices));
+  return if (!grep(/^$devname$/,@allMonitoredDevices) || $devname =~ /^(global|$name)$/);
   
   Log3 $name,5,"$name: Events from monitored device $devname: ". Dumper @{$events};
 
@@ -325,7 +331,6 @@ sub HOMEMODE_updateInternals($;$)
 {
   my ($hash,$force) = @_;
   $HOMEMODE_de = 1 if (AttrVal("global","language","EN") eq "DE");
-  delete $hash->{helper}{allMonitoredDevices} if ($force);
   my $name = $hash->{NAME};
   my $resdev = $hash->{DEF};
   my $trans;
@@ -334,19 +339,18 @@ sub HOMEMODE_updateInternals($;$)
     $trans = $HOMEMODE_de?
       "$resdev ist nicht definiert!":
       "$resdev is not defined!";
-    $hash->{STATE} = $trans;
+    readingsSingleUpdate($hash,"state",$trans,0);
   }
   elsif (!IsDevice($resdev,"RESIDENTS"))
   {
     $trans = $HOMEMODE_de?
       "$resdev ist kein gültiges RESIDENTS Gerät!":
       "$resdev is not a valid RESIDENTS device!";
-    $hash->{STATE} = $trans;
+    readingsSingleUpdate($hash,"state",$trans,0);
   }
   else
   {
-    my @oldMonitoredDevices = @{$hash->{helper}{allMonitoredDevices}} if ($hash->{helper}{allMonitoredDevices});
-    delete $hash->{helper}{allMonitoredDevices};
+    my @oldMonitoredDevices = split /,/,$hash->{NOTIFYDEV};
     delete $hash->{helper}{presdevs};
     delete $hash->{RESIDENTS};
     delete $hash->{SENSORSCONTACT};
@@ -371,6 +375,7 @@ sub HOMEMODE_updateInternals($;$)
       $hash->{RESIDENTS} = join(",",@residents);
     }
     my @allMonitoredDevices;
+    push @allMonitoredDevices,"global";
     push @allMonitoredDevices,$name;
     push @allMonitoredDevices,$resdev;
     my $autopresence = HOMEMODE_AttrCheck($hash,"HomeAutoPresence",0);
@@ -499,23 +504,17 @@ sub HOMEMODE_updateInternals($;$)
     }
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
-    Log3 $name,5,"$name: allMonitoredDevicesList: ".join(",",@allMonitoredDevices);
-    return if (!@allMonitoredDevices);
     @allMonitoredDevices = sort @allMonitoredDevices;
-    $hash->{helper}{allMonitoredDevices} = \@allMonitoredDevices;
+    $hash->{NOTIFYDEV} = join(",",@allMonitoredDevices);
     HOMEMODE_GetUpdate($hash);
-    return if (!$force || (@oldMonitoredDevices && @oldMonitoredDevices eq @allMonitoredDevices));
-    readingsBeginUpdate($hash);
-    readingsBulkUpdate($hash,"dnd","off") if (!ReadingsVal($name,"dnd",""));
-    readingsBulkUpdate($hash,"anyoneElseAtHome","off") if (!ReadingsVal($name,"anyoneElseAtHome",""));
-    readingsEndUpdate($hash,1);
+    return if (!$force || (@oldMonitoredDevices eq @allMonitoredDevices));
     HOMEMODE_RESIDENTS($hash);
     HOMEMODE_userattr($hash);
     HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
+    HOMEMODE_Luminance($hash) if ($hash->{SENSORSLUMINANCE});
     HOMEMODE_PowerEnergy($hash) if ($hash->{SENSORSENERGY});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
-    HOMEMODE_Luminance($hash) if ($hash->{SENSORSLUMINANCE});
   }
   return;
 }
