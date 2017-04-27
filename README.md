@@ -9,4 +9,4 @@ Please remove this Github repository from your installation (if added).
 
 or  
 
-```updare delete https://raw.githubusercontent.com/deespe/fhem-HOMEMODE/dev/controls_HOMEMODE.txt```
+```update delete https://raw.githubusercontent.com/deespe/fhem-HOMEMODE/dev/controls_HOMEMODE.txt```
