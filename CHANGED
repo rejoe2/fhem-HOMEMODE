@@ -1,3 +1,10 @@
+    v1.0.0
+    - initial SVN release
+    - discard negative values in power, energy and luminance calculations
+    - improved removal of Home userattr on released devices
+    - remove all Home userattr in UndefFn
+    - fixed waittime warnings
+
     v0.266
     - changed initial STATE to reading state
     - changed NOTIFYDEV

@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14062 2017-04-21 20:47:00Z deespe $
+# $Id: 22_HOMEMODE.pm 14121 2017-04-27 17:37:14Z DeeSPe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "0.266";
+my $HOMEMODE_version = "1.0.0";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -113,6 +113,12 @@ sub HOMEMODE_Undef($$)
 {
   my ($hash,$arg) = @_;
   RemoveInternalTimer($hash);
+  my $name = $hash->{NAME};
+  if (scalar devspec2array("TYPE=HOMEMODE") == 1)
+  {
+    HOMEMODE_cleanUserattr($hash,$attr{$name}{HomeSensorsContact}) if ($attr{$name}{HomeSensorsContact});
+    HOMEMODE_cleanUserattr($hash,$attr{$name}{HomeSensorsMotion}) if ($attr{$name}{HomeSensorsMotion});
+  }
   return;
 }
 
@@ -127,15 +133,11 @@ sub HOMEMODE_Notify($$)
   return if (!$events);
   my $prestype = AttrVal($name,"HomePresenceDeviceType","PRESENCE");
   my @allMonitoredDevices = split /,/,$hash->{NOTIFYDEV};
-  if (grep(/^INITIALIZED$/,@{$events}))
+  if ($devname eq "global" && grep(/^INITIALIZED$/,@{$events}))
   {
     HOMEMODE_updateInternals($hash);
   }
-  elsif (grep(/^REREADCFG$/,@{$events}))
-  {
-    HOMEMODE_updateInternals($hash,1);
-  }
-  elsif (grep(/^MODIFIED\s$name$/,@{$events}))
+  elsif ($devname eq "global" && grep(/^(REREADCFG|MODIFIED\s$name)$/,@{$events}))
   {
     HOMEMODE_updateInternals($hash,1);
   }
@@ -1141,7 +1143,7 @@ sub HOMEMODE_userattr($)
   my $adv = HOMEMODE_AttrCheck($hash,"HomeAdvancedUserAttr",0);
   my @userattrAll;
   my @userattrPrev = split " ",$attr{$name}{userattr} if ($attr{$name}{userattr});
-  HOMEMODE_cleanUserattr($hash,devspec2array($name)) if (@userattrPrev);
+  HOMEMODE_cleanUserattr($hash,$name) if (@userattrPrev);
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
@@ -1236,24 +1238,23 @@ sub HOMEMODE_userattr($)
   return;
 }
 
-sub HOMEMODE_cleanUserattr($@)
+sub HOMEMODE_cleanUserattr($$;$)
 {
-  my ($hash,@devspec) = @_;
-  my $rem = 1 if ($hash->{helper}{removeAttr});
-  delete $hash->{helper}{removeAttr} if ($rem);
+  my ($hash,$devs,$newdevs) = @_;
+  my @devspec = devspec2array($devs);
   return if (!@devspec);
+  my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
     if ($attr{$dev}{userattr})
     {
-      delete $defs{$dev}->{READINGS}{".pstate"} if (defined $defs{$dev}->{READINGS}{".pstate"} && $rem);
       my @stayattr;
       foreach (split " ",$attr{$dev}{userattr})
       {
         if ($_ =~ /^Home/)
         {
           $_ =~ s/:.*//;
-          delete $attr{$dev}{$_} if (defined $attr{$dev}{$_} && $rem);
+          delete $attr{$dev}{$_} if ((defined $attr{$dev}{$_} && !@newdevspec) || (defined $attr{$dev}{$_} && @newdevspec && !grep /^$dev$/,@newdevspec));
           next;
         }
         push @stayattr,$_;
@@ -1431,7 +1432,7 @@ sub HOMEMODE_Attr(@)
       {
         CommandDeleteReading(undef,"$name lastContact|prevContact|contacts.*");
         HOMEMODE_updateInternals($hash,1);
-        HOMEMODE_addSensorsuserattr($hash,$attr_value);
+        HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
       }
     }
     elsif ($attr_name eq "HomeSensorsMotion" && $init_done)
@@ -1443,7 +1444,7 @@ sub HOMEMODE_Attr(@)
       if ($attr_value_old ne $attr_value)
       {
         HOMEMODE_updateInternals($hash,1);
-        HOMEMODE_addSensorsuserattr($hash,$attr_value);
+        HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
       }
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
@@ -1641,8 +1642,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion|HomeSensorsPowerEnergy)$/)
     {
-      $hash->{helper}{removeAttr} = 1;
-      HOMEMODE_cleanUserattr($hash,devspec2array($attr_value_old)) if ($attr_value_old);
+      HOMEMODE_cleanUserattr($hash,$attr_value_old) if ($attr_value_old);
       my $read = "lastContact|prevContact|contacts.*";
       $read = "lastMotion|prevMotion|motions.*" if ($attr_name eq "HomeSensorsMotion");
       $read = "energy|power" if ($attr_name eq "HomeSensorsPowerEnergy");
@@ -2104,14 +2104,14 @@ sub HOMEMODE_hourMaker($)
   return "$hours:$min:$sec";
 }
 
-sub HOMEMODE_addSensorsuserattr($;$)
+sub HOMEMODE_addSensorsuserattr($$$)
 {
-  my ($hash,$devs) = @_;
+  my ($hash,$devs,$olddevs) = @_;
   my $name = $hash->{NAME};
-  $devs = HOMEMODE_AttrCheck($hash,"HomeSensorsContact") if (!$devs);
-  return if (!$devs);
   my @devspec = devspec2array($devs);
-  HOMEMODE_cleanUserattr($hash,@devspec);
+  return if (!@devspec);
+  my @olddevspec = devspec2array($olddevs) if ($olddevs);
+  HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   my @names;
   foreach my $sensor (@devspec)
   {
@@ -2120,7 +2120,7 @@ sub HOMEMODE_addSensorsuserattr($;$)
     addToDevAttrList($sensor,"HomeModeAlarmActive");
     addToDevAttrList($sensor,"HomeReadings");
     addToDevAttrList($sensor,"HomeValues");
-    if ($hash->{SENSORSCONTACT} && grep(/^$devspec[0]$/,split /,/,$hash->{SENSORSCONTACT}))
+    if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
     {
       addToDevAttrList($sensor,"HomeContactType:doorinside,dooroutside,doormain,window");
       addToDevAttrList($sensor,"HomeOpenMaxTrigger");
@@ -2137,7 +2137,7 @@ sub HOMEMODE_addSensorsuserattr($;$)
       }
       $attr{$sensor}{HomeModeAlarmActive} = "armaway" if (!$attr{$sensor}{HomeModeAlarmActive});
     }
-    if ($hash->{SENSORSMOTION} && grep(/^$devspec[0]$/,split /,/,$hash->{SENSORSMOTION}))
+    if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
     {
       addToDevAttrList($sensor,"HomeSensorLocation:inside,outside");
       if (!$attr{$sensor}{HomeSensorLocation})
@@ -2161,10 +2161,11 @@ sub HOMEMODE_Luminance($;$$)
   foreach (@sensors)
   {
     my $val = ReadingsNum($_,$read,0);
+    next if ($val < 0);
     $lum += $val if (!$dev || $dev ne $_);
   }
   my $lumval = defined $lum ? int ($lum / scalar @sensors) : undef;
-  if (defined $lumval)
+  if (defined $lumval && $lumval >= 0)
   {
     readingsSingleUpdate($hash,"luminance",$lumval,1);
     HOMEMODE_ReadingTrend($hash,"luminance",$lumval);
@@ -2399,11 +2400,11 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     my $seasons = AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
     my $dividers = AttrVal($contact,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers",""));
     my $mintime = AttrVal($name,"HomeSensorsContactOpenTimeMin",0);
-    my $wt = AttrVal($contact,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10"));
+    my @wt = split " ",AttrVal($contact,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10"));
     my $waittime;
     Log3 $name,5,"$name: retrigger: $retrigger";
-    $waittime = (split " ",$wt)[$retrigger] if ((split " ",$wt)[$retrigger]);
-    $waittime = (split " ",$wt)[split " ",$wt - 1] if (!$waittime);
+    $waittime = $wt[$retrigger] if ($wt[$retrigger]);
+    $waittime = $wt[scalar @wt - 1] if (!defined $waittime);
     Log3 $name,5,"$name: waittime real: $waittime";
     if ($dividers && AttrVal($contact,"HomeContactType","window") !~ /^door(inside|main)$/)
     {
@@ -2654,8 +2655,9 @@ sub HOMEMODE_PowerEnergy($;$$$)
     {
       next if ($_ eq $trigger);
       my $v = ReadingsNum($_,$read,0);
-      $val += $v if ($v);
+      $val += $v if ($v && $v > 0);
     }
+    return if ($val < 0);
     $val = sprintf("%.2f",$val);
     readingsSingleUpdate($hash,$read,$val,1);
   }
@@ -2668,14 +2670,14 @@ sub HOMEMODE_PowerEnergy($;$$$)
     {
       my $p = ReadingsNum($_,$pr,0);
       my $e = ReadingsNum($_,$er,0);
-      $power += $p if ($p);
-      $energy += $e if ($e);
+      $power += $p if ($p && $p > 0);
+      $energy += $e if ($e && $e > 0);
     }
     $power = sprintf("%.2f",$power);
     $energy = sprintf("%.2f",$energy);
     readingsBeginUpdate($hash);
-    readingsBulkUpdate($hash,"power",$power);
-    readingsBulkUpdate($hash,"energy",$energy);
+    readingsBulkUpdate($hash,"power",$power) if ($power * 1 > 0);
+    readingsBulkUpdate($hash,"energy",$energy) if ($energy * 1 > 0);
     readingsEndUpdate($hash,1);
   }
 }
@@ -2811,6 +2813,7 @@ sub HOMEMODE_checkIP($;$)
   my ($hash,$r) = @_;
   my $name = $hash->{NAME};
   my $ip = GetFileFromURL("http://icanhazip.com/");
+  return if (!$ip);
   $ip =~ s/\s+//g;
   chomp $ip;
   if (ReadingsVal($name,"publicIP","") ne $ip)
@@ -2837,8 +2840,8 @@ sub HOMEMODE_checkIP($;$)
 
 =pod
 =item helper
-=item summary    provides a HOMEMODE device with ROOMMATE/GUEST and PRESENCE integration for basic automations and more
-=item summary_DE stellt ein HOMEMODE Ger&auml;t mit ROOMMATE/GUEST und PRESENCE Integration für grundlegende Automationen und mehr zur Verf&uuml;gung
+=item summary    a home device with ROOMMATE/GUEST integration
+=item summary_DE ein Zuhause Ger&auml;t mit ROOMMATE/GUEST Integration
 =begin html
 
 <a name="HOMEMODE"></a>
