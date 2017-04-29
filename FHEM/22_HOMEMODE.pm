@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14121 2017-04-27 17:37:14Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 14134 2017-04-29 08:23:10Z DeeSPe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use HttpUtils;
 
 use Data::Dumper;
 
-my $HOMEMODE_version = "1.0.0";
+my $HOMEMODE_version = "1.0.1";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -2198,7 +2198,7 @@ sub HOMEMODE_TriggerState($;$$$)
   my $amode = ReadingsVal($name,"modeAlarm","");
   foreach my $sensor (devspec2array($contacts))
   {
-    my ($oread,$tread) = split " ",AttrVal($_,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
+    my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
     my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
     my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
     my $ostate = ReadingsVal($sensor,$oread,"");
@@ -2247,7 +2247,7 @@ sub HOMEMODE_TriggerState($;$$$)
   }
   foreach my $sensor (devspec2array($motions))
   {
-    my ($oread,$tread) = split " ",AttrVal($_,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
+    my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
     my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
     my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
     my $ostate = ReadingsVal($sensor,$oread,"");
