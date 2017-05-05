@@ -1,3 +1,23 @@
+    v1.0.2
+    - fixed userattr for HomeSpecialLocations
+    - fixed holiday calendar end event
+    - fixed repeated resetting count of presence devices
+    - removed space-replacing dashes in event readings and their placeholders
+    - added attribute HomeCMDfhemINITIALIZED
+    - added attribute disabledForIntervals
+    - created at(s) are persistent now on "shutdown restart"
+    - userattr of HOMEMODE device will now be recreated on updateInternalForce
+    - placeholders can now be used without quote marks (if needed for numbers)
+    - sort set locations alphabetically
+    - sort set modes alphabetically
+    - lots of simplifications in NotifyFN
+    - added missing dependencies
+    - removed Dumper
+    - removed some verbose 5 logs
+    v1.0.1
+    - fixed "Use of uninitialized value $d in hash element at fhem.pl"
+    - fixed commandref view
+    - add missing -temporary to atTmp_absent_belated_<name>
     v1.0.0
     - initial SVN release
     - discard negative values in power, energy and luminance calculations
