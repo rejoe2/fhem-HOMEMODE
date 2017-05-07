@@ -1,3 +1,6 @@
+    v1.0.3
+    - fixed UWZ texts
+    - fixed resetting location to home on daytime change
     v1.0.2
     - fixed userattr for HomeSpecialLocations
     - fixed holiday calendar end event
