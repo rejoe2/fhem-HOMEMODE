@@ -1,3 +1,5 @@
+    v1.0.5
+    - fix using old lastActivityResident on arrival
     v1.0.4
     - fixed UWZ Fn
     - fixed HomeAutoPresence
