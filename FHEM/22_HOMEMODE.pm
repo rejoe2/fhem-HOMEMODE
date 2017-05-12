@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14218 2017-05-08 09:45:10Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 14260 2017-05-12 20:38:05Z DeeSPe $
 #
 # Usage
 # 
@@ -15,7 +15,7 @@ use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 
-my $HOMEMODE_version = "1.0.4";
+my $HOMEMODE_version = "1.0.5";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
