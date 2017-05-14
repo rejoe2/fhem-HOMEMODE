@@ -1,3 +1,6 @@
+    v1.0.7
+    - fixed GUEST not set location to arrival after none
+    - fixed UWZ text counter
     v1.0.6
     - fixed "PERL WARNING: Use of uninitialized value $power in sprintf at ./FHEM/22_HOMEMODE.pm line 2615."
     - fixed "PERL WARNING: Use of uninitialized value in split at ./FHEM/22_HOMEMODE.pm line 1137."
