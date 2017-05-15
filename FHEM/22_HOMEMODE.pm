@@ -2199,12 +2199,12 @@ sub HOMEMODE_hourMaker($)
     "keine gültigen Minuten übergeben":
     "no valid minutes given";
   return $trans if ($minutes !~ /^(\d{1,4})(\.\d{0,2})?$/ || $1 >= 6000 || $minutes < 0.01);
-  my $hours = int($minutes/60);
-  $hours = length "$hours" > 1 ? $hours : "0$hours";
+  my $hours = int($minutes / 60);
+  $hours = length $hours > 1 ? $hours : "0$hours";
   my $min = $minutes%60;
-  $min = length "$min" > 1 ? $min : "0$min";
-  my $sec = int(($minutes-int($minutes))*60);
-  $sec = length "$sec" > 1 ? $sec : "0$sec";
+  $min = length $min > 1 ? $min : "0$min";
+  my $sec = int(($minutes - int($minutes)) * 60);
+  $sec = length $sec > 1 ? $sec : "0$sec";
   return "$hours:$min:$sec";
 }
 
