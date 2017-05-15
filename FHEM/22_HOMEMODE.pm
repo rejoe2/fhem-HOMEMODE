@@ -15,7 +15,7 @@ use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 
-my $HOMEMODE_version = "1.0.7";
+my $HOMEMODE_version = "1.0.8";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -1265,7 +1265,74 @@ sub HOMEMODE_Attr(@)
     {
       if ($attr_value_old ne $attr_value)
       {
-        my $err = perlSyntaxCheck(HOMEMODE_replacePlaceholders($hash,$attr_value));
+        my $cmd = HOMEMODE_replacePlaceholders($hash,$attr_value);
+        my %specials = (
+          "%ADDRESS"          => $name,
+          "%ALARM"            => $name,
+          "%ALIAS"            => $name,
+          "%AMODE"            => $name,
+          "%AEAH"             => $name,
+          "%ARRIVERS"         => $name,
+          "%AUDIO"            => $name,
+          "%CONDITION"        => $name,
+          "%CONTACT"          => $name,
+          "%DAYTIME"          => $name,
+          "%DEVICE"           => $name,
+          "%DEVICEA"          => $name,
+          "%DEVICEP"          => $name,
+          "%DND"              => $name,
+          "%DURABSENCE"       => $name,
+          "%DURABSENCELAST"   => $name,
+          "%DURPRESENCE"      => $name,
+          "%DURPRESENCELAST"  => $name,
+          "%DURSLEEP"         => $name,
+          "%DURSLEEPLAST"     => $name,
+          "%FORECAST"         => $name,
+          "%FORECASTTODAY"    => $name,
+          "%HUMIDITY"         => $name,
+          "%HUMIDITYTREND"    => $name,
+          "%ICE"              => $name,
+          "%IP"               => $name,
+          "%LIGHT"            => $name,
+          "%LOCATION"         => $name,
+          "%LOCATIONR"        => $name,
+          "%LUMINANCE"        => $name,
+          "%LUMINANCETREND"   => $name,
+          "%MODE"             => $name,
+          "%MOTION"           => $name,
+          "%NAME"             => $name,
+          "%OPEN"             => $name,
+          "%OPENCT"           => $name,
+          "%RESIDENT"         => $name,
+          "%PRESENT"          => $name,
+          "%PRESENTR"         => $name,
+          "%PRESSURE"         => $name,
+          "%PRESSURETREND"    => $name,
+          "%PREVAMODE"        => $name,
+          "%PREVCONTACT"      => $name,
+          "%PREVMODE"         => $name,
+          "%PREVMODER"        => $name,
+          "%PREVMOTION"       => $name,
+          "%SEASON"           => $name,
+          "%SELF"             => $name,
+          "%SENSORSCONTACT"   => $name,
+          "%SENSORSMOTION"    => $name,
+          "%TAMPERED"         => $name,
+          "%TAMPEREDCT"       => $name,
+          "%TEMPERATURE"      => $name,
+          "%TEMPERATURETREND" => $name,
+          "%TOBE"             => $name,
+          "%TWILIGHT"         => $name,
+          "%TWILIGHTEVENT"    => $name,
+          "%UWZ"              => $name,
+          "%UWZLONG"          => $name,
+          "%UWZSHORT"         => $name,
+          "%WEATHER"          => $name,
+          "%WEATHERLONG"      => $name,
+          "%WIND"             => $name,
+          "%WINDCHILL"        => $name,
+        );
+        my $err = perlSyntaxCheck($cmd,%specials);
         return $err if ($err);
       }
     }
@@ -1704,6 +1771,9 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $pmotion = ReadingsVal($name,"prevMotion","");
   my $contact = ReadingsVal($name,"lastContact","");
   my $pcontact = ReadingsVal($name,"prevContact","");
+  my $uwzc = ReadingsVal($name,"uwz_warnCount",0);
+  my $uwzs = HOMEMODE_uwzTXT($hash,$uwzc,undef);
+  my $uwzl = HOMEMODE_uwzTXT($hash,$uwzc,1);
   my $sensorscontact = $hash->{SENSORSCONTACT};
   my $sensorsenergy = $hash->{SENSORSENERGY};
   my $sensorsmotion = $hash->{SENSORSMOTION};
@@ -1728,9 +1798,8 @@ sub HOMEMODE_replacePlaceholders($$;$)
   {
     foreach my $cal (split /,/,$attr{$name}{HomeEventsHolidayDevices})
     {
-      my $ph = "%$cal%";
       my $state = ReadingsVal($name,"event-$cal","") ne "none" ? ReadingsVal($name,"event-$cal","") : 0;
-      $cmd =~ s/$ph/$state/g;
+      $cmd =~ s/%$cal%/$state/g;
       my $events = HOMEMODE_HolidayEvents($cal);
       foreach my $evt (@{$events})
       {
@@ -1782,6 +1851,9 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%TOBE%/$conditionart/g;
   $cmd =~ s/%TWILIGHT%/$twilight/g;
   $cmd =~ s/%TWILIGHTEVENT%/$twilightevent/g;
+  $cmd =~ s/%UWZ%/$uwzc/g;
+  $cmd =~ s/%UWZLONG%/$uwzl/g;
+  $cmd =~ s/%UWZSHORT%/$uwzs/g;
   $cmd =~ s/%WEATHER%/$weathershort/g;
   $cmd =~ s/%WEATHERLONG%/$weatherlong/g;
   $cmd =~ s/%WIND%/$wind/g;
@@ -1897,6 +1969,23 @@ sub HOMEMODE_ForecastTXT($;$)
   return $text;
 }
 
+sub HOMEMODE_uwzTXT($;$$)
+{
+  my ($hash,$count,$sl) = @_;
+  $sl = $sl ? "LongText" : "ShortText";
+  my $name = $hash->{NAME};
+  my $uwz = $attr{$name}{HomeUWZ};
+  my $text = "";
+  for (my $i = 0; $i < $count; $i++)
+  {
+    my $read = "Warn_$i";
+    $text .= " " if ($i > 0);
+    $text .= $i + 1 . ". " if ($count > 1);
+    $text .= ReadingsVal($uwz,$read."_$sl","");
+  }
+  return $text;
+}
+
 sub HOMEMODE_CheckIfIsValidDevspec($;$)
 {
   my ($spec,$read) = @_;
@@ -1926,12 +2015,86 @@ sub HOMEMODE_execCMDs($$;$)
   my ($hash,$cmds,$resident) = @_;
   my $name = $hash->{NAME};
   my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
-  my $error = AnalyzeCommandChain(undef,$cmd);
-  if ($error)
+  $resident = $resident ? $resident : ReadingsVal($name,"lastActivityByResident","");
+  my $pdevice = ReadingsVal($name,"lastActivityByPresenceDevice","");
+  my $ure = $hash->{RESIDENTS};
+  $ure =~ s/,/\|/g;
+  my $arrivers = HOMEMODE_makeHR($hash,devspec2array("$ure:FILTER=location=arrival"));
+  my $sensor = $attr{$name}{HomeYahooWeatherDevice};
+  my $uwzc = ReadingsVal($name,"uwz_warnCount",0);
+  my %specials = (
+    "%ADDRESS"          => InternalVal($pdevice,"ADDRESS",""),
+    "%ALARM"            => ReadingsVal($name,"alarmTriggered",0),
+    "%ALIAS"            => AttrVal($resident,"alias",""),
+    "%AMODE"            => ReadingsVal($name,"modeAlarm",""),
+    "%AEAH"             => ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0,
+    "%ARRIVERS"         => $arrivers,
+    "%AUDIO"            => AttrVal($resident,"msgContactAudio",""),
+    "%CONDITION"        => ReadingsVal($sensor,"condition",""),
+    "%CONTACT"          => ReadingsVal($name,"lastContact",""),
+    "%DAYTIME"          => HOMEMODE_DayTime($hash),
+    "%DEVICE"           => $pdevice,
+    "%DEVICEA"          => ReadingsVal($name,"lastAbsentByPresenceDevice",""),
+    "%DEVICEP"          => ReadingsVal($name,"lastPresentByPresenceDevice",""),
+    "%DND"              => ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0,
+    "%DURABSENCE"       => ReadingsVal($resident,"durTimerAbsence_cr",0),
+    "%DURABSENCELAST"   => ReadingsVal($resident,"lastDurAbsence_cr",0),
+    "%DURPRESENCE"      => ReadingsVal($resident,"durTimerPresence_cr",0),
+    "%DURPRESENCELAST"  => ReadingsVal($resident,"lastDurPresence_cr",0),
+    "%DURSLEEP"         => ReadingsVal($resident,"durTimerSleep_cr",0),
+    "%DURSLEEPLAST"     => ReadingsVal($resident,"lastDurSleep_cr",0),
+    "%FORECAST"         => HOMEMODE_ForecastTXT($hash),
+    "%FORECASTTODAY"    => HOMEMODE_ForecastTXT($hash,1),
+    "%HUMIDITY"         => ReadingsVal($name,"humidity",0),
+    "%HUMIDITYTREND"    => ReadingsVal($name,"humidityTrend",0),
+    "%ICE"              => ReadingsVal($name,"icewarning",0),
+    "%IP"               => ReadingsVal($name,"publicIP",""),
+    "%LIGHT"            => ReadingsVal($name,"light",0),
+    "%LOCATION"         => ReadingsVal($name,"location",""),
+    "%LOCATIONR"        => ReadingsVal($resident,"location",""),
+    "%LUMINANCE"        => ReadingsVal($name,"luminance",0),
+    "%LUMINANCETREND"   => ReadingsVal($name,"luminanceTrend",0),
+    "%MODE"             => ReadingsVal($name,"mode",""),
+    "%MOTION"           => ReadingsVal($name,"lastMotion",""),
+    "%NAME"             => $name,
+    "%OPEN"             => ReadingsVal($name,"contactsOutsideOpen_hr",""),
+    "%OPENCT"           => ReadingsVal($name,"sensorsTampered_ct",""),
+    "%RESIDENT"         => $resident,
+    "%PRESENT"          => ReadingsVal($name,"presence","") eq "present" ? 1 : 0,
+    "%PRESENTR"         => ReadingsVal($resident,"presence","") eq "present" ? 1 : 0,
+    "%PRESSURE"         => ReadingsVal($name,"pressure",""),
+    "%PRESSURETREND"    => ReadingsVal($sensor,"pressure_trend_txt",""),
+    "%PREVAMODE"        => ReadingsVal($name,"prevModeAlarm",""),
+    "%PREVCONTACT"      => ReadingsVal($name,"prevContact",""),
+    "%PREVMODE"         => ReadingsVal($name,"prevMode",""),
+    "%PREVMODER"        => ReadingsVal($resident,"lastState",""),
+    "%PREVMOTION"       => ReadingsVal($name,"prevMotion",""),
+    "%SEASON"           => ReadingsVal($name,"season",""),
+    "%SELF"             => $name,
+    "%SENSORSCONTACT"   => $hash->{SENSORSCONTACT},
+    "%SENSORSMOTION"    => $hash->{SENSORSMOTION},
+    "%TAMPERED"         => ReadingsVal($name,"sensorsTampered_hr",""),
+    "%TAMPEREDCT"       => ReadingsNum($name,"sensorsTampered_ct",0),
+    "%TEMPERATURE"      => ReadingsVal($name,"temperature",0),
+    "%TEMPERATURETREND" => ReadingsVal($name,"temperatureTrend","constant"),
+    "%TOBE"             => ReadingsVal($name,".be",""),
+    "%TWILIGHT"         => ReadingsVal($name,"twilight",0),
+    "%TWILIGHTEVENT"    => ReadingsVal($name,"twilightEvent",""),
+    "%UWZ"              => $uwzc,
+    "%UWZLONG"          => HOMEMODE_uwzTXT($hash,$uwzc,1),
+    "%UWZSHORT"         => HOMEMODE_uwzTXT($hash,$uwzc,undef),
+    "%WEATHER"          => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort","")),
+    "%WEATHERLONG"      => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong","")),
+    "%WIND"             => ReadingsVal($name,"wind",0),
+    "%WINDCHILL"        => ReadingsVal($sensor,"wind_chill",0),
+  );
+  my $commands = EvalSpecials($cmd,%specials);
+  my $err = AnalyzeCommandChain(undef,$commands);
+  if ($err)
   {
-    Log3 $name,3,"$name: error: $error";
+    Log3 $name,3,"$name: error: $err";
     Log3 $name,3,"$name: error in command: $cmd";
-    readingsSingleUpdate($hash,"lastCMDerror","error: >$error< in CMD: $cmd",1);
+    readingsSingleUpdate($hash,"lastCMDerror","error: >$err< in CMD: $cmd",1);
   }
   Log3 $name,4,"executed CMDs: $cmd";
   return;
@@ -2529,6 +2692,7 @@ sub HOMEMODE_UWZCommands($$)
   }
   if (defined $count)
   {
+    readingsSingleUpdate($hash,"uwz_warnCount",$count,1);
     if ($count != $prev)
     {
       my $se = $count > 0 ? "begin" : "end";
@@ -2536,19 +2700,8 @@ sub HOMEMODE_UWZCommands($$)
       push @cmds,$attr{$name}{"HomeCMDuwz-warn-$se"} if ($attr{$name}{"HomeCMDuwz-warn-$se"});
       if (@cmds)
       {
-        my $textShort;
-        my $textLong;
-        for (my $i = 0; $i < $count; $i++)
-        {
-          my $read = "Warn_$i";
-          my $ii = $i + 1;
-          $textShort .= " " if ($i > 0);
-          $textLong .= " " if ($i > 0);
-          $textShort .= $ii.". " if ($count > 1);
-          $textLong .= $ii.". " if ($count > 1);
-          $textShort .= ReadingsVal($uwz,$read."_ShortText","");
-          $textLong .= ReadingsVal($uwz,$read."_LongText","");
-        }
+        my $textShort = HOMEMODE_uwzTXT($hash,$count,undef);
+        my $textLong = HOMEMODE_uwzTXT($hash,$count,1);
         my @commands;
         foreach my $cmd (@cmds)
         {
@@ -2559,7 +2712,6 @@ sub HOMEMODE_UWZCommands($$)
         HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
       }
     }
-    readingsSingleUpdate($hash,"uwz_warnCount",$count,1);
   }
 }
 
@@ -3306,7 +3458,8 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>HomeSensorsLuminance</i></b><br>
       devspec of sensors with luminance measurement capabilities<br>
-      these devices will be used for total luminance calculations
+      these devices will be used for total luminance calculations<br>
+      please set the corresponding reading for luminance in attribute HomeSensorsLuminanceReading (if different to luminance) before applying snesors here
     </li>
     <li>
       <b><i>HomeSensorsLuminanceReading</i></b><br>
@@ -4056,6 +4209,10 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>%TWILIGHTEVENT%</i></b><br>
       current twilight event
+    </li>
+    <li>
+      <b><i>%UWZ%</i></b><br>
+      UWZ warnings count
     </li>
     <li>
       <b><i>%UWZLONG%</i></b><br>
