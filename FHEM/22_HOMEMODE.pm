@@ -1972,16 +1972,16 @@ sub HOMEMODE_ForecastTXT($;$)
 sub HOMEMODE_uwzTXT($;$$)
 {
   my ($hash,$count,$sl) = @_;
-  $sl = $sl ? "LongText" : "ShortText";
   my $name = $hash->{NAME};
-  my $uwz = $attr{$name}{HomeUWZ};
+  $count = defined $count ? $count : ReadingsVal($name,"uwz_warnCount",0);
+  $sl = $sl ? "LongText" : "ShortText";
   my $text = "";
   for (my $i = 0; $i < $count; $i++)
   {
     my $read = "Warn_$i";
     $text .= " " if ($i > 0);
     $text .= $i + 1 . ". " if ($count > 1);
-    $text .= ReadingsVal($uwz,$read."_$sl","");
+    $text .= ReadingsVal($attr{$name}{HomeUWZ},$read."_$sl","");
   }
   return $text;
 }
@@ -2021,7 +2021,6 @@ sub HOMEMODE_execCMDs($$;$)
   $ure =~ s/,/\|/g;
   my $arrivers = HOMEMODE_makeHR($hash,devspec2array("$ure:FILTER=location=arrival"));
   my $sensor = $attr{$name}{HomeYahooWeatherDevice};
-  my $uwzc = ReadingsVal($name,"uwz_warnCount",0);
   my %specials = (
     "%ADDRESS"          => InternalVal($pdevice,"ADDRESS",""),
     "%ALARM"            => ReadingsVal($name,"alarmTriggered",0),
@@ -2080,9 +2079,9 @@ sub HOMEMODE_execCMDs($$;$)
     "%TOBE"             => ReadingsVal($name,".be",""),
     "%TWILIGHT"         => ReadingsVal($name,"twilight",0),
     "%TWILIGHTEVENT"    => ReadingsVal($name,"twilightEvent",""),
-    "%UWZ"              => $uwzc,
-    "%UWZLONG"          => HOMEMODE_uwzTXT($hash,$uwzc,1),
-    "%UWZSHORT"         => HOMEMODE_uwzTXT($hash,$uwzc,undef),
+    "%UWZ"              => ReadingsVal($name,"uwz_warnCount",0),
+    "%UWZLONG"          => HOMEMODE_uwzTXT($hash,undef,1),
+    "%UWZSHORT"         => HOMEMODE_uwzTXT($hash),
     "%WEATHER"          => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort","")),
     "%WEATHERLONG"      => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong","")),
     "%WIND"             => ReadingsVal($name,"wind",0),
