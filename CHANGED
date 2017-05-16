@@ -1,4 +1,6 @@
     v1.0.8
+    - added new attributes for local weather devices (HomeSensorAirpressure,HomeSensorWindspeed)
+    - added new localization attribute HomeTextRisingConstantFalling
     - added dedicated uwzTEXT Fn
     - added evalspecials
     - updated commandref

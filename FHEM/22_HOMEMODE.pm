@@ -220,6 +220,34 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_ReadingTrend($hash,"humidity",$val);
     }
   }
+  if ($attr{$name}{HomeSensorWindspeed} && $devname eq (split /:/,$attr{$name}{HomeSensorWindspeed})[0])
+  {
+    my $read = (split /:/,$attr{$name}{HomeSensorWindspeed})[1];
+    if (grep /^$read:\s(.*)/,@{$events})
+    {
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        my $val = (split " ",$1)[0];
+        readingsSingleUpdate($hash,"wind",$val,1);
+        HOMEMODE_ReadingTrend($hash,"wind",$val);
+      }
+    }
+  }
+  if ($attr{$name}{HomeSensorAirpressure} && $devname eq (split /:/,$attr{$name}{HomeSensorAirpressure})[0])
+  {
+    my $read = (split /:/,$attr{$name}{HomeSensorAirpressure})[1];
+    if (grep /^$read:\s(.*)/,@{$events})
+    {
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        my $val = (split " ",$1)[0];
+        readingsSingleUpdate($hash,"pressure",$val,1);
+        HOMEMODE_ReadingTrend($hash,"pressure",$val);
+      }
+    }
+  }
   if ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
   {
     my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
@@ -478,6 +506,8 @@ sub HOMEMODE_updateInternals($;$)
       }
       $hash->{SENSORSLUMINANCE} = join(",",sort @sensors) if (@sensors);
     }
+    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"));
+    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"));
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
@@ -1066,6 +1096,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomePublicIpCheckInterval";
   push @attribs,"HomeResidentCmdDelay";
   push @attribs,"HomeSeasons:textField-long";
+  push @attribs,"HomeSensorAirpressure";
+  push @attribs,"HomeSensorWindspeed";
   push @attribs,"HomeSensorsContact";
   push @attribs,"HomeSensorsContactReadings";
   push @attribs,"HomeSensorsContactValues";
@@ -1085,6 +1117,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSpecialModes";
   push @attribs,"HomeTextAndAreIs";
   push @attribs,"HomeTextClosedOpen";
+  push @attribs,"HomeTextRisingConstantFalling";
   push @attribs,"HomeTextTodayTomorrowAfterTomorrow";
   push @attribs,"HomeTextWeatherForecastToday:textField-long";
   push @attribs,"HomeTextWeatherForecastTomorrow:textField-long";
@@ -1317,6 +1350,7 @@ sub HOMEMODE_Attr(@)
           "%SELF"             => $name,
           "%SENSORSCONTACT"   => $name,
           "%SENSORSMOTION"    => $name,
+          "%STATE"            => $name,
           "%TAMPERED"         => $name,
           "%TAMPEREDCT"       => $name,
           "%TEMPERATURE"      => $name,
@@ -1332,6 +1366,38 @@ sub HOMEMODE_Attr(@)
           "%WIND"             => $name,
           "%WINDCHILL"        => $name,
         );
+        if ($attr{$name}{HomeEventsHolidayDevices})
+        {
+          foreach my $cal (split /,/,$attr{$name}{HomeEventsHolidayDevices})
+          {
+            $cal =~ s/[\.\s-]+//g;
+            $cal =~ s/ä/ae/g;
+            $cal =~ s/ü/ue/g;
+            $cal =~ s/ö/oe/g;
+            $cal =~ s/ß/ss/g;
+            if ($cal =~ /^(\d+)(.*)/)
+            {
+              $cal = "$2$1";
+            }
+            my $state = ReadingsVal($name,"event-$cal","") ne "none" ? ReadingsVal($name,"event-$cal","") : 0;
+            $specials{"%$cal"} = $state;
+            my $events = HOMEMODE_HolidayEvents($cal);
+            foreach my $evt (@{$events})
+            {
+              $evt =~ s/[\.\s-]+//g;
+              $evt =~ s/ä/ae/g;
+              $evt =~ s/ü/ue/g;
+              $evt =~ s/ö/oe/g;
+              $evt =~ s/ß/ss/g;
+              if ($evt =~ /^(\d+)(.*)/)
+              {
+                $evt = "$2$1";
+              }
+              my $val = $state eq $evt ? 1 : 0;
+              $specials{"%$evt"} = $val;
+            }
+          }
+        }
         my $err = perlSyntaxCheck($cmd,%specials);
         return $err if ($err);
       }
@@ -1603,7 +1669,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value for $attr_name must be a single number for delay time in seconds or 3 space separated times in seconds for each modeAlarm individually (order: armaway armnight armhome), max. value is 99999";
       return $trans if ($attr_value !~ /^(\d{1,5})((\s\d{1,5})(\s\d{1,5}))?$/);
     }
-    elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow)$/)
+    elsif ($attr_name =~ /^(HomeTextAndAreIs|HomeTextTodayTomorrowAfterTomorrow|HomeTextRisingConstantFalling)$/)
     {
       $trans = $HOMEMODE_de?
         "$attr_value für $attr_name muss eine Pipe separierte Liste mit 3 Werten sein!":
@@ -1648,6 +1714,14 @@ sub HOMEMODE_Attr(@)
         "$attr_name muss ein einzelnes gültiges Reading sein!":
         "$attr_name must be a single valid reading!";
       return $trans if ($attr_value !~ /^([\w\-\.]+)$/);
+      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+    }
+    elsif ($attr_name =~ /^HomeSensorAirpressure|HomeSensorWindspeed$/ && $init_done)
+    {
+      $trans = $HOMEMODE_de?
+        "$attr_name muss ein einzelnes gültiges Gerät mit Reading sein (Sensor:Reading)!":
+        "$attr_name must be a single valid device with reading (sensor:reading)!";
+      return $trans if ($attr_value !~ /^([\w\.]+):([\w\-\.]+)$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
   }
@@ -1703,6 +1777,10 @@ sub HOMEMODE_Attr(@)
     {
       CommandDeleteReading(undef,"$name uwz.*") if ($attr_name eq "HomeUWZ");
       CommandDeleteReading(undef,"$name .*luminance.*") if ($attr_name eq "HomeSensorsLuminance");
+      HOMEMODE_updateInternals($hash,1);
+    }
+    elsif ($attr_name =~ /^(HomeSensorAirpressure|HomeSensorWindspeed)$/)
+    {
       HOMEMODE_updateInternals($hash,1);
     }
   }
@@ -1894,9 +1972,10 @@ sub HOMEMODE_ReadingTrend($$;$)
   my $pval = ReadingsNum($name,".$read",undef);
   if (defined $pval && ReadingsAge($name,".$read",0) >= $time)
   {
-    my $trend = "constant";
-    $trend = "rising" if ($val > $pval);
-    $trend = "falling" if ($val < $pval);
+    my ($rising,$constant,$falling) = split /\|/,AttrVal($name,"HomeTextRisingConstantFalling","rising|constant|falling");
+    my $trend = $constant;
+    $trend = $rising if ($val > $pval);
+    $trend = $falling if ($val < $pval);
     readingsBeginUpdate($hash);
     readingsBulkUpdate($hash,".$read",$val);
     readingsBulkUpdate($hash,$read."Trend",$trend);
@@ -2087,6 +2166,38 @@ sub HOMEMODE_execCMDs($$;$)
     "%WIND"             => ReadingsVal($name,"wind",0),
     "%WINDCHILL"        => ReadingsVal($sensor,"wind_chill",0),
   );
+  if ($attr{$name}{HomeEventsHolidayDevices})
+  {
+    foreach my $cal (split /,/,$attr{$name}{HomeEventsHolidayDevices})
+    {
+      $cal =~ s/[\.\s-]+//g;
+      $cal =~ s/ä/ae/g;
+      $cal =~ s/ü/ue/g;
+      $cal =~ s/ö/oe/g;
+      $cal =~ s/ß/ss/g;
+      if ($cal =~ /^(\d+)(.*)/)
+      {
+        $cal = "$2$1";
+      }
+      my $state = ReadingsVal($name,"event-$cal","") ne "none" ? ReadingsVal($name,"event-$cal","") : 0;
+      $specials{"%$cal"} = $state;
+      my $events = HOMEMODE_HolidayEvents($cal);
+      foreach my $evt (@{$events})
+      {
+        $evt =~ s/[\.\s-]+//g;
+        $evt =~ s/ä/ae/g;
+        $evt =~ s/ü/ue/g;
+        $evt =~ s/ö/oe/g;
+        $evt =~ s/ß/ss/g;
+        if ($evt =~ /^(\d+)(.*)/)
+        {
+          $evt = "$2$1";
+        }
+        my $val = $state eq $evt ? 1 : 0;
+        $specials{"%$evt"} = $val;
+      }
+    }
+  }
   my $commands = EvalSpecials($cmd,%specials);
   my $err = AnalyzeCommandChain(undef,$commands);
   if ($err)
@@ -2783,8 +2894,8 @@ sub HOMEMODE_Weather($$)
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"humidity",ReadingsVal($dev,"humidity",5)) if (!$hash->{helper}{externalHumidity});
   readingsBulkUpdate($hash,"temperature",ReadingsVal($dev,"temperature",5)) if (!$attr{$name}{HomeSensorTemperatureOutside});
-  readingsBulkUpdate($hash,"wind",ReadingsVal($dev,"wind",5));
-  readingsBulkUpdate($hash,"pressure",ReadingsVal($dev,"pressure",5));
+  readingsBulkUpdate($hash,"wind",ReadingsVal($dev,"wind",5)) if (!$attr{$name}{HomeSensorWindspeed});
+  readingsBulkUpdate($hash,"pressure",ReadingsVal($dev,"pressure",5)) if (!$attr{$name}{HomeSensorAirpressure});
   readingsBulkUpdate($hash,".be",$be);
   readingsEndUpdate($hash,1);
   HOMEMODE_ReadingTrend($hash,"humidity") if (!$hash->{helper}{externalHumidity});
@@ -3345,14 +3456,12 @@ sub HOMEMODE_checkIP($;$)
       default: 01.01|spring 06.01|summer 09.01|autumn 12.01|winter
     </li>
     <li>
-      <b><i>HomeSensorHumidityOutside</i></b><br>
-      main outside humidity sensor<br>
-      if HomeSensorTemperatureOutside also has a humidity reading, you don't need to add the same sensor here
+      <b><i>HomeSensorAirpressure</i></b><br>
+      main outside airpressure sensor
     </li>
     <li>
-      <b><i>HomeSensorTemperatureOutside</i></b><br>
-      main outside temperature sensor<br>
-      if this sensor also has a humidity reading, you don't need to add the same sensor to HomeSensorHumidityOutside
+      <b><i>HomeSensorWindspeed</i></b><br>
+      main outside wind speed sensor
     </li>
     <li>
       <b><i>HomeSensorsContact</i></b><br>
@@ -3455,6 +3564,16 @@ sub HOMEMODE_checkIP($;$)
       default: 10
     </li>
     <li>
+      <b><i>HomeSensorHumidityOutside</i></b><br>
+      main outside humidity sensor<br>
+      if HomeSensorTemperatureOutside also has a humidity reading, you don't need to add the same sensor here
+    </li>
+    <li>
+      <b><i>HomeSensorTemperatureOutside</i></b><br>
+      main outside temperature sensor<br>
+      if this sensor also has a humidity reading, you don't need to add the same sensor to HomeSensorHumidityOutside
+    </li>
+    <li>
       <b><i>HomeSensorsLuminance</i></b><br>
       devspec of sensors with luminance measurement capabilities<br>
       these devices will be used for total luminance calculations<br>
@@ -3537,6 +3656,11 @@ sub HOMEMODE_checkIP($;$)
       <b><i>HomeTextClosedOpen</i></b><br>
       pipe separated list of your local translation for "closed" and "open"<br>
       default: closed|open
+    </li>
+    <li>
+      <b><i>HomeTextRisingConstantFalling</i></b><br>
+      pipe separated list of your local translation for "rising", "constant" and "falling"<br>
+      default: rising|constant|falling
     </li>
     <li>
       <b><i>HomeTextTodayTomorrowAfterTomorrow</i></b><br>
