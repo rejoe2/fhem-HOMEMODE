@@ -266,9 +266,49 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_EventCommands($hash,$devname,$1);
     }
   }
-  if ($attr{$name}{HomeUWZ} && $devname eq $attr{$name}{HomeUWZ} && grep /^WarnCount:/,@{$events})
+  if ($attr{$name}{HomeUWZ} && $devname eq $attr{$name}{HomeUWZ} && grep /^WarnCount:\s/,@{$events})
   {
     HOMEMODE_UWZCommands($hash,$events);
+  }
+  if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}) && grep /^battery:\s/,@{$events})
+  {
+    my @lowOld = split /,/,ReadingsVal($name,"batteryLow","");
+    my @low;
+    @low = @lowOld if (@lowOld);
+    foreach my $evt (@{$events})
+    {
+      next unless ($evt =~ /^battery:\s(.*)$/);
+      my $val = $1;
+      if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrVal($name,"HomeSensorsBatteryLowPercentage",50)) || $val =~ /^(nok|low)$/)
+      {
+        push @low,$devname if (!grep /^$devname$/,@low);
+      }
+      elsif (grep /^$devname$/,@low)
+      {
+        my @lown;
+        foreach (@low)
+        {
+          push @lown,$_ if ($_ ne $devname);
+        }
+        @low = @lown;
+      }
+    }
+    readingsBeginUpdate($hash);
+    if (@low)
+    {
+      readingsBulkUpdateIfChanged($hash,"batteryLow",join(",",@low));
+      readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+      readingsBulkUpdateIfChanged($hash,"batteryLow_hr",HOMEMODE_makeHR($hash,@low));
+      readingsBulkUpdateIfChanged($hash,"lastBatteryLow",$devname) if (grep /^$devname$/,@low && !grep /^$devname$/,@lowOld);
+      push @commands,$attr{$name}{HomeCMDbatteryLow} if ($attr{$name}{HomeCMDbatteryLow} && grep /^$devname$/,@low && !grep /^$devname$/,@lowOld);
+    }
+    else
+    {
+      readingsBulkUpdateIfChanged($hash,"batteryLow","");
+      readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+      readingsBulkUpdateIfChanged($hash,"batteryLow_hr","");
+    }
+    readingsEndUpdate($hash,1);
   }
   if ($devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}) && AttrVal($name,"HomeAutoPresence",0))
   {
@@ -362,6 +402,7 @@ sub HOMEMODE_updateInternals($;$)
     delete $hash->{SENSORSMOTION};
     delete $hash->{SENSORSENERGY};
     delete $hash->{SENSORSLUMINANCE};
+    delete $hash->{SENSORSBATTERY};
     $hash->{VERSION} = $HOMEMODE_version;
     my @residents;
     push @residents,$defs{$resdev}->{ROOMMATES} if ($defs{$resdev}->{ROOMMATES});
@@ -462,13 +503,24 @@ sub HOMEMODE_updateInternals($;$)
       my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
       foreach my $s (devspec2array($power))
       {
-        if (defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef))
-        {
-          push @sensors,$s;
-          push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
-        }
+        next unless (defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef));
+        push @sensors,$s;
+        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
       $hash->{SENSORSENERGY} = join(",",sort @sensors) if (@sensors);
+    }
+    my $battery = HOMEMODE_AttrCheck($hash,"HomeSensorsBattery");
+    if ($battery)
+    {
+      my @sensors;
+      foreach my $s (devspec2array($battery))
+      {
+        my $val = ReadingsVal($s,"battery",undef);
+        next unless (defined $val && $val =~ /^(ok|low|nok|\d{1,3})(%|\s%)?$/);
+        push @sensors,$s;
+        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+      }
+      $hash->{SENSORSBATTERY} = join(",",sort @sensors) if (@sensors);
     }
     my $weather = HOMEMODE_AttrCheck($hash,"HomeYahooWeatherDevice");
     push @allMonitoredDevices,$weather if ($weather && !grep /^$weather$/,@allMonitoredDevices);
@@ -1030,6 +1082,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDalarmTampered-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-off:textField-long";
+  push @attribs,"HomeCMDbatteryLow:textField-long";
   push @attribs,"HomeCMDcontact:textField-long";
   push @attribs,"HomeCMDcontactClosed:textField-long";
   push @attribs,"HomeCMDcontactOpen:textField-long";
@@ -1098,6 +1151,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSeasons:textField-long";
   push @attribs,"HomeSensorAirpressure";
   push @attribs,"HomeSensorWindspeed";
+  push @attribs,"HomeSensorsBattery";
+  push @attribs,"HomeSensorsBatteryLowPercentage";
   push @attribs,"HomeSensorsContact";
   push @attribs,"HomeSensorsContactReadings";
   push @attribs,"HomeSensorsContactValues";
@@ -1298,107 +1353,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($attr_value_old ne $attr_value)
       {
-        my $cmd = HOMEMODE_replacePlaceholders($hash,$attr_value);
-        my %specials = (
-          "%ADDRESS"          => $name,
-          "%ALARM"            => $name,
-          "%ALIAS"            => $name,
-          "%AMODE"            => $name,
-          "%AEAH"             => $name,
-          "%ARRIVERS"         => $name,
-          "%AUDIO"            => $name,
-          "%CONDITION"        => $name,
-          "%CONTACT"          => $name,
-          "%DAYTIME"          => $name,
-          "%DEVICE"           => $name,
-          "%DEVICEA"          => $name,
-          "%DEVICEP"          => $name,
-          "%DND"              => $name,
-          "%DURABSENCE"       => $name,
-          "%DURABSENCELAST"   => $name,
-          "%DURPRESENCE"      => $name,
-          "%DURPRESENCELAST"  => $name,
-          "%DURSLEEP"         => $name,
-          "%DURSLEEPLAST"     => $name,
-          "%FORECAST"         => $name,
-          "%FORECASTTODAY"    => $name,
-          "%HUMIDITY"         => $name,
-          "%HUMIDITYTREND"    => $name,
-          "%ICE"              => $name,
-          "%IP"               => $name,
-          "%LIGHT"            => $name,
-          "%LOCATION"         => $name,
-          "%LOCATIONR"        => $name,
-          "%LUMINANCE"        => $name,
-          "%LUMINANCETREND"   => $name,
-          "%MODE"             => $name,
-          "%MOTION"           => $name,
-          "%NAME"             => $name,
-          "%OPEN"             => $name,
-          "%OPENCT"           => $name,
-          "%RESIDENT"         => $name,
-          "%PRESENT"          => $name,
-          "%PRESENTR"         => $name,
-          "%PRESSURE"         => $name,
-          "%PRESSURETREND"    => $name,
-          "%PREVAMODE"        => $name,
-          "%PREVCONTACT"      => $name,
-          "%PREVMODE"         => $name,
-          "%PREVMODER"        => $name,
-          "%PREVMOTION"       => $name,
-          "%SEASON"           => $name,
-          "%SELF"             => $name,
-          "%SENSORSCONTACT"   => $name,
-          "%SENSORSMOTION"    => $name,
-          "%STATE"            => $name,
-          "%TAMPERED"         => $name,
-          "%TAMPEREDCT"       => $name,
-          "%TEMPERATURE"      => $name,
-          "%TEMPERATURETREND" => $name,
-          "%TOBE"             => $name,
-          "%TWILIGHT"         => $name,
-          "%TWILIGHTEVENT"    => $name,
-          "%UWZ"              => $name,
-          "%UWZLONG"          => $name,
-          "%UWZSHORT"         => $name,
-          "%WEATHER"          => $name,
-          "%WEATHERLONG"      => $name,
-          "%WIND"             => $name,
-          "%WINDCHILL"        => $name,
-        );
-        if ($attr{$name}{HomeEventsHolidayDevices})
-        {
-          foreach my $cal (split /,/,$attr{$name}{HomeEventsHolidayDevices})
-          {
-            $cal =~ s/[\.\s-]+//g;
-            $cal =~ s/ä/ae/g;
-            $cal =~ s/ü/ue/g;
-            $cal =~ s/ö/oe/g;
-            $cal =~ s/ß/ss/g;
-            if ($cal =~ /^(\d+)(.*)/)
-            {
-              $cal = "$2$1";
-            }
-            my $state = ReadingsVal($name,"event-$cal","") ne "none" ? ReadingsVal($name,"event-$cal","") : 0;
-            $specials{"%$cal"} = $state;
-            my $events = HOMEMODE_HolidayEvents($cal);
-            foreach my $evt (@{$events})
-            {
-              $evt =~ s/[\.\s-]+//g;
-              $evt =~ s/ä/ae/g;
-              $evt =~ s/ü/ue/g;
-              $evt =~ s/ö/oe/g;
-              $evt =~ s/ß/ss/g;
-              if ($evt =~ /^(\d+)(.*)/)
-              {
-                $evt = "$2$1";
-              }
-              my $val = $state eq $evt ? 1 : 0;
-              $specials{"%$evt"} = $val;
-            }
-          }
-        }
-        my $err = perlSyntaxCheck($cmd,%specials);
+        my $err = perlSyntaxCheck(HOMEMODE_replacePlaceholders($hash,$attr_value));
         return $err if ($err);
       }
     }
@@ -1696,7 +1651,7 @@ sub HOMEMODE_Attr(@)
       my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
       $trans = $HOMEMODE_de?
         "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
-        "$attr_name must be a valid device with a $read reading!";
+        "$attr_name must be a valid device with $read reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
@@ -1724,6 +1679,21 @@ sub HOMEMODE_Attr(@)
       return $trans if ($attr_value !~ /^([\w\.]+):([\w\-\.]+)$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
+    elsif ($attr_name eq "HomeSensorsBattery" && $init_done)
+    {
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät mit battery Reading sein!":
+        "$attr_name must be a valid device with battery reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"battery"));
+      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+    }
+    elsif ($attr_name eq "HomeSensorsBatteryLowPercentage")
+    {
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein Wert zwischen 0 und 99 sein!":
+        "$attr_name must be a value from 0 to 99!";
+      return $trans if ($attr_value !~ /^\d{1,2}$/);
+    }
   }
   else
   {
@@ -1732,7 +1702,7 @@ sub HOMEMODE_Attr(@)
     {
       HOMEMODE_GetUpdate($hash);
     }
-    elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices)$/)
+    elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery)$/)
     {
       HOMEMODE_updateInternals($hash,1);
     }
@@ -1777,10 +1747,6 @@ sub HOMEMODE_Attr(@)
     {
       CommandDeleteReading(undef,"$name uwz.*") if ($attr_name eq "HomeUWZ");
       CommandDeleteReading(undef,"$name .*luminance.*") if ($attr_name eq "HomeSensorsLuminance");
-      HOMEMODE_updateInternals($hash,1);
-    }
-    elsif ($attr_name =~ /^(HomeSensorAirpressure|HomeSensorWindspeed)$/)
-    {
       HOMEMODE_updateInternals($hash,1);
     }
   }
@@ -1881,9 +1847,8 @@ sub HOMEMODE_replacePlaceholders($$;$)
       my $events = HOMEMODE_HolidayEvents($cal);
       foreach my $evt (@{$events})
       {
-        my $eph = "%$cal-$evt%";
         my $val = $state eq $evt ? 1 : 0;
-        $cmd =~ s/$eph/$val/g;
+        $cmd =~ s/%$cal-$evt%/$val/g;
       }
     }
   }
@@ -2094,112 +2059,7 @@ sub HOMEMODE_execCMDs($$;$)
   my ($hash,$cmds,$resident) = @_;
   my $name = $hash->{NAME};
   my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
-  $resident = $resident ? $resident : ReadingsVal($name,"lastActivityByResident","");
-  my $pdevice = ReadingsVal($name,"lastActivityByPresenceDevice","");
-  my $ure = $hash->{RESIDENTS};
-  $ure =~ s/,/\|/g;
-  my $arrivers = HOMEMODE_makeHR($hash,devspec2array("$ure:FILTER=location=arrival"));
-  my $sensor = $attr{$name}{HomeYahooWeatherDevice};
-  my %specials = (
-    "%ADDRESS"          => InternalVal($pdevice,"ADDRESS",""),
-    "%ALARM"            => ReadingsVal($name,"alarmTriggered",0),
-    "%ALIAS"            => AttrVal($resident,"alias",""),
-    "%AMODE"            => ReadingsVal($name,"modeAlarm",""),
-    "%AEAH"             => ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0,
-    "%ARRIVERS"         => $arrivers,
-    "%AUDIO"            => AttrVal($resident,"msgContactAudio",""),
-    "%CONDITION"        => ReadingsVal($sensor,"condition",""),
-    "%CONTACT"          => ReadingsVal($name,"lastContact",""),
-    "%DAYTIME"          => HOMEMODE_DayTime($hash),
-    "%DEVICE"           => $pdevice,
-    "%DEVICEA"          => ReadingsVal($name,"lastAbsentByPresenceDevice",""),
-    "%DEVICEP"          => ReadingsVal($name,"lastPresentByPresenceDevice",""),
-    "%DND"              => ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0,
-    "%DURABSENCE"       => ReadingsVal($resident,"durTimerAbsence_cr",0),
-    "%DURABSENCELAST"   => ReadingsVal($resident,"lastDurAbsence_cr",0),
-    "%DURPRESENCE"      => ReadingsVal($resident,"durTimerPresence_cr",0),
-    "%DURPRESENCELAST"  => ReadingsVal($resident,"lastDurPresence_cr",0),
-    "%DURSLEEP"         => ReadingsVal($resident,"durTimerSleep_cr",0),
-    "%DURSLEEPLAST"     => ReadingsVal($resident,"lastDurSleep_cr",0),
-    "%FORECAST"         => HOMEMODE_ForecastTXT($hash),
-    "%FORECASTTODAY"    => HOMEMODE_ForecastTXT($hash,1),
-    "%HUMIDITY"         => ReadingsVal($name,"humidity",0),
-    "%HUMIDITYTREND"    => ReadingsVal($name,"humidityTrend",0),
-    "%ICE"              => ReadingsVal($name,"icewarning",0),
-    "%IP"               => ReadingsVal($name,"publicIP",""),
-    "%LIGHT"            => ReadingsVal($name,"light",0),
-    "%LOCATION"         => ReadingsVal($name,"location",""),
-    "%LOCATIONR"        => ReadingsVal($resident,"location",""),
-    "%LUMINANCE"        => ReadingsVal($name,"luminance",0),
-    "%LUMINANCETREND"   => ReadingsVal($name,"luminanceTrend",0),
-    "%MODE"             => ReadingsVal($name,"mode",""),
-    "%MOTION"           => ReadingsVal($name,"lastMotion",""),
-    "%NAME"             => $name,
-    "%OPEN"             => ReadingsVal($name,"contactsOutsideOpen_hr",""),
-    "%OPENCT"           => ReadingsVal($name,"sensorsTampered_ct",""),
-    "%RESIDENT"         => $resident,
-    "%PRESENT"          => ReadingsVal($name,"presence","") eq "present" ? 1 : 0,
-    "%PRESENTR"         => ReadingsVal($resident,"presence","") eq "present" ? 1 : 0,
-    "%PRESSURE"         => ReadingsVal($name,"pressure",""),
-    "%PRESSURETREND"    => ReadingsVal($sensor,"pressure_trend_txt",""),
-    "%PREVAMODE"        => ReadingsVal($name,"prevModeAlarm",""),
-    "%PREVCONTACT"      => ReadingsVal($name,"prevContact",""),
-    "%PREVMODE"         => ReadingsVal($name,"prevMode",""),
-    "%PREVMODER"        => ReadingsVal($resident,"lastState",""),
-    "%PREVMOTION"       => ReadingsVal($name,"prevMotion",""),
-    "%SEASON"           => ReadingsVal($name,"season",""),
-    "%SELF"             => $name,
-    "%SENSORSCONTACT"   => $hash->{SENSORSCONTACT},
-    "%SENSORSMOTION"    => $hash->{SENSORSMOTION},
-    "%TAMPERED"         => ReadingsVal($name,"sensorsTampered_hr",""),
-    "%TAMPEREDCT"       => ReadingsNum($name,"sensorsTampered_ct",0),
-    "%TEMPERATURE"      => ReadingsVal($name,"temperature",0),
-    "%TEMPERATURETREND" => ReadingsVal($name,"temperatureTrend","constant"),
-    "%TOBE"             => ReadingsVal($name,".be",""),
-    "%TWILIGHT"         => ReadingsVal($name,"twilight",0),
-    "%TWILIGHTEVENT"    => ReadingsVal($name,"twilightEvent",""),
-    "%UWZ"              => ReadingsVal($name,"uwz_warnCount",0),
-    "%UWZLONG"          => HOMEMODE_uwzTXT($hash,undef,1),
-    "%UWZSHORT"         => HOMEMODE_uwzTXT($hash),
-    "%WEATHER"          => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort","")),
-    "%WEATHERLONG"      => HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong","")),
-    "%WIND"             => ReadingsVal($name,"wind",0),
-    "%WINDCHILL"        => ReadingsVal($sensor,"wind_chill",0),
-  );
-  if ($attr{$name}{HomeEventsHolidayDevices})
-  {
-    foreach my $cal (split /,/,$attr{$name}{HomeEventsHolidayDevices})
-    {
-      $cal =~ s/[\.\s-]+//g;
-      $cal =~ s/ä/ae/g;
-      $cal =~ s/ü/ue/g;
-      $cal =~ s/ö/oe/g;
-      $cal =~ s/ß/ss/g;
-      if ($cal =~ /^(\d+)(.*)/)
-      {
-        $cal = "$2$1";
-      }
-      my $state = ReadingsVal($name,"event-$cal","") ne "none" ? ReadingsVal($name,"event-$cal","") : 0;
-      $specials{"%$cal"} = $state;
-      my $events = HOMEMODE_HolidayEvents($cal);
-      foreach my $evt (@{$events})
-      {
-        $evt =~ s/[\.\s-]+//g;
-        $evt =~ s/ä/ae/g;
-        $evt =~ s/ü/ue/g;
-        $evt =~ s/ö/oe/g;
-        $evt =~ s/ß/ss/g;
-        if ($evt =~ /^(\d+)(.*)/)
-        {
-          $evt = "$2$1";
-        }
-        my $val = $state eq $evt ? 1 : 0;
-        $specials{"%$evt"} = $val;
-      }
-    }
-  }
-  my $commands = EvalSpecials($cmd,%specials);
-  my $err = AnalyzeCommandChain(undef,$commands);
+  my $err = AnalyzeCommandChain(undef,$cmd);
   if ($err)
   {
     Log3 $name,3,"$name: error: $err";
