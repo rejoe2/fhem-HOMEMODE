@@ -14,8 +14,9 @@ use warnings;
 use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
+use vars qw{%attr %defs};
 
-my $HOMEMODE_version = "1.0.8";
+my $HOMEMODE_version = "1.0.9";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -33,8 +34,11 @@ sub HOMEMODE_Initialize($)
   $hash->{GetFn}        = "HOMEMODE_Get";
   $hash->{SetFn}        = "HOMEMODE_Set";
   $hash->{UndefFn}      = "HOMEMODE_Undef";
+  $hash->{FW_detailFn}  = "HOMEMODE_Details";
   $hash->{AttrList}     = HOMEMODE_Attributes($hash);
   $hash->{NotifyOrderPrefix} = "51-";
+  $hash->{FW_deviceOverview} = 1;
+  $hash->{FW_addDetailToSummary} = 1;
 }
 
 sub HOMEMODE_Define($$)
@@ -270,45 +274,49 @@ sub HOMEMODE_Notify($$)
   {
     HOMEMODE_UWZCommands($hash,$events);
   }
-  if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}) && grep /^battery:\s/,@{$events})
+  if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}))
   {
-    my @lowOld = split /,/,ReadingsVal($name,"batteryLow","");
-    my @low;
-    @low = @lowOld if (@lowOld);
-    foreach my $evt (@{$events})
+    my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
+    if (grep /^$read:\s/,@{$events})
     {
-      next unless ($evt =~ /^battery:\s(.*)$/);
-      my $val = $1;
-      if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrVal($name,"HomeSensorsBatteryLowPercentage",50)) || $val =~ /^(nok|low)$/)
+      my @lowOld = split /,/,ReadingsVal($name,"batteryLow","");
+      my @low;
+      @low = @lowOld if (@lowOld);
+      foreach my $evt (@{$events})
       {
-        push @low,$devname if (!grep /^$devname$/,@low);
-      }
-      elsif (grep /^$devname$/,@low)
-      {
-        my @lown;
-        foreach (@low)
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        my $val = $1;
+        if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrVal($name,"HomeSensorsBatteryLowPercentage",50)) || $val =~ /^(nok|low)$/)
         {
-          push @lown,$_ if ($_ ne $devname);
+          push @low,$devname if (!grep /^$devname$/,@low);
         }
-        @low = @lown;
+        elsif (grep /^$devname$/,@low)
+        {
+          my @lown;
+          foreach (@low)
+          {
+            push @lown,$_ if ($_ ne $devname);
+          }
+          @low = @lown;
+        }
       }
+      readingsBeginUpdate($hash);
+      if (@low)
+      {
+        readingsBulkUpdateIfChanged($hash,"batteryLow",join(",",@low));
+        readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+        readingsBulkUpdateIfChanged($hash,"batteryLow_hr",HOMEMODE_makeHR($hash,1,@low));
+        readingsBulkUpdateIfChanged($hash,"lastBatteryLow",$devname) if (grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+        push @commands,$attr{$name}{HomeCMDbatteryLow} if ($attr{$name}{HomeCMDbatteryLow} && grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+      }
+      else
+      {
+        readingsBulkUpdateIfChanged($hash,"batteryLow","");
+        readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+        readingsBulkUpdateIfChanged($hash,"batteryLow_hr","");
+      }
+      readingsEndUpdate($hash,1);
     }
-    readingsBeginUpdate($hash);
-    if (@low)
-    {
-      readingsBulkUpdateIfChanged($hash,"batteryLow",join(",",@low));
-      readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
-      readingsBulkUpdateIfChanged($hash,"batteryLow_hr",HOMEMODE_makeHR($hash,1,@low));
-      readingsBulkUpdateIfChanged($hash,"lastBatteryLow",$devname) if (grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
-      push @commands,$attr{$name}{HomeCMDbatteryLow} if ($attr{$name}{HomeCMDbatteryLow} && grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
-    }
-    else
-    {
-      readingsBulkUpdateIfChanged($hash,"batteryLow","");
-      readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
-      readingsBulkUpdateIfChanged($hash,"batteryLow_hr","");
-    }
-    readingsEndUpdate($hash,1);
   }
   if ($devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}) && AttrVal($name,"HomeAutoPresence",0))
   {
@@ -515,7 +523,8 @@ sub HOMEMODE_updateInternals($;$)
       my @sensors;
       foreach my $s (devspec2array($battery))
       {
-        my $val = ReadingsVal($s,"battery",undef);
+        my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
+        my $val = ReadingsVal($s,$read,undef);
         next unless (defined $val && $val =~ /^(ok|low|nok|\d{1,3})(%|\s%)?$/);
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
@@ -1153,6 +1162,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorWindspeed";
   push @attribs,"HomeSensorsBattery";
   push @attribs,"HomeSensorsBatteryLowPercentage";
+  push @attribs,"HomeSensorsBatteryReading";
   push @attribs,"HomeSensorsContact";
   push @attribs,"HomeSensorsContactReadings";
   push @attribs,"HomeSensorsContactValues";
@@ -1663,7 +1673,7 @@ sub HOMEMODE_Attr(@)
       return $trans if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
-    elsif ($attr_name eq "HomeSensorsLuminanceReading" && $init_done)
+    elsif ($attr_name =~ /^HomeSensorsLuminanceReading|HomeSensorsBatteryReading$/ && $init_done)
     {
       $trans = $HOMEMODE_de?
         "$attr_name muss ein einzelnes gültiges Reading sein!":
@@ -1681,10 +1691,11 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name eq "HomeSensorsBattery" && $init_done)
     {
+      my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
       $trans = $HOMEMODE_de?
-        "$attr_value muss ein gültiges Gerät mit battery Reading sein!":
-        "$attr_name must be a valid device with battery reading!";
-      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"battery"));
+        "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
+        "$attr_name must be a valid device with $read reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
       HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsBatteryLowPercentage")
@@ -1702,7 +1713,7 @@ sub HOMEMODE_Attr(@)
     {
       HOMEMODE_GetUpdate($hash);
     }
-    elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery)$/)
+    elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
     {
       HOMEMODE_updateInternals($hash,1);
     }
@@ -2893,6 +2904,42 @@ sub HOMEMODE_checkIP($;$)
   return;
 }
 
+sub HOMEMODE_Details($$$)
+{
+  my ($FW_name,$name,$room) = @_;
+  # Debug "$FW_name , $name , $room";
+  my $hash = $defs{$name};
+  my $html = "<html>";
+  $html .= "<div class=\"wide\">";
+  $html .= "<table class=\"block wide\">";
+  if (AttrVal($name,"HomeSensorsContact",""))
+  {
+    $html .= "<tr class=\"even\">";
+    $html .= "<td>Alarms:</td>";
+    $html .= "<td class=\"dval\" informid=\"$name-alarmTriggered\">".ReadingsVal($name,"alarmTriggered","")."</td>";
+    $html .= "<td>Open contacts:";
+    $html .= "<td class=\"dval\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,"contactsOpen_hr","")."</td>";
+    $html .= "<td>Last contact:</td>";
+    $html .= "<td class=\"dval\" informid=\"$name-lastContact\">".AttrVal(ReadingsVal($name,"lastContact",""),"alias",ReadingsVal($name,"lastContact",""))."</td>";
+    $html .= "</tr>";
+  }
+  if (defined ReadingsVal($name,"temperature","") && defined ReadingsVal($name,"humidity","") && defined ReadingsVal($name,"pressure",""))
+  {
+    $html .= "<tr class=\"odd\">";
+    $html .= "<td>Temperature:</td>";
+    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C</td>";
+    $html .= "<td>Humidity:";
+    $html .= "<td class=\"dval\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
+    $html .= "<td>Air pressure:</td>";
+    $html .= "<td class=\"dval\"><apan informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
+    $html .= "</tr>";
+  }
+  $html .= "</table>";
+  $html .= "</div>";
+  $html .= "</html>";
+  return $html;
+}
+
 1;
 
 =pod
@@ -3345,6 +3392,12 @@ sub HOMEMODE_checkIP($;$)
       default: 50
     </li>
     <li>
+      <b><i>HomeSensorsBatteryReading</i></b><br>
+      a single word for the battery reading<br>
+      this is only here available as global setting for all devices<br>
+      default: battery
+    </li>
+    <li>
       <b><i>HomeSensorsContact</i></b><br>
       devspec of contact sensors<br>
       each applied contact sensor will get the following attributes, attributes will be removed after removing the contact sensors from the HOMEMODE device.<br>
@@ -3463,6 +3516,7 @@ sub HOMEMODE_checkIP($;$)
     <li>
       <b><i>HomeSensorsLuminanceReading</i></b><br>
       a single word for the luminance reading<br>
+      this is only here available as global setting for all devices<br>
       default: luminance
     </li>
     <li>
