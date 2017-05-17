@@ -3341,7 +3341,8 @@ sub HOMEMODE_checkIP($;$)
     </li>
     <li>
       <b><i>HomeSensorsBatteryLowPercentage</i></b><br>
-      percentage to recognize a sensors battery as low (only percentage based sensors)
+      percentage to recognize a sensors battery as low (only percentage based sensors)<br>
+      default: 50
     </li>
     <li>
       <b><i>HomeSensorsContact</i></b><br>
