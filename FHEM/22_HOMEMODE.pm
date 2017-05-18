@@ -2907,31 +2907,36 @@ sub HOMEMODE_checkIP($;$)
 sub HOMEMODE_Details($$$)
 {
   my ($FW_name,$name,$room) = @_;
-  # Debug "$FW_name , $name , $room";
   my $hash = $defs{$name};
   my $html = "<html>";
   $html .= "<div class=\"wide\">";
-  $html .= "<table class=\"block wide\">";
-  if (AttrVal($name,"HomeSensorsContact",""))
+  $html .= "<table class=\"wide\">";
+  if (defined AttrVal($name,"HomeYahooWeatherDevice",undef))
   {
-    $html .= "<tr class=\"even\">";
-    $html .= "<td>Alarms:</td>";
-    $html .= "<td class=\"dval\" informid=\"$name-alarmTriggered\">".ReadingsVal($name,"alarmTriggered","")."</td>";
-    $html .= "<td>Open contacts:";
-    $html .= "<td class=\"dval\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,"contactsOpen_hr","")."</td>";
-    $html .= "<td>Last contact:</td>";
-    $html .= "<td class=\"dval\" informid=\"$name-lastContact\">".AttrVal(ReadingsVal($name,"lastContact",""),"alias",ReadingsVal($name,"lastContact",""))."</td>";
+    $html .= "<tr>";
+    my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
+    $html .= "<td>$temp:</td>";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C</td>";
+    my $humi = $HOMEMODE_de ? "Luftfeuchte" : "Humidity";
+    $html .= "<td>$humi:";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
+    my $pres = $HOMEMODE_de ? "Luftdruck" : "Air pressure";
+    $html .= "<td>$pres:</td>";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\"><apan informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
     $html .= "</tr>";
   }
-  if (defined ReadingsVal($name,"temperature","") && defined ReadingsVal($name,"humidity","") && defined ReadingsVal($name,"pressure",""))
+  if (AttrVal($name,"HomeSensorsContact",""))
   {
-    $html .= "<tr class=\"odd\">";
-    $html .= "<td>Temperature:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C</td>";
-    $html .= "<td>Humidity:";
-    $html .= "<td class=\"dval\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
-    $html .= "<td>Air pressure:</td>";
-    $html .= "<td class=\"dval\"><apan informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
+    $html .= "<tr>";
+    my $open = $HOMEMODE_de ? "Offen" : "Open";
+    $html .= "<td>$open:</td>";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,"contactsOpen_ct","")."</td>";
+    my $tamp = $HOMEMODE_de ? "Sabotiert" : "Tampered";
+    $html .= "<td>$tamp:</td>";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</td>";
+    my $alarms = $HOMEMODE_de ? "Alarme" : "Alarms";
+    $html .= "<td>$alarms:</td>";
+    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</td>";
     $html .= "</tr>";
   }
   $html .= "</table>";
