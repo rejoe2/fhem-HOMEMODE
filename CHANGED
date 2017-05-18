@@ -1,5 +1,6 @@
     v1.0.8
-    - added attributes (HomeSensorsBattery, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
+    - added detailFn
+    - added attributes (HomeSensorsBattery, HomeSensorsBatteryReading, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
     - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCOUNT%, %SENSORSBATTERY%)
     - added new attributes for local weather devices (HomeSensorAirpressure, HomeSensorWindspeed)
     - added new localization attribute HomeTextRisingConstantFalling
