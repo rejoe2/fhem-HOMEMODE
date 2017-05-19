@@ -574,7 +574,7 @@ sub HOMEMODE_updateInternals($;$)
     @allMonitoredDevices = sort @allMonitoredDevices;
     $hash->{NOTIFYDEV} = join(",",@allMonitoredDevices);
     HOMEMODE_GetUpdate($hash);
-    return if (!$force && @oldMonitoredDevices eq @allMonitoredDevices);
+    return if (!@allMonitoredDevices);
     HOMEMODE_RESIDENTS($hash);
     HOMEMODE_userattr($hash);
     HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
@@ -1401,7 +1401,7 @@ sub HOMEMODE_Attr(@)
       }
       else
       {
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name =~ /^(HomePresenceDeviceType)$/ && $init_done)
@@ -1506,7 +1506,7 @@ sub HOMEMODE_Attr(@)
       if ($attr_value_old ne $attr_value)
       {
         CommandDeleteReading(undef,"$name lastContact|prevContact|contacts.*");
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
         HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
       }
     }
@@ -1518,7 +1518,7 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
       if ($attr_value_old ne $attr_value)
       {
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
         HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
       }
     }
@@ -1531,7 +1531,7 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$p) || !HOMEMODE_CheckIfIsValidDevspec($attr_value,$e));
       if ($attr_value_old ne $attr_value)
       {
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name eq "HomeTwilightDevice" && $init_done)
@@ -1543,7 +1543,7 @@ sub HOMEMODE_Attr(@)
       if ($attr_value_old ne $attr_value)
       {
         CommandDeleteReading(undef,"$name light|twilight|twilightEvent");
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name eq "HomeYahooWeatherDevice" && $init_done)
@@ -1557,7 +1557,7 @@ sub HOMEMODE_Attr(@)
         CommandDeleteReading(undef,"$name pressure|condition|wind|wind_chill");
         CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeSensorTemperatureOutside});
         CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeSensorHumidityOutside});
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name eq "HomeSensorTemperatureOutside" && $init_done)
@@ -1570,7 +1570,7 @@ sub HOMEMODE_Attr(@)
       if ($attr_value_old ne $attr_value)
       {
         CommandDeleteReading(undef,"$name temperature") if (!$attr{$name}{HomeYahooWeatherDevice});
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name eq "HomeSensorHumidityOutside" && $init_done)
@@ -1586,7 +1586,7 @@ sub HOMEMODE_Attr(@)
       if ($attr_value_old ne $attr_value)
       {
         CommandDeleteReading(undef,"$name humidity") if (!$attr{$name}{HomeYahooWeatherDevice});
-        HOMEMODE_updateInternals($hash,1);
+        HOMEMODE_updateInternals($hash);
       }
     }
     elsif ($attr_name eq "HomeDaytimes" && $init_done)
@@ -1676,7 +1676,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät vom TYPE Weather sein!":
         "$attr_value must be a valid device of TYPE Weather!";
       return "$attr_value must be a valid device of TYPE UWZ!" if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=UWZ"));
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsLuminance" && $init_done)
     {
@@ -1685,7 +1685,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
         "$attr_name must be a valid device with $read reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergyReadings" && $init_done)
     {
@@ -1693,7 +1693,7 @@ sub HOMEMODE_Attr(@)
         "$attr_name müssen zwei gültige Readings für power und energy sein!":
         "$attr_name must be two valid readings for power and energy!";
       return $trans if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name =~ /^HomeSensorsLuminanceReading|HomeSensorsBatteryReading$/ && $init_done)
     {
@@ -1701,7 +1701,7 @@ sub HOMEMODE_Attr(@)
         "$attr_name muss ein einzelnes gültiges Reading sein!":
         "$attr_name must be a single valid reading!";
       return $trans if ($attr_value !~ /^([\w\-\.]+)$/);
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name =~ /^HomeSensorAirpressure|HomeSensorWindspeed$/ && $init_done)
     {
@@ -1709,7 +1709,7 @@ sub HOMEMODE_Attr(@)
         "$attr_name muss ein einzelnes gültiges Gerät mit Reading sein (Sensor:Reading)!":
         "$attr_name must be a single valid device with reading (sensor:reading)!";
       return $trans if ($attr_value !~ /^([\w\.]+):([\w\-\.]+)$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsBattery" && $init_done)
     {
@@ -1718,7 +1718,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
         "$attr_name must be a valid device with $read reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
-      HOMEMODE_updateInternals($hash,1) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
     elsif ($attr_name eq "HomeSensorsBatteryLowPercentage")
     {
@@ -1747,7 +1747,7 @@ sub HOMEMODE_Attr(@)
       $read = "lastMotion|prevMotion|motions.*" if ($attr_name eq "HomeSensorsMotion");
       $read = "energy|power" if ($attr_name eq "HomeSensorsPowerEnergy");
       CommandDeleteReading(undef,"$name $read");
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomePublicIpCheckInterval")
     {
@@ -1765,13 +1765,13 @@ sub HOMEMODE_Attr(@)
       {
         CommandDeleteReading(undef,"$name twilight|twilightEvent|light");
       }
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name =~ /^(HomeSensorTemperatureOutside|HomeSensorHumidityOutside)$/)
     {
       CommandDeleteReading(undef,"$name .*temperature.*") if (!$attr{$name}{HomeYahooWeatherDevice} && $attr_name eq "HomeSensorTemperatureOutside");
       CommandDeleteReading(undef,"$name .*humidity.*") if (!$attr{$name}{HomeYahooWeatherDevice} && $attr_name eq "HomeSensorHumidityOutside");
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name =~ /^(HomeDaytimes|HomeSeasons|HomeSpecialLocations|HomeSpecialModes)$/)
     {
@@ -1781,7 +1781,7 @@ sub HOMEMODE_Attr(@)
     {
       CommandDeleteReading(undef,"$name uwz.*") if ($attr_name eq "HomeUWZ");
       CommandDeleteReading(undef,"$name .*luminance.*") if ($attr_name eq "HomeSensorsLuminance");
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_updateInternals($hash);
     }
   }
   return;
