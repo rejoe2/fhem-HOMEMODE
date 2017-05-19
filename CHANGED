@@ -1,14 +1,16 @@
     v1.1.0
     - changed placeholder %ALARM% to %ALARMHR%, please make sure to adjust this if you used %ALARM% before
     - changed reading alarmTriggered to list of names
+    - added new attribute HomeLanguage to overwrite language from global device
     - added new reading alarmTriggered_hr which was alarmTriggered formerly
-    - added detailFn draft
+    - added detailFn (experimental)
     - added attribute HomeAdvancedDetails to configure details
     - added attributes (HomeSensorsBattery, HomeSensorsBatteryReading, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
-    - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCOUNT%, %SENSORSBATTERY%)
+    - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCT%, %SENSORSBATTERY%)
     - added new attributes for local weather devices (HomeSensorAirpressure, HomeSensorWindspeed)
     - added new localization attribute HomeTextRisingConstantFalling
     - added dedicated uwzTEXT Fn - now the UWZ placeholders can be used in any HomeCMD attribute
+    - removed some force from updateInternals
     - updated commandref
     v1.0.7
     - fixed GUEST not set location to arrival after none

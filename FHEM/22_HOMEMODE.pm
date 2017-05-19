@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14277 2017-05-14 09:54:11Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 14321 2017-05-19 20:33:06Z DeeSPe $
 #
 # Usage
 #
@@ -44,8 +44,9 @@ sub HOMEMODE_Initialize($)
 sub HOMEMODE_Define($$)
 {
   my ($hash,$def) = @_;
-  $HOMEMODE_de = 1 if (AttrVal("global","language","EN") eq "DE");
   my @args = split " ",$def;
+  my ($name,$type,$resdev) = @args;
+  $HOMEMODE_de = (AttrVal("global","language","EN") eq "DE" || AttrVal($name,"HomeLanguage","EN") eq "DE") ? 1 : 0;
   my $trans;
   if (@args < 2 || @args > 3)
   {
@@ -55,7 +56,6 @@ sub HOMEMODE_Define($$)
     return $trans;
   }
   RemoveInternalTimer($hash);
-  my ($name,$type,$resdev) = @args;
   if (!$resdev)
   {
     my @resdevs;
@@ -383,7 +383,6 @@ sub HOMEMODE_Notify($$)
 sub HOMEMODE_updateInternals($;$)
 {
   my ($hash,$force) = @_;
-  $HOMEMODE_de = 1 if (AttrVal("global","language","EN") eq "DE");
   my $name = $hash->{NAME};
   my $resdev = $hash->{DEF};
   my $trans;
@@ -673,6 +672,7 @@ sub HOMEMODE_Get($@)
 sub HOMEMODE_Set($@)
 {
   my ($hash,$name,@aa) = @_;
+  $HOMEMODE_de = (AttrVal("global","language","EN") eq "DE" || AttrVal($name,"HomeLanguage","EN") eq "DE") ? 1 : 0;
   my ($cmd,@args) = @aa;
   my $trans = $HOMEMODE_de?
     "\"set $name\" benötigt mindestens ein und maximal drei Argumente":
@@ -1157,6 +1157,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeDaytimes:textField-long";
   push @attribs,"HomeEventsHolidayDevices";
   push @attribs,"HomeIcewarningOnOffTemps";
+  push @attribs,"HomeLanguage:DE,EN";
   push @attribs,"HomeModeAlarmArmDelay";
   push @attribs,"HomeModeAbsentBelatedTime";
   push @attribs,"HomePresenceDeviceType";
@@ -1354,11 +1355,20 @@ sub HOMEMODE_Attr(@)
         "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.99.";
       return $trans if ($attr_value !~ /^(\d{1,4})(\.\d{1,2})?$/ || $1 >= 6000 || $1 < 0);
     }
+    elsif ($attr_name eq "HomeLanguage")
+    {
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur \"EN\" oder \"DE\" sein, Vorgabewert ist Sprache aus global.":
+        "Invalid value $attr_value for attribute $attr_name. Must be \"EN\" or \"DE\", default is language from global.";
+      return $trans if ($attr_value !~ /^(DE|EN)$/);
+      $HOMEMODE_de = 1 if ($attr_value eq "DE");
+      $HOMEMODE_de = undef if ($attr_value eq "EN");
+    }
     elsif ($attr_name eq "HomeAdvancedDetails")
     {
       $trans = $HOMEMODE_de?
         "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur \"none\", \"detail\", \"both\" oder \"room\" sein, Vorgabewert ist \"none\".":
-        "Invalid value $attr_value for attribute $attr_name. Must be \"none\", \"detail\", \"both\" or \"room\" if set, default is \"none\".";
+        "Invalid value $attr_value for attribute $attr_name. Must be \"none\", \"detail\", \"both\" or \"room\", default is \"none\".";
       return $trans if ($attr_value !~ /^(none|detail|both|room)$/);
       if ($attr_value eq "detail")
       {
@@ -1706,8 +1716,8 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name =~ /^HomeSensorAirpressure|HomeSensorWindspeed$/ && $init_done)
     {
       $trans = $HOMEMODE_de?
-        "$attr_name muss ein einzelnes gültiges Gerät mit Reading sein (Sensor:Reading)!":
-        "$attr_name must be a single valid device with reading (sensor:reading)!";
+        "$attr_name muss ein einzelnes gültiges Gerät und Reading sein (Sensor:Reading)!":
+        "$attr_name must be a single valid device and reading (sensor:reading)!";
       return $trans if ($attr_value !~ /^([\w\.]+):([\w\-\.]+)$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
       HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
     }
@@ -1734,6 +1744,10 @@ sub HOMEMODE_Attr(@)
     if ($attr_name eq "disable")
     {
       HOMEMODE_GetUpdate($hash);
+    }
+    elsif ($attr_name eq "HomeLanguage")
+    {
+      $HOMEMODE_de = AttrVal("global","language","DE") ? 1 : undef;
     }
     elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
     {
@@ -1875,7 +1889,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%AUDIO%/$audio/g;
   $cmd =~ s/%BATTERYLOW%/$lowBat/g;
   $cmd =~ s/%BATTERYLOWALL%/$lowBatAll/g;
-  $cmd =~ s/%BATTERYLOWCOUNT%/$lowBatCount/g;
+  $cmd =~ s/%BATTERYLOWCT%/$lowBatCount/g;
   $cmd =~ s/%CONDITION%/$condition/g;
   $cmd =~ s/%CONTACT%/$contact/g;
   $cmd =~ s/%DAYTIME%/$daytime/g;
@@ -2068,8 +2082,9 @@ sub HOMEMODE_uwzTXT($;$$)
   for (my $i = 0; $i < $count; $i++)
   {
     my $read = "Warn_$i";
+    my $ii = $i + 1;
     $text .= " " if ($i > 0);
-    $text .= $i + 1 . ". " if ($count > 1);
+    $text .= "$ii. " if ($count > 1);
     $text .= ReadingsVal($attr{$name}{HomeUWZ},$read."_$sl","");
   }
   return $text;
@@ -2713,19 +2728,7 @@ sub HOMEMODE_UWZCommands($$)
       my $se = $count > 0 ? "begin" : "end";
       my @cmds;
       push @cmds,$attr{$name}{"HomeCMDuwz-warn-$se"} if ($attr{$name}{"HomeCMDuwz-warn-$se"});
-      if (@cmds)
-      {
-        my $textShort = HOMEMODE_uwzTXT($hash,$count,undef);
-        my $textLong = HOMEMODE_uwzTXT($hash,$count,1);
-        my @commands;
-        foreach my $cmd (@cmds)
-        {
-          $cmd =~ s/%UWZSHORT%/$textShort/gm;
-          $cmd =~ s/%UWZLONG%/$textLong/gm;
-          push @commands,$cmd;
-        }
-        HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
-      }
+      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds)) if (@cmds);
     }
   }
 }
@@ -2940,7 +2943,7 @@ sub HOMEMODE_Details($$$)
   $html .= "<style>.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:20px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"\"></div>";
   $html .= "<table class=\"wide\">";
-  if (defined AttrVal($name,"HomeYahooWeatherDevice",undef))
+  if (AttrVal($name,"HomeYahooWeatherDevice",""))
   {
     $html .= "<tr>";
     my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
@@ -2970,7 +2973,7 @@ sub HOMEMODE_Details($$$)
   }
   $html .= "</table>";
   $html .= "</div>";
-  $html .= "<script>\$(\".homehover\").unbind().mouseover(function(){var t=\$(this).find(\".homeinfo\").text();var id=\$(this).find(\".homeinfo\").attr(\"informid\");console.log(id);\$(\".homeinfopanel\").text(t).attr(\"informid\",id);});</script>";
+  $html .= "<script>\$(\".homehover\").unbind().mouseover(function(){var t=\$(this).find(\".homeinfo\").text();var id=\$(this).find(\".homeinfo\").attr(\"informid\");\$(\".homeinfopanel\").text(t).attr(\"informid\",id);});</script>";
   return $html;
 }
 
@@ -3363,6 +3366,11 @@ sub HOMEMODE_Details($$$)
       <b><i>HomeIcewarningOnOffTemps</i></b><br>
       2 space separated temperatures for ice warning on and off<br>
       default: 2 3
+    </li>
+    <li>
+      <b><i>HomeLanguage</i></b><br>
+      overwrite language from gloabl device<br>
+      default: EN (language setting from global device)
     </li>
     <li>
       <b><i>HomeModeAbsentBelatedTime</i></b><br>
@@ -4118,7 +4126,7 @@ sub HOMEMODE_Details($$$)
       list if aliases (or names if alias is not set) of all battery sensor which reported low battery currently
     </li>
     <li>
-      <b><i>%BATTERYLOWCOUNT%</i></b><br>
+      <b><i>%BATTERYLOWCT%</i></b><br>
       number of battery sensors which reported low battery currently
     </li>
     <li>
