@@ -1,5 +1,9 @@
-    v1.0.8
-    - added detailFn
+    v1.1.0
+    - changed placeholder %ALARM% to %ALARMHR%, please make sure to adjust this if you used %ALARM% before
+    - changed reading alarmTriggered to list of names
+    - added new reading alarmTriggered_hr which was alarmTriggered formerly
+    - added detailFn draft
+    - added attribute HomeAdvancedDetails to configure details
     - added attributes (HomeSensorsBattery, HomeSensorsBatteryReading, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
     - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCOUNT%, %SENSORSBATTERY%)
     - added new attributes for local weather devices (HomeSensorAirpressure, HomeSensorWindspeed)

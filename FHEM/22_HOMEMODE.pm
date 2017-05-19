@@ -14,9 +14,9 @@ use warnings;
 use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
-use vars qw{%attr %defs};
+use vars qw{%attr %defs %modules};
 
-my $HOMEMODE_version = "1.0.8";
+my $HOMEMODE_version = "1.1.0";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -901,17 +901,21 @@ sub HOMEMODE_alarmTriggered($@)
   my $name = $hash->{NAME};
   my @commands;
   my $text = HOMEMODE_makeHR($hash,0,@triggers);
-  readingsSingleUpdate($hash,"alarmTriggered_ct",scalar @triggers,1);
+  readingsBeginUpdate($hash);
+  readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers);
   if ($text)
   {
     push @commands,$attr{$name}{"HomeCMDalarmTriggered-on"} if ($attr{$name}{"HomeCMDalarmTriggered-on"});
-    readingsSingleUpdate($hash,"alarmTriggered",$text,1);
+    readingsBulkUpdateIfChanged($hash,"alarmTriggered",join ",",@triggers);
+    readingsBulkUpdateIfChanged($hash,"alarmTriggered_hr",$text);
   }
   else
   {
     push @commands,$attr{$name}{"HomeCMDalarmTriggered-off"} if ($attr{$name}{"HomeCMDalarmTriggered-off"} && ReadingsVal($name,"alarmTriggered",""));
-    readingsSingleUpdate($hash,"alarmTriggered","",1);
+    readingsBulkUpdateIfChanged($hash,"alarmTriggered","");
+    readingsBulkUpdateIfChanged($hash,"alarmTriggered_hr","");
   }
+  readingsEndUpdate($hash,1);
   HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands && ReadingsAge($name,"modeAlarm","") > 5);
 }
 
@@ -1078,6 +1082,7 @@ sub HOMEMODE_Attributes($)
   my @attribs;
   push @attribs,"disable:1,0";
   push @attribs,"disabledForIntervals";
+  push @attribs,"HomeAdvancedDetails:none,detail,both,room";
   push @attribs,"HomeAdvancedUserAttr:1,0";
   push @attribs,"HomeAutoAlarmModes:0,1";
   push @attribs,"HomeAutoArrival";
@@ -1349,11 +1354,28 @@ sub HOMEMODE_Attr(@)
         "Invalid value $attr_value for attribute $attr_name. Must be a number from 0 to 5999.99.";
       return $trans if ($attr_value !~ /^(\d{1,4})(\.\d{1,2})?$/ || $1 >= 6000 || $1 < 0);
     }
+    elsif ($attr_name eq "HomeAdvancedDetails")
+    {
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur \"none\", \"detail\", \"both\" oder \"room\" sein, Vorgabewert ist \"none\".":
+        "Invalid value $attr_value for attribute $attr_name. Must be \"none\", \"detail\", \"both\" or \"room\" if set, default is \"none\".";
+      return $trans if ($attr_value !~ /^(none|detail|both|room)$/);
+      if ($attr_value eq "detail")
+      {
+        $modules{HOMEMODE}->{FW_deviceOverview} = 1;
+        $modules{HOMEMODE}->{FW_addDetailToSummary} = 0;
+      }
+      else
+      {
+        $modules{HOMEMODE}->{FW_deviceOverview} = 1;
+        $modules{HOMEMODE}->{FW_addDetailToSummary} = 1;
+      }
+    }
     elsif ($attr_name =~ /^(disable|HomeAdvancedUserAttr|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
     {
       $trans = $HOMEMODE_de?
         "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur 1 oder 0 sein, Vorgabewert ist 0.":
-        "Invalid value $attr_value for attribute $attr_name. Must be 1 or 0 set, default is 0.";
+        "Invalid value $attr_value for attribute $attr_name. Must be 1 or 0, default is 0.";
       return $trans if ($attr_value !~ /^[01]$/);
       RemoveInternalTimer($hash) if ($attr_name eq "disable" && $attr_value == 1);
       HOMEMODE_GetUpdate($hash) if ($attr_name eq "disable" && !$attr_value);
@@ -1715,6 +1737,7 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEventsHolidayDevices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
     {
+      CommandDeleteReading(undef,"$name battery.*");
       HOMEMODE_updateInternals($hash,1);
     }
     elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion|HomeSensorsPowerEnergy)$/)
@@ -1795,6 +1818,8 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $location = ReadingsVal($name,"location","");
   my $rlocation = ReadingsVal($resident,"location","");
   my $alarm = ReadingsVal($name,"alarmTriggered",0);
+  my $alarmc = ReadingsVal($name,"alarmTriggered_ct",0);
+  my $alarmhr = ReadingsVal($name,"alarmTriggered_hr",0);
   my $daytime = HOMEMODE_DayTime($hash);
   my $mode = ReadingsVal($name,"mode","");
   my $amode = ReadingsVal($name,"modeAlarm","");
@@ -1841,6 +1866,8 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $arrivers = HOMEMODE_makeHR($hash,0,devspec2array("$ure:FILTER=location=arrival"));
   $cmd =~ s/%ADDRESS%/$paddress/g;
   $cmd =~ s/%ALARM%/$alarm/g;
+  $cmd =~ s/%ALARMCT%/$alarmc/g;
+  $cmd =~ s/%ALARMHR%/$alarmhr/g;
   $cmd =~ s/%ALIAS%/$alias/g;
   $cmd =~ s/%AMODE%/$amode/g;
   $cmd =~ s/%AEAH%/$aeah/g;
@@ -2907,41 +2934,43 @@ sub HOMEMODE_checkIP($;$)
 sub HOMEMODE_Details($$$)
 {
   my ($FW_name,$name,$room) = @_;
+  return if ((AttrVal($name,"HomeAdvancedDetails","none") eq "none") || (!$room && AttrVal($name,"HomeAdvancedDetails","none") eq "room"));
   my $hash = $defs{$name};
-  my $html = "<html>";
-  $html .= "<div class=\"wide\">";
+  my $html = "<div>";
+  $html .= "<style>.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:20px;padding:3px 10px}</style>";
+  $html .= "<div class=\"homeinfopanel\" informid=\"\"></div>";
   $html .= "<table class=\"wide\">";
   if (defined AttrVal($name,"HomeYahooWeatherDevice",undef))
   {
     $html .= "<tr>";
     my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
-    $html .= "<td>$temp:</td>";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C</td>";
+    $html .= "<td class=\"tar\">$temp:</td>";
+    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C</td>";
     my $humi = $HOMEMODE_de ? "Luftfeuchte" : "Humidity";
-    $html .= "<td>$humi:";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
+    $html .= "<td class=\"tar\">$humi:";
+    $html .= "<td class=\"dval\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
     my $pres = $HOMEMODE_de ? "Luftdruck" : "Air pressure";
-    $html .= "<td>$pres:</td>";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\"><apan informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
+    $html .= "<td class=\"tar\">$pres:</td>";
+    $html .= "<td class=\"dval\"><span informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
     $html .= "</tr>";
   }
   if (AttrVal($name,"HomeSensorsContact",""))
   {
     $html .= "<tr>";
     my $open = $HOMEMODE_de ? "Offen" : "Open";
-    $html .= "<td>$open:</td>";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,"contactsOpen_ct","")."</td>";
+    $html .= "<td class=\"tar\">$open:</td>";
+    $html .= "<td class=\"dval homehover\"><span informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,"contactsOpen_ct","")."</span><span class=\"homeinfo\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,"contactsOpen_hr","")."</span></td>";
     my $tamp = $HOMEMODE_de ? "Sabotiert" : "Tampered";
-    $html .= "<td>$tamp:</td>";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</td>";
+    $html .= "<td class=\"tar\">$tamp:</td>";
+    $html .= "<td class=\"dval homehover\"><span informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-sensorsTampered_hr\">".ReadingsVal($name,"sensorsTampered_hr","")."</span></td>";
     my $alarms = $HOMEMODE_de ? "Alarme" : "Alarms";
-    $html .= "<td>$alarms:</td>";
-    $html .= "<td class=\"dval\" style=\"text-align:right;\" informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</td>";
+    $html .= "<td class=\"tar\">$alarms:</td>";
+    $html .= "<td class=\"dval homehover\"><span informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-alarmTriggered_hr\">".ReadingsVal($name,"alarmTriggered_hr","")."</span></td>";
     $html .= "</tr>";
   }
   $html .= "</table>";
   $html .= "</div>";
-  $html .= "</html>";
+  $html .= "<script>\$(\".homehover\").unbind().mouseover(function(){var t=\$(this).find(\".homeinfo\").text();var id=\$(this).find(\".homeinfo\").attr(\"informid\");console.log(id);\$(\".homeinfopanel\").text(t).attr(\"informid\",id);});</script>";
   return $html;
 }
 
@@ -3089,16 +3118,17 @@ sub HOMEMODE_Details($$$)
   <p><b>Attributes</b></p>
   <ul>
     <li>
-      <b><i>disable</i></b><br>
-      disable HOMEMODE device and stop executing CMDs<br>
-      values 0 or 1<br>
-      default: 0
+      <b><i>HomeAdvancedDetails</i></b><br>
+      show more details depending on the monitored devices<br>
+      value detail will only show advanced details in detail view, value both will show advanced details also in room view, room will show advanced details only in room view<br>
+      values: none, detail, both, room<br>
+      default: none
     </li>
     <li>
       <b><i>HomeAdvancedUserAttr</i></b><br>
       more HomeCMD userattr will be provided<br>
       additional attributes for each resident and each calendar event<br>
-      values 0 or 1<br>
+      values: 0 or 1<br>
       default: 0
     </li>
     <li>
@@ -3660,7 +3690,8 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>disable</i></b><br>
-      disable the HOMEMODE device
+      disable HOMEMODE device and stop executing CMDs<br>
+      values 0 or 1<br>
       default: 0
     </li>
     <li>
@@ -3675,11 +3706,15 @@ sub HOMEMODE_Details($$$)
   <ul>
     <li>
       <b><i>alarmTriggered</i></b><br>
-      (human readable) list of triggered alarm sensors (contact/motion sensors)
+      list of triggered alarm sensors (contact/motion sensors)
     </li>
     <li>
       <b><i>alarmTriggered_ct</i></b><br>
       count of triggered alarm sensors (contact/motion sensors)
+    </li>
+    <li>
+      <b><i>alarmTriggered_hr</i></b><br>
+      (human readable) list of triggered alarm sensors (contact/motion sensors)
     </li>
     <li>
       <b><i>anyoneElseAtHome</i></b><br>
@@ -4037,7 +4072,16 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%ALARM%</i></b><br>
       value of the alarmTriggered reading of the HOMEMODE device<br>
-      will return 0 if no alarm is triggered or a list of triggered sensors if alarm is triggered<br>
+      will return 0 if no alarm is triggered or a list of triggered sensors if alarm is triggered
+    </li>
+    <li>
+      <b><i>%ALARMCT%</i></b><br>
+      value of the alarmTriggered_ct reading of the HOMEMODE device
+    </li>
+    <li>
+      <b><i>%ALARMHR%</i></b><br>
+      value of the alarmTriggered_hr reading of the HOMEMODE device<br>
+      will return 0 if no alarm is triggered or a (human readable) list of triggered sensors if alarm is triggered<br>
       can be used for sending msg e.g.
     </li>
     <li>
