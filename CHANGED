@@ -1,3 +1,9 @@
+    v1.1.1
+    - changed hover to click in DetailFn
+    - added energy, power and luminance to DetailFn
+    - added weather forecast for today to click on weather data in DetailFn (no longpoll)
+    - added StatusLowBattery to homebridgeMapping
+    - fixed setting RESIDENT to absent if all PRESENCE devices' states of one RESIDENT are "maybe absent" und then one of them is turning to absent
     v1.1.0
     - changed placeholder %ALARM% to %ALARMHR%, please make sure to adjust this if you used %ALARM% before
     - changed reading alarmTriggered to list of names
