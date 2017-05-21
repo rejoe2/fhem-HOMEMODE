@@ -338,7 +338,7 @@ sub HOMEMODE_Notify($$)
       foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=(maybe.)?(absent|present|appeared|disappeared)"))
       {
         next if (lc($device) !~ /$residentregex/);
-        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","absent") =~ /^(present|appeared|maybe.absent)$/);
+        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
       }
       if (grep /^.*:\s(present|appeared)$/,@{$events})
       {
