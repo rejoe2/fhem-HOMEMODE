@@ -2938,7 +2938,7 @@ sub HOMEMODE_checkIP($;$)
 sub HOMEMODE_Details($$$)
 {
   my ($FW_name,$name,$room) = @_;
-  return if ((AttrVal($name,"HomeAdvancedDetails","none") eq "none") || (!$room && AttrVal($name,"HomeAdvancedDetails","none") eq "room"));
+  return if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || ((!$room || $room eq AttrVal($name,"room","")) && AttrVal($name,"HomeAdvancedDetails","none") eq "room"));
   my $hash = $defs{$name};
   my $html = "<div>";
   $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;padding:3px 10px}</style>";
