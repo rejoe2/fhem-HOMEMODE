@@ -1944,6 +1944,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%PREVMOTION%/$pmotion/g;
   $cmd =~ s/%SEASON%/$season/g;
   $cmd =~ s/%SELF%/$name/g;
+  $cmd =~ s/%SENSORSBATTERY%/$sensorsbattery/g;
   $cmd =~ s/%SENSORSCONTACT%/$sensorscontact/g;
   $cmd =~ s/%SENSORSENERGY%/$sensorsenergy/g;
   $cmd =~ s/%SENSORSMOTION%/$sensorsmotion/g;
