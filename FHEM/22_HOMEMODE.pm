@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14342 2017-05-21 21:40:05Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 14377 2017-05-25 19:42:10Z DeeSPe $
 #
 # Usage
 #
@@ -2942,7 +2942,7 @@ sub HOMEMODE_Details($$$)
   return if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $hash = $defs{$name};
   my $html = "<div>";
-  $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;padding:3px 10px}</style>";
+  $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"\"></div>";
   $html .= "<table class=\"wide\">";
   if (AttrVal($name,"HomeYahooWeatherDevice",""))
