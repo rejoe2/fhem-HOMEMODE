@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules};
 
-my $HOMEMODE_version = "1.1.2";
+my $HOMEMODE_version = "1.1.3";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -2941,9 +2941,11 @@ sub HOMEMODE_Details($$$)
   my ($FW_name,$name,$room) = @_;
   return if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $hash = $defs{$name};
+  my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
+  my $info = (split /-/,$iid)[1] ? ReadingsVal($name,(split /-/,$iid)[1],"") : "";
   my $html = "<div>";
   $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
-  $html .= "<div class=\"homeinfopanel\" informid=\"\"></div>";
+  $html .= "<div class=\"homeinfopanel\" informid=\"$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
   if (AttrVal($name,"HomeYahooWeatherDevice",""))
   {
@@ -2989,7 +2991,13 @@ sub HOMEMODE_Details($$$)
   }
   $html .= "</table>";
   $html .= "</div>";
-  $html .= "<script>\$(\".homehover\").unbind().click(function(){var t=\$(this).find(\".homeinfo\").text();var id=\$(this).find(\".homeinfo\").attr(\"informid\");\$(\".homeinfopanel\").text(t).attr(\"informid\",id);});</script>";
+  $html .= "<script>";
+  $html .= "\$(\".homehover\").unbind().click(function(){";
+  $html .= "var t=\$(this).find(\".homeinfo\").text();";
+  $html .= "var id=\$(this).find(\".homeinfo\").attr(\"informid\");";
+  $html .= "\$(\".homeinfopanel\").text(t).attr(\"informid\",id);";
+  $html .= "\$.post(window.location.pathname+\"?cmd=setreading%20$name%20lastInfo%20\"+id+\"$FW_CSRF\");";
+  $html .= "});</script>";
   return $html;
 }
 

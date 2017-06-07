@@ -1,7 +1,7 @@
     v1.1.2
     - fixed showing details in detail view although if not set to do so
     - added missing substitution for placeholder %SENSORSBATTERY%
-    - added max-with to homeinfopanel
+    - added max-width to homeinfopanel
     v1.1.1
     - changed hover to click in DetailFn
     - added energy, power and luminance to DetailFn
