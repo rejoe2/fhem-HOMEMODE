@@ -2942,7 +2942,7 @@ sub HOMEMODE_Details($$$)
   return if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $hash = $defs{$name};
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
-  my $info = (split /-/,$iid)[1] ? ReadingsVal($name,(split /-/,$iid)[1],"") : "";
+  my $info = ReadingsVal($name,$iid,"");
   my $html = "<div>";
   $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"$iid\">$info</div>";
@@ -2995,8 +2995,9 @@ sub HOMEMODE_Details($$$)
   $html .= "\$(\".homehover\").unbind().click(function(){";
   $html .= "var t=\$(this).find(\".homeinfo\").text();";
   $html .= "var id=\$(this).find(\".homeinfo\").attr(\"informid\");";
+  $html .= "var r=id.split(\"-\")[1];";
   $html .= "\$(\".homeinfopanel\").text(t).attr(\"informid\",id);";
-  $html .= "\$.post(window.location.pathname+\"?cmd=setreading%20$name%20lastInfo%20\"+id+\"$FW_CSRF\");";
+  $html .= "if(r){\$.post(window.location.pathname+\"?cmd=setreading%20$name%20lastInfo%20\"+r+\"$FW_CSRF\")};";
   $html .= "});</script>";
   return $html;
 }
