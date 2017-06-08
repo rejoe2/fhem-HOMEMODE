@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 14377 2017-05-25 19:42:10Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 14482 2017-06-08 19:30:49Z DeeSPe $
 #
 # Usage
 #
@@ -3898,6 +3898,10 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>lastGotosleepByResident</i></b><br>
       last resident who went gotosleep
+    </li>
+    <li>
+      <b><i>lastInfo</i></b><br>
+      last shown item on infopanel (HomeAdvancedDetails)
     </li>
     <li>
       <b><i>lastMotion</i></b><br>
