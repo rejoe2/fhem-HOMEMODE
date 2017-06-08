@@ -1507,30 +1507,17 @@ sub HOMEMODE_Attr(@)
         "Invalid value $attr_value for attribute $attr_name. Must be a number from 1 to 99999 for interval in minutes!";
       return $trans if ($attr_value !~ /^\d{1,5}$/);
     }
-    elsif ($attr_name eq "HomeSensorsContact" && $init_done)
+    elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion)$/ && $init_done)
     {
       $trans = $HOMEMODE_de?
         "$attr_value muss ein gültiger Devspec sein!":
         "$attr_value must be a valid devspec!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-      if ($attr_value_old ne $attr_value)
-      {
-        CommandDeleteReading(undef,"$name lastContact|prevContact|contacts.*");
-        HOMEMODE_updateInternals($hash);
-        HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
-      }
-    }
-    elsif ($attr_name eq "HomeSensorsMotion" && $init_done)
-    {
-      $trans = $HOMEMODE_de?
-        "$attr_value muss ein gültiger Devspec sein!":
-        "$attr_value must be a valid devspec!";
-      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-      if ($attr_value_old ne $attr_value)
-      {
-        HOMEMODE_updateInternals($hash);
-        HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
-      }
+      my $od = "";
+      $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
+      $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
+      HOMEMODE_updateInternals($hash);
+      HOMEMODE_addSensorsuserattr($hash,$attr_value,$od);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
@@ -1539,10 +1526,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiger Devspec mit $p und $e Readings sein!":
         "$attr_value must be a valid devspec with $p and $e readings!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$p) || !HOMEMODE_CheckIfIsValidDevspec($attr_value,$e));
-      if ($attr_value_old ne $attr_value)
-      {
-        HOMEMODE_updateInternals($hash);
-      }
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomeTwilightDevice" && $init_done)
     {
@@ -1695,7 +1679,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
         "$attr_name must be a valid device with $read reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
-      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergyReadings" && $init_done)
     {
@@ -1728,7 +1712,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät mit $read Reading sein!":
         "$attr_name must be a valid device with $read reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
-      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
+      HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomeSensorsBatteryLowPercentage")
     {
