@@ -1,3 +1,6 @@
+    v1.1.4
+    - new reading alarmState
+    - add homebridgeMapping for current alarms
     v1.1.3
     - add userattr to sensors with same devspec
     - new reading lastInfo - will be set when clicking on an info item to remember the last state of the infopanel
