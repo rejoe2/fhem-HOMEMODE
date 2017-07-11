@@ -14,7 +14,7 @@ use warnings;
 use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
-use vars qw{%attr %defs %modules};
+use vars qw{%attr %defs %modules $FW_CSRF};
 
 my $HOMEMODE_version = "1.1.5";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
@@ -2735,8 +2735,8 @@ sub HOMEMODE_HomebridgeMapping($)
   $mapping .= "\nMotionDetected=motionsInside_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"motionsInside_ct",undef));
   $mapping .= "\nStatusLowBattery=batteryLow_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"batteryLow_ct",undef));
   $mapping .= "\nE863F10F-079E-48FF-8F27-9C2605A29F52=pressure,name=AirPressure,format=UINT16" if (defined ReadingsVal($name,"wind",undef));
-  addToDevAttrList($name,"genericDeviceType") if (!grep /^genericDeviceType/,split(" ",$attr{"global"}{userattr}));
-  addToDevAttrList($name,"homebridgeMapping:textField-long") if (!grep /^homebridgeMapping/,split(" ",$attr{"global"}{userattr}));
+  addToDevAttrList($name,"genericDeviceType") if (!grep /^genericDeviceType/,split(" ",AttrVal("global","userattr","")));
+  addToDevAttrList($name,"homebridgeMapping:textField-long") if (!grep /^homebridgeMapping/,split(" ",AttrVal("global","userattr","")));
   $attr{$name}{genericDeviceType} = "security";
   $attr{$name}{homebridgeMapping} = $mapping;
   return;
