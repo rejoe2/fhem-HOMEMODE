@@ -618,8 +618,11 @@ sub HOMEMODE_Get($@)
     $params .= " " if ($params);
     $params .= "weather:" if (AttrVal($name,"HomeTextWeatherLong",undef) || AttrVal($name,"HomeTextWeatherShort",undef));
     $params .= "long" if (AttrVal($name,"HomeTextWeatherLong",undef));
-    $params .= "," if (AttrVal($name,"HomeTextWeatherShort",undef));
-    $params .= "short" if (AttrVal($name,"HomeTextWeatherShort",undef));
+    if (AttrVal($name,"HomeTextWeatherShort",undef))
+    {
+      $params .= ",";
+      $params .= "short";
+    }
     $params .= " " if ($params);
     $params .= "weatherForecast";
   }
