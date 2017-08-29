@@ -1,3 +1,6 @@
+    v1.1.7
+    - fix HomeModeAlarmArmDelay
+    - adjust summary slightly
     v1.1.6
     - fix longpoll for details view
     v1.1.5
