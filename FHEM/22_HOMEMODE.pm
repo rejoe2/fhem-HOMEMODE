@@ -59,7 +59,7 @@ sub HOMEMODE_Define($$)
   if (!$resdev)
   {
     my @resdevs;
-    foreach (devspec2array("TYPE=RESIDENTS"))
+    foreach (devspec2array("TYPE=RESIDENTS:FILTER=disable!=1"))
     {
       push @resdevs,$_;
     }
@@ -485,7 +485,7 @@ sub HOMEMODE_updateInternals($;$)
     if ($contacts)
     {
       my @sensors;
-      foreach my $s (devspec2array($contacts))
+      foreach my $s (devspec2array("$contacts:FILTER=disable!=1"))
       {
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
@@ -496,7 +496,7 @@ sub HOMEMODE_updateInternals($;$)
     if ($motion)
     {
       my @sensors;
-      foreach my $s (devspec2array($motion))
+      foreach my $s (devspec2array("$motion:FILTER=disable!=1"))
       {
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
@@ -508,7 +508,7 @@ sub HOMEMODE_updateInternals($;$)
     {
       my @sensors;
       my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-      foreach my $s (devspec2array($power))
+      foreach my $s (devspec2array("$power:FILTER=disable!=1"))
       {
         next unless (defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef));
         push @sensors,$s;
@@ -520,7 +520,7 @@ sub HOMEMODE_updateInternals($;$)
     if ($battery)
     {
       my @sensors;
-      foreach my $s (devspec2array($battery))
+      foreach my $s (devspec2array("$battery:FILTER=disable!=1"))
       {
         my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
         my $val = ReadingsVal($s,$read,undef);
@@ -544,7 +544,7 @@ sub HOMEMODE_updateInternals($;$)
     my $holiday = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
     if ($holiday)
     {
-      foreach (devspec2array($holiday))
+      foreach (devspec2array("$holiday:FILTER=disable!=1"))
       {
         push @allMonitoredDevices,$_ if (!grep /^$_$/,@allMonitoredDevices);
       }
@@ -556,7 +556,7 @@ sub HOMEMODE_updateInternals($;$)
     {
       my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
       my @sensors;
-      foreach my $s (devspec2array($luminance))
+      foreach my $s (devspec2array("$luminance:FILTER=disable!=1"))
       {
         if (defined ReadingsVal($s,AttrVal($name,"HomeSensorsLuminanceReading","luminance"),undef))
         {
@@ -2321,7 +2321,7 @@ sub HOMEMODE_TriggerState($;$$$)
   my @alarmSensors;
   my @lightSensors;
   my $amode = ReadingsVal($name,"modeAlarm","");
-  foreach my $sensor (devspec2array($contacts))
+  foreach my $sensor (devspec2array("$contacts:FILTER=disable!=1"))
   {
     my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
     my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
@@ -2370,7 +2370,7 @@ sub HOMEMODE_TriggerState($;$$$)
       push @sensorsTampered,$sensor;
     }
   }
-  foreach my $sensor (devspec2array($motions))
+  foreach my $sensor (devspec2array("$motions:FILTER=disable!=1"))
   {
     my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
     my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));

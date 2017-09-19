@@ -1,6 +1,7 @@
     v1.1.8
     - fix homebridgeMapping for anyoneElseAtHome
     - ignore disabled presence devices for safety reasons - updateInternalsForce needed after dis-/enabling the presence device
+    - ignore more disabled devices
     v1.1.7
     - fix HomeModeAlarmArmDelay
     - adjust summary slightly
