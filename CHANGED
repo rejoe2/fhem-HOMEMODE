@@ -1,3 +1,6 @@
+    v1.1.9
+    - fix PERL WARNING: Use of uninitialized value $motions in concatenation (.) or string at ./FHEM/22_HOMEMODE.pm line 2373
+    - fix devspec for attribute HomeEventsHolidayDevices
     v1.1.8
     - fix homebridgeMapping for anyoneElseAtHome
     - ignore disabled presence devices for safety reasons - updateInternalsForce needed after dis-/enabling the presence device
