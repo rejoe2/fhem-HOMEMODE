@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15203 2017-10-05 23:20:18Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15329 2017-10-27 18:12:35Z DeeSPe $
 #
 # Usage
 #
@@ -3372,7 +3372,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeEventsHolidayDevices</i></b><br>
-      comma separated list (devspec) of holiday calendars
+      devspec of holiday calendars
     </li>
     <li>
       <b><i>HomeIcewarningOnOffTemps</i></b><br>
