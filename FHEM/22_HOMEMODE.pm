@@ -16,12 +16,12 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.1.11";
+my $HOMEMODE_version = "1.1.12";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
 my $HOMEMODE_UserModesAll = "$HOMEMODE_UserModes,home,absent,gone";
-my $HOMEMODE_AlarmModes = "disarm,armhome,armnight,armaway";
+my $HOMEMODE_AlarmModes = "disarm,confirm,armhome,armnight,armaway";
 my $HOMEMODE_Locations = "arrival,home,bed,underway,wayhome";
 my $HOMEMODE_de;
 
@@ -880,13 +880,22 @@ sub HOMEMODE_set_modeAlarm($$$)
   my @commands;
   push @commands,AttrVal($name,"HomeCMDmodeAlarm","") if (AttrVal($name,"HomeCMDmodeAlarm",undef));
   push @commands,AttrVal($name,"HomeCMDmodeAlarm-$option","") if (AttrVal($name,"HomeCMDmodeAlarm-$option",undef));
-  readingsBeginUpdate($hash);
-  readingsBulkUpdate($hash,"prevModeAlarm",$amode);
-  readingsBulkUpdate($hash,"modeAlarm",$option);
-  readingsBulkUpdateIfChanged($hash,"alarmState",$option);
-  readingsEndUpdate($hash,1);
-  HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
-  HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands),$resident) if (@commands);
+  if ($option eq "confirm")
+  {
+    CommandDefine(undef,"atTmp_modeAlarm_confirm_$name at +00:00:30 setreading $name:FILTER=alarmState=confirmed alarmState $amode");
+    readingsSingleUpdate($hash,"alarmState",$option."ed",1);
+    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands),$resident) if (@commands);
+  }
+  else
+  {
+    readingsBeginUpdate($hash);
+    readingsBulkUpdate($hash,"prevModeAlarm",$amode);
+    readingsBulkUpdate($hash,"modeAlarm",$option);
+    readingsBulkUpdateIfChanged($hash,"alarmState",$option);
+    readingsEndUpdate($hash,1);
+    HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
+    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands),$resident) if (@commands);
+  }
 }
 
 sub HOMEMODE_execCMDs_belated($$$)
@@ -982,96 +991,79 @@ sub HOMEMODE_RESIDENTS($;$)
   my $devtype = $defs{$dev}->{TYPE};
   my $alias = AttrVal($dev,"alias",$dev);
   my $lad = ReadingsVal($name,"lastActivityByResident","");
+  my $HOMEMODE_UserModesAll_Regex = $HOMEMODE_UserModesAll;
+  $HOMEMODE_UserModesAll_Regex =~ s/,/|/g;
   my $mode;
-  my @commands;
-  foreach (split /,/,"$HOMEMODE_UserModesAll,home")
+  if (grep /^state:\s($HOMEMODE_UserModesAll_Regex)$/,@{$events})
   {
-    next if (!grep /^$_$/,@{$events});
-    $mode = $_;
+    foreach (@{$events})
+    {
+      my $m = $_;
+      $m =~ s/.*:\s//;
+      next if (!grep /^$m$/,split /,/,$HOMEMODE_UserModesAll);
+      $mode = $m;
+    }
   }
-  if ($devtype eq "RESIDENTS")
+  if ($mode && $devtype eq "RESIDENTS")
   {
-    $mode = ReadingsVal($dev,"state","");
     $mode = $mode eq "home" && AttrNum($name,"HomeAutoDaytime",1) ? HOMEMODE_DayTime($hash) : $mode;
     CommandSet(undef,"$name:FILTER=mode!=$mode mode $mode");
     return;
   }
-  if ($devtype =~ /^(ROOMMATE|GUEST)$/)
+  if ($mode && $devtype =~ /^ROOMMATE|GUEST$/)
   {
-    my $usermode;
-    my $HOMEMODE_UserModesAll_Regex = $HOMEMODE_UserModesAll;
-    $HOMEMODE_UserModesAll_Regex =~ s/,/|/g;
-    if (grep /^state:\s($HOMEMODE_UserModesAll_Regex)$/,@{$events})
+    my @commands;
+    if ($mode =~ /^home|awoken$/ && AttrNum($name,"HomeAutoAwoken",0))
     {
-      foreach my $evt (@{$events})
+      if ($mode eq "home" && ReadingsVal($dev,"lastState","") eq "asleep")
       {
-        my $um = $evt;
-        $um =~ s/.*:\s//;
-        next if (!grep /^$um$/,split /,/,$HOMEMODE_UserModesAll);
-        $usermode = $um;
+        AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=state!=awoken state awoken");
+        return;
+      }
+      elsif ($mode eq "awoken")
+      {
+        my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAwoken",0));
+        CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (IsDevice("atTmp_awoken_".$dev."_$name"));
+        CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
       }
     }
-    if ($usermode)
+    if ($mode eq "home" && ReadingsVal($dev,"lastState","") =~ /^(absent|[gn]one)$/ && AttrNum($name,"HomeAutoArrival",0))
     {
-      if ($usermode =~ /^(home|awoken)$/ && AttrNum($name,"HomeAutoAwoken",0))
-      {
-        if ($usermode eq "home" && ReadingsVal($dev,"lastState","") eq "asleep")
-        {
-          AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=state!=awoken state awoken");
-          return;
-        }
-        elsif ($usermode eq "awoken")
-        {
-          my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAwoken",0));
-          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (IsDevice("atTmp_awoken_".$dev."_$name"));
-          CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
-        }
-      }
-      if ($usermode eq "home" && ReadingsVal($dev,"lastState","") =~ /^(absent|[gn]one)$/ && AttrNum($name,"HomeAutoArrival",0))
-      {
-        my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
-        AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
-        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (IsDevice("atTmp_location_home_".$dev."_$name"));
-        CommandDefine(undef,"atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home")
-      }
-      if ($usermode eq "gotosleep" && AttrNum($name,"HomeAutoAsleep",0))
-      {
-        my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAsleep",0));
-        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (IsDevice("atTmp_asleep_".$dev."_$name"));
-        CommandDefine(undef,"atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
-      }
-      readingsBeginUpdate($hash);
-      if (grep /^presence:\sabsent$/,@{$events})
-      {
-        push @commands,AttrVal($name,"HomeCMDpresence-absent-resident","") if (AttrVal($name,"HomeCMDpresence-absent-resident",undef));
-        push @commands,AttrVal($name,"HomeCMDpresence-absent-$dev","") if (AttrVal($name,"HomeCMDpresence-absent-$dev",undef));
-        readingsBulkUpdate($hash,"lastAbsentByResident",$dev);
-      }
-      elsif (grep /^presence:\spresent$/,@{$events})
-      {
-        push @commands,AttrVal($name,"HomeCMDpresence-present-resident","") if (AttrVal($name,"HomeCMDpresence-present-resident",undef));
-        push @commands,AttrVal($name,"HomeCMDpresence-present-$dev","") if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
-        readingsBulkUpdate($hash,"lastPresentByResident",$dev);
-      }
-      push @commands,AttrVal($name,"HomeCMDmode-$usermode-resident","") if (AttrVal($name,"HomeCMDmode-$usermode-resident",undef));
-      push @commands,AttrVal($name,"HomeCMDmode-$usermode-$dev","") if (AttrVal($name,"HomeCMDmode-$usermode-$dev",undef));
-      readingsBulkUpdate($hash,"lastActivityByResident",$dev);
-      readingsBulkUpdate($hash,"lastAsleepByResident",$dev) if ($usermode eq "asleep");
-      readingsBulkUpdate($hash,"lastAwokenByResident",$dev) if ($usermode eq "awoken");
-      readingsBulkUpdate($hash,"lastGoneByResident",$dev) if ($usermode =~ /^(gone|none)$/);
-      readingsBulkUpdate($hash,"lastGotosleepByResident",$dev) if ($usermode eq "gotosleep");
-      readingsBulkUpdate($hash,"prevActivityByResident",$lad);
-      readingsEndUpdate($hash,1);
+      my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
+      AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
+      CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (IsDevice("atTmp_location_home_".$dev."_$name"));
+      CommandDefine(undef,"atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home")
     }
+    if ($mode eq "gotosleep" && AttrNum($name,"HomeAutoAsleep",0))
+    {
+      my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAsleep",0));
+      CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (IsDevice("atTmp_asleep_".$dev."_$name"));
+      CommandDefine(undef,"atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
+    }
+    readingsBeginUpdate($hash);
+    if (grep /^presence:\sabsent$/,@{$events})
+    {
+      push @commands,AttrVal($name,"HomeCMDpresence-absent-resident","") if (AttrVal($name,"HomeCMDpresence-absent-resident",undef));
+      push @commands,AttrVal($name,"HomeCMDpresence-absent-$dev","") if (AttrVal($name,"HomeCMDpresence-absent-$dev",undef));
+      readingsBulkUpdate($hash,"lastAbsentByResident",$dev);
+    }
+    elsif (grep /^presence:\spresent$/,@{$events})
+    {
+      push @commands,AttrVal($name,"HomeCMDpresence-present-resident","") if (AttrVal($name,"HomeCMDpresence-present-resident",undef));
+      push @commands,AttrVal($name,"HomeCMDpresence-present-$dev","") if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
+      readingsBulkUpdate($hash,"lastPresentByResident",$dev);
+    }
+    push @commands,AttrVal($name,"HomeCMDmode-$mode-resident","") if (AttrVal($name,"HomeCMDmode-$mode-resident",undef));
+    push @commands,AttrVal($name,"HomeCMDmode-$mode-$dev","") if (AttrVal($name,"HomeCMDmode-$mode-$dev",undef));
+    readingsBulkUpdate($hash,"lastActivityByResident",$dev);
+    readingsBulkUpdate($hash,"lastAsleepByResident",$dev) if ($mode eq "asleep");
+    readingsBulkUpdate($hash,"lastAwokenByResident",$dev) if ($mode eq "awoken");
+    readingsBulkUpdate($hash,"lastGoneByResident",$dev) if ($mode =~ /^(gone|none)$/);
+    readingsBulkUpdate($hash,"lastGotosleepByResident",$dev) if ($mode eq "gotosleep");
+    readingsBulkUpdate($hash,"prevActivityByResident",$lad);
+    readingsEndUpdate($hash,1);
     HOMEMODE_ContactOpenCheckAfterModeChange($hash,undef,undef,$dev);
-  }
-  if (@commands)
-  {
-    if ($devtype eq "RESIDENTS")
-    {
-      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
-    }
-    else
+    if (@commands)
     {
       my $delay = AttrNum($name,"HomeResidentCmdDelay",1);
       my $cmd = encode_base64(HOMEMODE_serializeCMD($hash,@commands),"");
@@ -3076,7 +3068,7 @@ sub HOMEMODE_Details($$$)
       placeholder %MODE% is available in all HomeCMD attributes
     </li>
     <li>
-      <b><i>modeAlarm &lt;armaway/armhome/armnight/disarm&gt;</i></b><br>
+      <b><i>modeAlarm &lt;armaway/armhome/armnight/confirm/disarm&gt;</i></b><br>
       switch to given alarm mode manually<br>
       placeholder %AMODE% is available in all HomeCMD attributes
     </li>
@@ -3321,7 +3313,7 @@ sub HOMEMODE_Details($$$)
       cmds to execute on any alarm mode change
     </li>
     <li>
-      <b><i>HomeCMDmodeAlarm-&lt;armaway/armhome/armnight/disarm&gt;</i></b><br>
+      <b><i>HomeCMDmodeAlarm-&lt;armaway/armhome/armnight/confirm/disarm&gt;</i></b><br>
       cmds to execute on specific alarm mode change
     </li>
     <li>
