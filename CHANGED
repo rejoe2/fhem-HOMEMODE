@@ -1,8 +1,9 @@
     v1.1.12
     - add modeAlarm confirm
     - set location wayhome on HOMEMODE device automatically if a ROOMMATE/GUEST sets its location to wayhome (or reading wayhome to 1)
-    - more robust RESIDENTS function
-    - more robust FILTER handling
+    - much more robust RESIDENTS function
+    - improved notifyFn
+    - more robust filtering of disabled devices
     v1.1.11
     - suppress 'Deleted reading...' in lastCMDerror
     v1.1.10
