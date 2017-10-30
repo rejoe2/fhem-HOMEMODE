@@ -1004,6 +1004,21 @@ sub HOMEMODE_RESIDENTS($;$)
       $mode = $m;
     }
   }
+  if ($devtype =~ /^ROOMMATE|GUEST$/ && grep /^wayhome:\s(0|1)$/,@{$events})
+  {
+    if (grep /^wayhome:\s1$/,@{$events})
+    {
+      readingsSingleUpdate($hash,"lastActivityByResident",$dev);
+      CommandSet(undef,"$name:FILTER=location!=wayhome location wayhome") if (ReadingsVal($name,"state","") =~ /^absent|gone$/);
+    }
+    else
+    {
+      readingsSingleUpdate($hash,"lastActivityByResident",$dev);
+      my $rx = $hash->{RESIDENTS};
+      $rx =~ s/,/|/g;
+      CommandSet(undef,"$name:FILTER=location!=underway location underway") if (ReadingsVal($name,"state","") =~ /^absent|gone$/ && !devspec2array("$rx:FILTER=wayhome=1"));
+    }
+  }
   if ($mode && $devtype eq "RESIDENTS")
   {
     $mode = $mode eq "home" && AttrNum($name,"HomeAutoDaytime",1) ? HOMEMODE_DayTime($hash) : $mode;
