@@ -4157,7 +4157,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%BATTERYLOWALL%</i></b><br>
-      list if aliases (or names if alias is not set) of all battery sensor which reported low battery currently
+      list of aliases (or names if alias is not set) of all battery sensor which reported low battery currently
     </li>
     <li>
       <b><i>%BATTERYLOWCT%</i></b><br>
