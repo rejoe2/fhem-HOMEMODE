@@ -179,11 +179,11 @@ sub HOMEMODE_Notify($$)
       }
     }
   }
-  if (AttrVal($name,"HomeYahooWeatherDevice",undef) && grep(/^$devname$/,split /,/,AttrVal($name,"HomeYahooWeatherDevice","")))
+  if (AttrVal($name,"HomeYahooWeatherDevice",undef) && $devname eq AttrVal($name,"HomeYahooWeatherDevice",""))
   {
     HOMEMODE_Weather($hash,$devname);
   }
-  if (AttrVal($name,"HomeTwilightDevice",undef) && grep(/^$devname$/,split /,/,AttrVal($name,"HomeTwilightDevice","")))
+  if (AttrVal($name,"HomeTwilightDevice",undef) && $devname eq AttrVal($name,"HomeTwilightDevice",""))
   {
     HOMEMODE_Twilight($hash,$devname);
   }
