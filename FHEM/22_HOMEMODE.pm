@@ -262,7 +262,7 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
     }
   }
-  if (AttrVal($name,"HomeEventsHolidayDevices",undef) && grep(/^$devname$/,devspec2array(AttrVal($name,"HomeEventsHolidayDevices","").":FILTER=disable!=1")) && grep /^state:\s/,@{$events})
+  if (AttrVal($name,"HomeEventsHolidayDevices",undef) && grep(/^$devname$/,devspec2array(AttrVal($name,"HomeEventsHolidayDevices",""))) && grep /^state:\s/,@{$events})
   {
     foreach my $evt (@{$events})
     {
@@ -484,6 +484,7 @@ sub HOMEMODE_updateInternals($;$)
     my $contacts = HOMEMODE_AttrCheck($hash,"HomeSensorsContact");
     if ($contacts)
     {
+      $contacts =~ s/,/|/g;
       my @sensors;
       foreach my $s (devspec2array("$contacts:FILTER=disable!=1"))
       {
@@ -495,6 +496,7 @@ sub HOMEMODE_updateInternals($;$)
     my $motion = HOMEMODE_AttrCheck($hash,"HomeSensorsMotion");
     if ($motion)
     {
+      $motion =~ s/,/|/g;
       my @sensors;
       foreach my $s (devspec2array("$motion:FILTER=disable!=1"))
       {
@@ -506,6 +508,7 @@ sub HOMEMODE_updateInternals($;$)
     my $power = HOMEMODE_AttrCheck($hash,"HomeSensorsPowerEnergy");
     if ($power)
     {
+      $power =~ s/,/|/g;
       my @sensors;
       my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
       foreach my $s (devspec2array("$power:FILTER=disable!=1"))
@@ -519,6 +522,7 @@ sub HOMEMODE_updateInternals($;$)
     my $battery = HOMEMODE_AttrCheck($hash,"HomeSensorsBattery");
     if ($battery)
     {
+      $battery =~ s/,/|/g;
       my @sensors;
       foreach my $s (devspec2array("$battery:FILTER=disable!=1"))
       {
@@ -544,6 +548,7 @@ sub HOMEMODE_updateInternals($;$)
     my $holiday = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
     if ($holiday)
     {
+      $holiday =~ s/,/|/g;
       foreach my $c (devspec2array("$holiday:FILTER=disable!=1"))
       {
         push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
@@ -554,6 +559,7 @@ sub HOMEMODE_updateInternals($;$)
     my $luminance = HOMEMODE_AttrCheck($hash,"HomeSensorsLuminance");
     if ($luminance)
     {
+      $luminance =~ s/,/|/g;
       my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
       my @sensors;
       foreach my $s (devspec2array("$luminance:FILTER=disable!=1"))
@@ -1008,12 +1014,12 @@ sub HOMEMODE_RESIDENTS($;$)
   {
     if (grep /^wayhome:\s1$/,@{$events})
     {
-      readingsSingleUpdate($hash,"lastActivityByResident",$dev);
+      readingsSingleUpdate($hash,"lastActivityByResident",$dev,1);
       CommandSet(undef,"$name:FILTER=location!=wayhome location wayhome") if (ReadingsVal($name,"state","") =~ /^absent|gone$/);
     }
     else
     {
-      readingsSingleUpdate($hash,"lastActivityByResident",$dev);
+      readingsSingleUpdate($hash,"lastActivityByResident",$dev,1);
       my $rx = $hash->{RESIDENTS};
       $rx =~ s/,/|/g;
       CommandSet(undef,"$name:FILTER=location!=underway location underway") if (ReadingsVal($name,"state","") =~ /^absent|gone$/ && !devspec2array("$rx:FILTER=wayhome=1"));
@@ -1226,6 +1232,7 @@ sub HOMEMODE_userattr($)
   my @userattrPrev = split " ",AttrVal($name,"userattr","") if (AttrVal($name,"userattr",undef));
   HOMEMODE_cleanUserattr($hash,$name,$name) if (@userattrPrev);
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
+  $specialevents = s/,/|/g;
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
   my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
