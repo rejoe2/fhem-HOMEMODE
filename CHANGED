@@ -1,5 +1,6 @@
     v1.1.12
     - add modeAlarm confirm
+    - more robust RESIDENTS function
     v1.1.11
     - suppress 'Deleted reading...' in lastCMDerror
     v1.1.10
