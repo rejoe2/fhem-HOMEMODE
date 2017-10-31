@@ -1619,7 +1619,9 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Weather"));
       if ($attr_value_old ne $attr_value)
       {
-        CommandDeleteReading(undef,"$name pressure|condition|wind|wind_chill");
+        CommandDeleteReading(undef,"$name condition|wind_chill");
+        CommandDeleteReading(undef,"$name pressure") if (!AttrVal($name,"HomeSensorAirpressure",undef));
+        CommandDeleteReading(undef,"$name wind") if (!AttrVal($name,"HomeSensorWindspeed",undef));
         CommandDeleteReading(undef,"$name temperature") if (!AttrVal($name,"HomeSensorTemperatureOutside",undef));
         CommandDeleteReading(undef,"$name humidity") if (!AttrVal($name,"HomeSensorHumidityOutside",undef));
         HOMEMODE_updateInternals($hash);
@@ -2874,10 +2876,10 @@ sub HOMEMODE_Weather($$)
   my ($and,$are,$is) = split /\|/,AttrVal($name,"HomeTextAndAreIs","and|are|is");
   my $be = $cond =~ /(und|and|[Gg]ewitter|[Tt]hunderstorm|[Ss]chauer|[Ss]hower)/ ? $are : $is;
   readingsBeginUpdate($hash);
-  readingsBulkUpdate($hash,"humidity",ReadingsVal($dev,"humidity",5)) if (!$hash->{helper}{externalHumidity});
-  readingsBulkUpdate($hash,"temperature",ReadingsVal($dev,"temperature",5)) if (!AttrVal($name,"HomeSensorTemperatureOutside",undef));
-  readingsBulkUpdate($hash,"wind",ReadingsVal($dev,"wind","")) if (!AttrVal($name,"HomeSensorWindspeed",undef));
-  readingsBulkUpdate($hash,"pressure",ReadingsVal($dev,"pressure",5)) if (!AttrVal($name,"HomeSensorAirpressure",undef));
+  readingsBulkUpdate($hash,"humidity",ReadingsNum($dev,"humidity",5)) if (!$hash->{helper}{externalHumidity});
+  readingsBulkUpdate($hash,"temperature",ReadingsNum($dev,"temperature",5)) if (!AttrVal($name,"HomeSensorTemperatureOutside",undef));
+  readingsBulkUpdate($hash,"wind",ReadingsNum($dev,"wind",0)) if (!AttrVal($name,"HomeSensorWindspeed",undef));
+  readingsBulkUpdate($hash,"pressure",ReadingsNum($dev,"pressure",5)) if (!AttrVal($name,"HomeSensorAirpressure",undef));
   readingsBulkUpdate($hash,".be",$be);
   readingsEndUpdate($hash,1);
   HOMEMODE_ReadingTrend($hash,"humidity") if (!$hash->{helper}{externalHumidity});
