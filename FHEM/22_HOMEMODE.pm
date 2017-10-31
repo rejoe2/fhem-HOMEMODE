@@ -1043,10 +1043,8 @@ sub HOMEMODE_RESIDENTS($;$)
   my $events = deviceEvents($defs{$dev},1);
   my $devtype = $defs{$dev}->{TYPE};
   my $lad = ReadingsVal($name,"lastActivityByResident","");
-  my $HOMEMODE_UserModesAll_Regex = $HOMEMODE_UserModesAll;
-  $HOMEMODE_UserModesAll_Regex =~ s/,/|/g;
   my $mode;
-  if (grep /^state:\s($HOMEMODE_UserModesAll_Regex)$/,@{$events})
+  if (grep /^state:\s/,@{$events})
   {
     foreach (@{$events})
     {
@@ -1794,11 +1792,11 @@ sub HOMEMODE_Attr(@)
         "$attr_name must be a value from 0 to 99!";
       return $trans if ($attr_value !~ /^\d{1,2}$/);
     }
-    elsif ($attr_name eq "HomeTriggerPanic")
+    elsif ($attr_name eq "HomeTriggerPanic" && $init_done)
     {
       $trans = $HOMEMODE_de?
-        "$attr_value muss ein gültiges Gerät, Reading und Wert in Form von \"<Gerät>:<Reading>:<WertAn>:<WertAus>\" (WertAus ist optional) sein!":
-        "$attr_name must be a valid device, reading and value like \"<device>:<reading>:<valueOn>:<valueOff>\" (valueOff is optional)!";
+        "$attr_value muss ein gültiges Gerät, Reading und Wert in Form von \"Gerät:Reading:WertAn:WertAus\" (WertAus ist optional) sein!":
+        "$attr_name must be a valid device, reading and value like \"device:reading:valueOn:valueOff\" (valueOff is optional)!";
       return $trans if ($attr_value !~ /^([\w\.]+):([\w\.]+):[\w\-\.]+(:[\w\-\.]+)?$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
       HOMEMODE_updateInternals($hash);
     }
