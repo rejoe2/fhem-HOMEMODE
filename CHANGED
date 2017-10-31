@@ -1,6 +1,8 @@
     v1.1.12
-    - add 'set modeAlarm confirm' and its HomeCMD attr
     - set location wayhome automatically if a ROOMMATE/GUEST sets its location to wayhome (reading wayhome 1)
+    - add 'set modeAlarm confirm' and its HomeCMD attr
+    - add 'set panic on/off' and their HomeCMD attr
+    - add attr HomeTriggerPanic
     - more robust RESIDENTS Fn
     - more robust NotifyFn
     - more robust handling of disabled devices

@@ -107,6 +107,7 @@ sub HOMEMODE_Define($$)
     readingsBeginUpdate($hash);
     readingsBulkUpdate($hash,"dnd","off") if (!defined ReadingsVal($name,"dnd",undef));
     readingsBulkUpdate($hash,"anyoneElseAtHome","off") if (!defined ReadingsVal($name,"anyoneElseAtHome",undef));
+    readingsBulkUpdate($hash,"panic","off") if (!defined ReadingsVal($name,"panic",undef));
     readingsEndUpdate($hash,0);
     HOMEMODE_updateInternals($hash);
   }
@@ -372,6 +373,35 @@ sub HOMEMODE_Notify($$)
       }
     }
   }
+  if (AttrVal($name,"HomeTriggerPanic",""))
+  {
+    my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerPanic","");
+    if ($devname eq $d)
+    {
+      if (grep /^$r:\s$on$/,@{$events})
+      {
+        if ($off)
+        {
+          CommandSet(undef,"$name:FILTER=panic=off panic on");
+        }
+        else
+        {
+          if (ReadingsVal($name,"panic","off") eq "off")
+          {
+            CommandSet(undef,"$name:FILTER=panic=off panic on");
+          }
+          else
+          {
+            CommandSet(undef,"$name:FILTER=panic=on panic off");
+          }
+        }
+      }
+      elsif ($off && grep /^$r:\s$off$/,@{$events})
+      {
+        CommandSet(undef,"$name:FILTER=panic=on panic off");
+      }
+    }
+  }
   HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
   HOMEMODE_GetUpdate($hash) if (!$hash->{".TRIGGERTIME_NEXT"} || $hash->{".TRIGGERTIME_NEXT"} + 1 < gettimeofday());
   return;
@@ -569,6 +599,7 @@ sub HOMEMODE_updateInternals($;$)
     }
     push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"));
     push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"));
+    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"))[0] if (HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"));
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
@@ -714,7 +745,8 @@ sub HOMEMODE_Set($@)
   $para .= " modeAlarm-for-minutes";
   $para .= " dnd:on,off";
   $para .= " dnd-for-minutes";
-  $para .= " anyoneElseAtHome:off,on";
+  $para .= " anyoneElseAtHome:on,off";
+  $para .= " panic:on,off";
   $para .= " location:".join(",", sort @locations);
   $para .= " updateInternalsForce:noArg";
   $para .= " updateHomebridgeMapping:noArg";
@@ -804,6 +836,7 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "dnd")
   {
+    push @commands,AttrVal($name,"HomeCMDdnd","") if (AttrVal($name,"HomeCMDdnd",undef));
     push @commands,AttrVal($name,"HomeCMDdnd-$option","") if (AttrVal($name,"HomeCMDdnd-$option",undef));
     readingsBeginUpdate($hash);
     readingsBulkUpdate($hash,$cmd,$option);
@@ -854,6 +887,7 @@ sub HOMEMODE_Set($@)
       "Zulässige Werte für $cmd sind nur on oder off!":
       "Values for $cmd can only be on or off!";
     return $trans if ($option !~ /^(on|off)$/);
+    push @commands,AttrVal($name,"HomeCMDanyoneElseAtHome","") if (AttrVal($name,"HomeCMDanyoneElseAtHome",undef));
     push @commands,AttrVal($name,"HomeCMDanyoneElseAtHome-$option","") if (AttrVal($name,"HomeCMDanyoneElseAtHome-$option",undef));
     if (AttrNum($name,"HomeAutoAlarmModes",1))
     {
@@ -861,6 +895,16 @@ sub HOMEMODE_Set($@)
       CommandSet(undef,"$name:FILTER=modeAlarm=armhome modeAlarm armaway") if ($option eq "off");
     }
     readingsSingleUpdate($hash,"anyoneElseAtHome",$option,1);
+  }
+  elsif ($cmd eq "panic")
+  {
+    $trans = $HOMEMODE_de?
+      "Zulässige Werte für $cmd sind nur on oder off!":
+      "Values for $cmd can only be on or off!";
+    return $trans if ($option !~ /^(on|off)$/);
+    push @commands,AttrVal($name,"HomeCMDpanic","") if (AttrVal($name,"HomeCMDpanic",undef));
+    push @commands,AttrVal($name,"HomeCMDpanic-$option","") if (AttrVal($name,"HomeCMDpanic-$option",undef));
+    readingsSingleUpdate($hash,"panic",$option,1);
   }
   elsif ($cmd eq "updateInternalsForce")
   {
@@ -1108,6 +1152,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDalarmTriggered-on:textField-long";
   push @attribs,"HomeCMDalarmTampered-off:textField-long";
   push @attribs,"HomeCMDalarmTampered-on:textField-long";
+  push @attribs,"HomeCMDanyoneElseAtHome:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-off:textField-long";
   push @attribs,"HomeCMDbatteryLow:textField-long";
@@ -1121,6 +1166,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDcontactOpenWarning2:textField-long";
   push @attribs,"HomeCMDcontactOpenWarningLast:textField-long";
   push @attribs,"HomeCMDdaytime:textField-long";
+  push @attribs,"HomeCMDdnd:textField-long";
   push @attribs,"HomeCMDdnd-off:textField-long";
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
@@ -1147,6 +1193,9 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDmotion:textField-long";
   push @attribs,"HomeCMDmotion-on:textField-long";
   push @attribs,"HomeCMDmotion-off:textField-long";
+  push @attribs,"HomeCMDpanic:textField-long";
+  push @attribs,"HomeCMDpanic-on:textField-long";
+  push @attribs,"HomeCMDpanic-off:textField-long";
   push @attribs,"HomeCMDpresence-absent:textField-long";
   push @attribs,"HomeCMDpresence-present:textField-long";
   push @attribs,"HomeCMDpresence-absent-device:textField-long";
@@ -1211,6 +1260,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeTextWeatherLong:textField-long";
   push @attribs,"HomeTextWeatherShort:textField-long";
   push @attribs,"HomeTrendCalcAge:900,1800,2700,3600";
+  push @attribs,"HomeTriggerPanic";
   push @attribs,"HomeTwilightDevice";
   push @attribs,"HomeUWZ";
   push @attribs,"HomeYahooWeatherDevice";
@@ -1736,6 +1786,14 @@ sub HOMEMODE_Attr(@)
         "$attr_name must be a value from 0 to 99!";
       return $trans if ($attr_value !~ /^\d{1,2}$/);
     }
+    elsif ($attr_name eq "HomeTriggerPanic")
+    {
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät, Reading und Wert in Form von \"<Gerät>:<Reading>:<WertAn>:<WertAus>\" (WertAus ist optional) sein!":
+        "$attr_name must be a valid device, reading and value like \"<device>:<reading>:<valueOn>:<valueOff>\" (valueOff is optional)!";
+      return $trans if ($attr_value !~ /^([\w\.]+):([\w\.]+):[\w\-\.]+(:[\w\-\.]+)?$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
+      HOMEMODE_updateInternals($hash);
+    }
   }
   else
   {
@@ -1820,6 +1878,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $contactsOpenCt = ReadingsVal($name,"contactsOutsideOpen_ct",0);
   my $dnd = ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0;
   my $aeah = ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0;
+  my $panic = ReadingsVal($name,"panic","off") eq "on" ? 1 : 0;
   my $sensorsTampered = ReadingsVal($name,"sensorsTampered_hr","");
   my $sensorsTamperedCt = ReadingsVal($name,"sensorsTampered_ct","");
   my $ice = ReadingsVal($name,"icewarning",0);
@@ -1931,6 +1990,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%OPEN%/$contactsOpen/g;
   $cmd =~ s/%OPENCT%/$contactsOpenCt/g;
   $cmd =~ s/%RESIDENT%/$resident/g;
+  $cmd =~ s/%PANIC%/$panic/g;
   $cmd =~ s/%PRESENT%/$pres/g;
   $cmd =~ s/%PRESENTR%/$rpres/g;
   $cmd =~ s/%PRESSURE%/$pressure/g;
@@ -2745,12 +2805,11 @@ sub HOMEMODE_HomebridgeMapping($)
 {
   my ($hash) = @_;
   my $name = $hash->{NAME};
-  my $mapping;
-  $mapping .= "SecuritySystemCurrentState=alarmState,values=armhome:0;armaway:1;armnight:2;disarm:3;alarm:4";
+  my $mapping = "SecuritySystemCurrentState=alarmState,values=armhome:0;armaway:1;armnight:2;disarm:3;alarm:4";
   $mapping .= "\nSecuritySystemTargetState=modeAlarm,values=armhome:0;armaway:1;armnight:2;disarm:3,cmds=0:modeAlarm+armhome;1:modeAlarm+armaway;2:modeAlarm+armnight;3:modeAlarm+disarm,delay=1";
   $mapping .= "\nSecuritySystemAlarmType=alarmTriggered_ct,values=0:0;/.*/:1";
   $mapping .= "\nOccupancyDetected=presence,values=present:1;absent:0";
-  $mapping .= "\nMute=dnd,valueOn=on,cmds=1:dnd+on;0:dnd+off";
+  $mapping .= "\nMute=dnd,valueOn=on,cmdOn=dnd+on,cmdOff=dnd+off";
   $mapping .= "\nOn=anyoneElseAtHome,valueOn=on,cmdOn=anyoneElseAtHome+on,cmdOff=anyoneElseAtHome+off";
   $mapping .= "\nContactSensorState=contactsOutsideOpen_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"contactsOutsideOpen_ct",undef));
   $mapping .= "\nStatusTampered=sensorsTampered_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"sensorsTampered_ct",undef));
@@ -3069,7 +3128,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>dnd &lt;on/off&gt;</i></b><br>
-      turn "do not disturb" mode off or on<br>
+      turn "do not disturb" mode on or off<br>
       e.g. to disable notification or alarms or, or, or...<br>
       placeholder %DND% is available in all HomeCMD attributes
     </li>
@@ -3097,6 +3156,11 @@ sub HOMEMODE_Details($$$)
       <b><i>modeAlarm-for-minutes &lt;armaway/armhome/armnight/disarm&gt; &lt;MINUTES&gt;</i></b><br>
       switch to given alarm mode for given minutes<br>
       will return to the previous alarm mode
+    </li>
+    <li>
+      <b><i>panic &lt;on/off&gt;</i></b><br>
+      turn panic mode on or off<br>
+      placeholder %PANIC% is available in all HomeCMD attributes
     </li>
     <li>
       <b><i>updateHomebridgeMapping</i></b><br>
@@ -3217,12 +3281,12 @@ sub HOMEMODE_Details($$$)
       cmds to execute on alarm of any device
     </li>
     <li>
-      <b><i>HomeCMDanyoneElseAtHome-off</i></b><br>
-      cmds to execute if anyoneElseAtHome is set to off
+      <b><i>HomeCMDanyoneElseAtHome</i></b><br>
+      cmds to execute on any anyoneElseAtHome state
     </li>
     <li>
-      <b><i>HomeCMDanyoneElseAtHome-on</i></b><br>
-      cmds to execute if anyoneElseAtHome is set to on
+      <b><i>HomeCMDanyoneElseAtHome-&lt;on/off&gt;</i></b><br>
+      cmds to execute if anyoneElseAtHome is set to on/off
     </li>
     <li>
       <b><i>HomeCMDcontact</i></b><br>
@@ -3273,8 +3337,12 @@ sub HOMEMODE_Details($$$)
       cmds to execute on specific day time change
     </li>
     <li>
-      <b><i>HomeCMDdnd-&lt;off/on&gt;</i></b><br>
-      cmds to execute on if dnd is turned off/on
+      <b><i>HomeCMDdnd</i></b><br>
+      cmds to execute on any dnd state
+    </li>
+    <li>
+      <b><i>HomeCMDdnd-&lt;on/off&gt;</i></b><br>
+      cmds to execute on if dnd is turned on/off
     </li>
     <li>
       <b><i>HomeCMDevent</i></b><br>
@@ -3297,8 +3365,8 @@ sub HOMEMODE_Details($$$)
       cmds to execute on fhem (re)start
     </li>
     <li>
-      <b><i>HomeCMDicewarning-&lt;off/on&gt;</i></b><br>
-      cmds to execute on if ice warning is turned off/on
+      <b><i>HomeCMDicewarning-&lt;on/off&gt;</i></b><br>
+      cmds to execute on if ice warning is turned on/off
     </li>
     <li>
       <b><i>HomeCMDlocation</i></b><br>
@@ -3342,8 +3410,16 @@ sub HOMEMODE_Details($$$)
       cmds to execute on any recognized motion of any motion sensor
     </li>
     <li>
-      <b><i>HomeCMDmotion-&lt;off/on&gt;</i></b><br>
+      <b><i>HomeCMDmotion-&lt;on/off&gt;</i></b><br>
       cmds to execute if any recognized motion of any motion sensor ends/starts
+    </li>
+    <li>
+      <b><i>HomeCMDpanic</i></b><br>
+      cmds to execute on any panic state
+    </li>
+    <li>
+      <b><i>HomeCMDpanic-&lt;on/off&gt;</i></b><br>
+      cmds to execute on if panic is turned on/off
     </li>
     <li>
       <b><i>HomeCMDpresence-&lt;absent/present&gt;</i></b><br>
@@ -3712,6 +3788,13 @@ sub HOMEMODE_Details($$$)
       default: 900
     </li>
     <li>
+      <b><i>HomeTriggerPanic</i></b><br>
+      your panic trigger device (device:reading:valueOn[:valueOff])<br>
+      valueOff is optional<br>
+      valueOn will toggle panic mode if valueOff is not given<br>
+      default:
+    </li>
+    <li>
       <b><i>HomeUWZ</i></b><br>
       your local UWZ device<br>
       default:
@@ -3755,7 +3838,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>anyoneElseAtHome</i></b><br>
-      anyoneElseAtHome off or on
+      anyoneElseAtHome on or off
     </li>
     <li>
       <b><i>contactsDoorsInsideOpen</i></b><br>
@@ -3847,7 +3930,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>dnd</i></b><br>
-      dnd (do not disturb) off or on
+      dnd (do not disturb) on or off
     </li>
     <li>
       <b><i>energy</i></b><br>
@@ -4131,7 +4214,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%AEAH%</i></b><br>
-      state of anyoneElseAtHome, will return 1 if on and will return 0 if off
+      state of anyoneElseAtHome, will return 1 if on and 0 if off
     </li>
     <li>
       <b><i>%ARRIVERS%</i></b><br>
@@ -4191,7 +4274,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%DND%</i></b><br>
-      state of dnd, will return 1 if on and will return 0 if off
+      state of dnd, will return 1 if on and 0 if off
     </li>
     <li>
       <b><i>%DURABSENCE%</i></b><br>
@@ -4295,6 +4378,10 @@ sub HOMEMODE_Details($$$)
       <b><i>%OPENCT%</i></b><br>
       value of the contactsOutsideOpen_ct reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations depending on the number of open contact sensors, maybe in combination with placeholder %OPEN%
+    </li>
+    <li>
+      <b><i>%PANIC%</i></b><br>
+      state of panic, will return 1 if on and 0 if off
     </li>
     <li>
       <b><i>%RESIDENT%</i></b><br>
