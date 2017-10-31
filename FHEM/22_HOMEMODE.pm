@@ -597,9 +597,12 @@ sub HOMEMODE_updateInternals($;$)
       }
       $hash->{SENSORSLUMINANCE} = join(",",sort @sensors) if (@sensors);
     }
-    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"));
-    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"))[0] if (HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"));
-    push @allMonitoredDevices,(split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"))[0] if (HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"));
+    my $pressure = (split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorAirpressure"))[0];
+    push @allMonitoredDevices,$pressure if ($pressure && !grep /^$pressure$/,@allMonitoredDevices);
+    my $wind = (split /:/,HOMEMODE_AttrCheck($hash,"HomeSensorWindspeed"))[0];
+    push @allMonitoredDevices,$wind if ($wind && !grep /^$wind$/,@allMonitoredDevices);
+    my $panic = (split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"))[0];
+    push @allMonitoredDevices,$panic if ($panic && !grep /^$panic$/,@allMonitoredDevices);
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
