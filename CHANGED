@@ -6,6 +6,8 @@
     - more robust RESIDENTS Fn
     - more robust NotifyFn
     - more robust handling of disabled devices
+    - indicate savable changes after updateInternalsForce or updateHomebridgeMapping
+    - add missing (non-state-specific) attributes HomeCMDalarmTriggered, HomeCMDalarmTampered, HomeCMDicewarning and HomeCMDuwz-warn
     v1.1.11
     - suppress 'Deleted reading...' in lastCMDerror
     v1.1.10

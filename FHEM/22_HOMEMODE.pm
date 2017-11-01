@@ -488,7 +488,7 @@ sub HOMEMODE_updateInternals($;$)
             "Gefunden wurden $c übereinstimmende(s) Anwesenheits Gerät(e) vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"! Übereinstimmende Geräte: \"$devlist\"":
             "Found $c matching presence devices of devspec \"TYPE=$presencetype\" for resident \"$resident\"! Matching devices: \"$devlist\"";
           push @logtexte,$trans;
-          $attr{$name}{"HomePresenceDeviceAbsentCount-$resident"} = $c if ($init_done && ((!defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1) || (defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c < AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1))));
+          CommandAttr(undef,"$name HomePresenceDeviceAbsentCount-$resident $c") if ($init_done && ((!defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1) || (defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c < AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1))));
         }
         else
         {
@@ -967,6 +967,7 @@ sub HOMEMODE_alarmTriggered($@)
   my $name = $hash->{NAME};
   my @commands;
   my $text = HOMEMODE_makeHR($hash,0,@triggers);
+  push @commands,AttrVal($name,"HomeCMDalarmTriggered","") if (AttrVal($name,"HomeCMDalarmTriggered",undef));
   readingsBeginUpdate($hash);
   readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers);
   if ($text)
@@ -1024,6 +1025,7 @@ sub HOMEMODE_alarmTampered($@)
   my $name = $hash->{NAME};
   my @commands;
   my $text = HOMEMODE_makeHR($hash,0,@triggers);
+  push @commands,AttrVal($name,"HomeCMDalarmTampered","") if (AttrVal($name,"HomeCMDalarmTampered",undef));
   if ($text)
   {
     push @commands,AttrVal($name,"HomeCMDalarmTampered-on","") if (AttrVal($name,"HomeCMDalarmTampered-on",undef));
@@ -1152,8 +1154,10 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeAutoAwoken";
   push @attribs,"HomeAutoDaytime:0,1";
   push @attribs,"HomeAutoPresence:1,0";
+  push @attribs,"HomeCMDalarmTriggered:textField-long";
   push @attribs,"HomeCMDalarmTriggered-off:textField-long";
   push @attribs,"HomeCMDalarmTriggered-on:textField-long";
+  push @attribs,"HomeCMDalarmTampered:textField-long";
   push @attribs,"HomeCMDalarmTampered-off:textField-long";
   push @attribs,"HomeCMDalarmTampered-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome:textField-long";
@@ -1175,6 +1179,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
   push @attribs,"HomeCMDfhemINITIALIZED:textField-long";
+  push @attribs,"HomeCMDicewarning:textField-long";
   push @attribs,"HomeCMDicewarning-on:textField-long";
   push @attribs,"HomeCMDicewarning-off:textField-long";
   push @attribs,"HomeCMDlocation:textField-long";
@@ -1219,6 +1224,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDtwilight-ss_civil:textField-long";
   push @attribs,"HomeCMDtwilight-ss_indoor:textField-long";
   push @attribs,"HomeCMDtwilight-ss_weather:textField-long";
+  push @attribs,"HomeCMDuwz-warn:textField-long";
   push @attribs,"HomeCMDuwz-warn-begin:textField-long";
   push @attribs,"HomeCMDuwz-warn-end:textField-long";
   push @attribs,"HomeDaytimes:textField-long";
@@ -1388,18 +1394,18 @@ sub HOMEMODE_cleanUserattr($$;$)
         if ($_ =~ /^Home/)
         {
           $_ =~ s/:.*//;
-          delete $attr{$dev}{$_} if ((defined AttrVal($dev,$_,undef) && !@newdevspec) || (defined AttrVal($dev,$_,undef) && @newdevspec && !grep /^$dev$/,@newdevspec));
+          CommandDeleteAttr(undef,"$dev $_") if ((defined AttrVal($dev,$_,undef) && !@newdevspec) || (defined AttrVal($dev,$_,undef) && @newdevspec && !grep /^$dev$/,@newdevspec));
           next;
         }
         push @stayattr,$_;
       }
       if (@stayattr)
       {
-        $attr{$dev}{userattr} = join(" ",@stayattr);
+        CommandAttr(undef,"$dev userattr ".join(" ",@stayattr));
       }
       else
       {
-        delete $attr{$dev}{userattr};
+        CommandDeleteAttr(undef,"$dev userattr");
       }
     }
   }
@@ -1631,7 +1637,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiger Devspec mit temperature Reading sein!":
         "$attr_value must be a valid device with temperature reading!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,"temperature"));
-      delete $attr{$name}{HomeSensorHumidityOutside} if (AttrVal($name,"HomeSensorHumidityOutside",undef) && $attr_value eq AttrVal($name,"HomeSensorHumidityOutside",undef));
+      CommandDeleteAttr(undef,"$name HomeSensorHumidityOutside") if (AttrVal($name,"HomeSensorHumidityOutside",undef) && $attr_value eq AttrVal($name,"HomeSensorHumidityOutside",undef));
       if ($attr_value_old ne $attr_value)
       {
         CommandDeleteReading(undef,"$name temperature") if (!AttrVal($name,"HomeYahooWeatherDevice",undef));
@@ -2333,10 +2339,10 @@ sub HOMEMODE_addSensorsuserattr($$$)
       {
         my $dr = "[Dd]oor|[Tt](ü|ue)r";
         my $wr = "[Ww]indow|[Ff]enster";
-        $attr{$sensor}{HomeContactType} = "doorinside" if ($alias =~ /$dr/ || $sensor =~ /$dr/);
-        $attr{$sensor}{HomeContactType} = "window" if ($alias =~ /$wr/ || $sensor =~ /$wr/);
+        CommandAttr(undef,"$sensor HomeContactType doorinside") if ($alias =~ /$dr/ || $sensor =~ /$dr/);
+        CommandAttr(undef,"$sensor HomeContactType window") if ($alias =~ /$wr/ || $sensor =~ /$wr/);
       }
-      $attr{$sensor}{HomeModeAlarmActive} = "armaway" if (!AttrVal($sensor,"HomeModeAlarmActive",undef));
+      CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",undef));
     }
     if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
     {
@@ -2345,8 +2351,8 @@ sub HOMEMODE_addSensorsuserattr($$$)
       {
         my $loc = "inside";
         $loc = "outside" if ($alias =~ /([Aa]u(ss|ß)en)|([Oo]ut)/);
-        $attr{$sensor}{HomeSensorLocation} = $loc;
-        $attr{$sensor}{HomeModeAlarmActive} = "armaway" if (!AttrVal($sensor,"HomeModeAlarmActive",undef) && $loc eq "inside");
+        CommandAttr(undef,"$sensor HomeSensorLocation $loc");
+        CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",undef) && $loc eq "inside");
       }
     }
   }
@@ -2801,6 +2807,7 @@ sub HOMEMODE_UWZCommands($$)
     {
       my $se = $count > 0 ? "begin" : "end";
       my @cmds;
+      push @cmds,AttrVal($name,"HomeCMDuwz-warn","") if (AttrVal($name,"HomeCMDuwz-warn",undef));
       push @cmds,AttrVal($name,"HomeCMDuwz-warn-$se","") if (AttrVal($name,"HomeCMDuwz-warn-$se",undef));
       HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds)) if (@cmds);
     }
@@ -2824,8 +2831,8 @@ sub HOMEMODE_HomebridgeMapping($)
   $mapping .= "\nE863F10F-079E-48FF-8F27-9C2605A29F52=pressure,name=AirPressure,format=UINT16" if (defined ReadingsVal($name,"wind",undef));
   addToDevAttrList($name,"genericDeviceType") if (!grep /^genericDeviceType/,split(" ",AttrVal("global","userattr","")));
   addToDevAttrList($name,"homebridgeMapping:textField-long") if (!grep /^homebridgeMapping/,split(" ",AttrVal("global","userattr","")));
-  $attr{$name}{genericDeviceType} = "security";
-  $attr{$name}{homebridgeMapping} = $mapping;
+  CommandAttr(undef,"$name genericDeviceType security");
+  CommandAttr(undef,"$name homebridgeMapping $mapping");
   return;
 }
 
@@ -2939,6 +2946,7 @@ sub HOMEMODE_Icewarning($)
   if ($ice != $icewarning)
   {
     my @commands;
+    push @commands,AttrVal($name,"HomeCMDicewarning","") if (AttrVal($name,"HomeCMDicewarning",undef));
     push @commands,AttrVal($name,"HomeCMDicewarning-$icewarningcmd","") if (AttrVal($name,"HomeCMDicewarning-$icewarningcmd",undef));
     readingsSingleUpdate($hash,"icewarning",$icewarning,1);
     HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
@@ -3271,20 +3279,20 @@ sub HOMEMODE_Details($$$)
       default: 0
     </li>
     <li>
-      <b><i>HomeCMDalarmTampered-off</i></b><br>
-      cmds to execute if all tamper alarms are fixed
+      <b><i>HomeCMDalarmTampered</i></b><br>
+      cmds to execute on any tamper alarm state
     </li>
     <li>
-      <b><i>HomeCMDalarmTampered-on</i></b><br>
-      cmds to execute on tamper alarm of any device
+      <b><i>HomeCMDalarmTampered-&lt;on/off&gt;</i></b><br>
+      cmds to execute on tamper alarm state on/off
     </li>
     <li>
-      <b><i>HomeCMDalarmTriggered-off</i></b><br>
-      cmds to execute if all alarms are fixed
+      <b><i>HomeCMDalarmTriggered</i></b><br>
+      cmds to execute on any alarm state
     </li>
     <li>
-      <b><i>HomeCMDalarmTriggered-on</i></b><br>
-      cmds to execute on alarm of any device
+      <b><i>HomeCMDalarmTriggered-&lt;on/off&gt;</i></b><br>
+      cmds to execute on alarm state on/off
     </li>
     <li>
       <b><i>HomeCMDanyoneElseAtHome</i></b><br>
@@ -3292,7 +3300,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeCMDanyoneElseAtHome-&lt;on/off&gt;</i></b><br>
-      cmds to execute if anyoneElseAtHome is set to on/off
+      cmds to execute on anyoneElseAtHome state on/off
     </li>
     <li>
       <b><i>HomeCMDcontact</i></b><br>
@@ -3348,7 +3356,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeCMDdnd-&lt;on/off&gt;</i></b><br>
-      cmds to execute on if dnd is turned on/off
+      cmds to execute on dnd state on/off
     </li>
     <li>
       <b><i>HomeCMDevent</i></b><br>
@@ -3371,8 +3379,12 @@ sub HOMEMODE_Details($$$)
       cmds to execute on fhem (re)start
     </li>
     <li>
+      <b><i>HomeCMDicewarning</i></b><br>
+      cmds to execute on any ice warning state
+    </li>
+    <li>
       <b><i>HomeCMDicewarning-&lt;on/off&gt;</i></b><br>
-      cmds to execute on if ice warning is turned on/off
+      cmds to execute on ice warning state on/off
     </li>
     <li>
       <b><i>HomeCMDlocation</i></b><br>
@@ -3457,8 +3469,12 @@ sub HOMEMODE_Details($$$)
       cmds to execute on specific season change
     </li>
     <li>
+      <b><i>HomeCMDuwz-warn</i></b><br>
+      cmds to execute on any UWZ warning state
+    </li>
+    <li>
       <b><i>HomeCMDuwz-warn-&lt;begin/end&gt;</i></b><br>
-      cmds to execute on UWZ warning begin/end
+      cmds to execute on UWZ warning state begin/end
     </li>
     <li>
       <b><i>HomeDaytimes</i></b><br>
