@@ -1285,7 +1285,6 @@ sub HOMEMODE_userattr($)
   my $adv = HOMEMODE_AttrCheck($hash,"HomeAdvancedUserAttr",0);
   my @userattrAll;
   my @userattrPrev = split " ",AttrVal($name,"userattr","") if (AttrVal($name,"userattr",undef));
-  HOMEMODE_cleanUserattr($hash,$name,$name) if (@userattrPrev);
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
@@ -1373,13 +1372,14 @@ sub HOMEMODE_userattr($)
   my @list;
   foreach my $attrib (@userattrAll)
   {
-    $attrib = $attrib =~ /^.*:.*$/ ? $attrib : "$attrib:textField-long";
+    $attrib = $attrib =~ /^.+:.+$/ ? $attrib : "$attrib:textField-long";
     push @list,$attrib;
   }
-  my $att = AttrVal($name,"userattr","");
-  my $l = $att ? $att." " : "";
-  $l .= join " ",@list;
-  CommandAttr(undef,"$name userattr $l");
+  if (join(" ",sort @userattrPrev) ne join(" ",sort @list))
+  {
+    HOMEMODE_cleanUserattr($hash,$name,$name) if (@userattrPrev);
+    HOMEMODE_set_userattr($name,\@list);
+  }
 }
 
 sub HOMEMODE_cleanUserattr($$;$)
@@ -1390,7 +1390,6 @@ sub HOMEMODE_cleanUserattr($$;$)
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
-    next if (AttrNum($dev,"disable",0));
     if (AttrVal($dev,"userattr",undef))
     {
       my @stayattr;
@@ -1414,6 +1413,7 @@ sub HOMEMODE_cleanUserattr($$;$)
       }
     }
   }
+  return;
 }
 
 sub HOMEMODE_Attr(@)
@@ -1860,7 +1860,7 @@ sub HOMEMODE_Attr(@)
       CommandDeleteReading(undef,"$name .*humidity.*") if (!AttrVal($name,"HomeYahooWeatherDevice",undef) && $attr_name eq "HomeSensorHumidityOutside");
       HOMEMODE_updateInternals($hash);
     }
-    elsif ($attr_name =~ /^(HomeDaytimes|HomeSeasons|HomeSpecialLocations|HomeSpecialModes)$/)
+    elsif ($attr_name =~ /^(HomeDaytimes|HomeSeasons|HomeSpecialLocations|HomeSpecialModes)$/ && $init_done)
     {
       HOMEMODE_userattr($hash);
     }
@@ -2323,23 +2323,23 @@ sub HOMEMODE_addSensorsuserattr($$$)
   return if (!@devspec);
   my @olddevspec = devspec2array($olddevs) if ($olddevs);
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
-  my @names;
   foreach my $sensor (@devspec)
   {
     next if (AttrNum($sensor,"disable",0));
     my $alias = AttrVal($sensor,"alias","");
-    push @names,$sensor;
-    addToDevAttrList($sensor,"HomeModeAlarmActive");
-    addToDevAttrList($sensor,"HomeReadings");
-    addToDevAttrList($sensor,"HomeValues");
+    my @list;
+    push @list,"HomeModeAlarmActive";
+    push @list,"HomeReadings";
+    push @list,"HomeValues";
     if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
     {
-      addToDevAttrList($sensor,"HomeContactType:doorinside,dooroutside,doormain,window");
-      addToDevAttrList($sensor,"HomeOpenMaxTrigger");
-      addToDevAttrList($sensor,"HomeOpenDontTriggerModes");
-      addToDevAttrList($sensor,"HomeOpenDontTriggerModesResidents");
-      addToDevAttrList($sensor,"HomeOpenTimeDividers");
-      addToDevAttrList($sensor,"HomeOpenTimes");
+      push @list,"HomeContactType:doorinside,dooroutside,doormain,window";
+      push @list,"HomeOpenMaxTrigger";
+      push @list,"HomeOpenDontTriggerModes";
+      push @list,"HomeOpenDontTriggerModesResidents";
+      push @list,"HomeOpenTimeDividers";
+      push @list,"HomeOpenTimes";
+      HOMEMODE_set_userattr($sensor,\@list);
       if (!AttrVal($sensor,"HomeContactType",undef))
       {
         my $dr = "[Dd]oor|[Tt](ü|ue)r";
@@ -2351,7 +2351,8 @@ sub HOMEMODE_addSensorsuserattr($$$)
     }
     if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
     {
-      addToDevAttrList($sensor,"HomeSensorLocation:inside,outside");
+      push @list,"HomeSensorLocation:inside,outside";
+      HOMEMODE_set_userattr($sensor,\@list);
       if (!AttrVal($sensor,"HomeSensorLocation",undef))
       {
         my $loc = "inside";
@@ -2361,6 +2362,18 @@ sub HOMEMODE_addSensorsuserattr($$$)
       }
     }
   }
+  return;
+}
+
+sub HOMEMODE_set_userattr
+{
+  my $name = shift;
+  my $list = shift;
+  my $val = AttrVal($name,"userattr","");
+  my $l = $val?"$val ":"";
+  $l .= join " ",@{$list};
+  CommandAttr(undef,"$name userattr $l");
+  return;
 }
 
 sub HOMEMODE_Luminance($;$$)
