@@ -1370,11 +1370,16 @@ sub HOMEMODE_userattr($)
   my $userattrPrevList = join(" ",@userattrPrev) if (\@userattrPrev);
   my $userattrNewList = join(" ",@userattrAll);
   return if ($userattrNewList eq $userattrPrevList);
+  my @list;
   foreach my $attrib (@userattrAll)
   {
     $attrib = $attrib =~ /^.*:.*$/ ? $attrib : "$attrib:textField-long";
-    addToDevAttrList($name,$attrib);
+    push @list,$attrib;
   }
+  my $att = AttrVal($name,"userattr","");
+  my $l = $att ? $att." " : "";
+  $l .= join " ",@list;
+  CommandAttr(undef,"$name userattr $l");
 }
 
 sub HOMEMODE_cleanUserattr($$;$)
