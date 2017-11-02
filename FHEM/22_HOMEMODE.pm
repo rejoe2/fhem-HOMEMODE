@@ -1284,12 +1284,24 @@ sub HOMEMODE_userattr($)
   my $name = $hash->{NAME};
   my $adv = HOMEMODE_AttrCheck($hash,"HomeAdvancedUserAttr",0);
   my @userattrAll;
-  my @userattrPrev = split " ",AttrVal($name,"userattr","") if (AttrVal($name,"userattr",undef));
+  my @homeattr;
+  my @stayattr;
   my $specialevents = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
   my $specialmodes = HOMEMODE_AttrCheck($hash,"HomeSpecialModes");
   my $speciallocations = HOMEMODE_AttrCheck($hash,"HomeSpecialLocations");
   my $daytimes = HOMEMODE_AttrCheck($hash,"HomeDaytimes",$HOMEMODE_Daytimes);
   my $seasons = HOMEMODE_AttrCheck($hash,"HomeSeasons",$HOMEMODE_Seasons);
+  foreach (split " ",AttrVal($name,"userattr",""))
+  {
+    if ($_ =~ /^Home/)
+    {
+      push @homeattr,$_;
+    }
+    else
+    {
+      push @stayattr,$_;
+    }
+  }
   foreach (split /,/,$specialmodes)
   {
     push @userattrAll,"HomeCMDmode-$_";
@@ -1366,25 +1378,27 @@ sub HOMEMODE_userattr($)
     my $s = "HomeCMDseason-$text";
     push @userattrAll,$s if (!grep /^$s$/,@userattrAll);
   }
-  my $userattrPrevList = join(" ",@userattrPrev) if (\@userattrPrev);
-  my $userattrNewList = join(" ",@userattrAll);
-  return if ($userattrNewList eq $userattrPrevList);
   my @list;
   foreach my $attrib (@userattrAll)
   {
     $attrib = $attrib =~ /^.+:.+$/ ? $attrib : "$attrib:textField-long";
-    push @list,$attrib;
+    push @list,$attrib if (!grep /^$attrib$/,@list);
   }
-  if (join(" ",sort @userattrPrev) ne join(" ",sort @list))
+  my $lo = join " ",sort @homeattr;
+  my $ln = join " ",sort @list;
+  return if ($lo eq $ln);
+  foreach (@stayattr)
   {
-    HOMEMODE_cleanUserattr($hash,$name,$name) if (@userattrPrev);
-    HOMEMODE_set_userattr($name,\@list);
+    push @list,$_;
   }
+  CommandAttr(undef,"$name userattr ".join " ",sort @list);
+  return;
 }
 
 sub HOMEMODE_cleanUserattr($$;$)
 {
   my ($hash,$devs,$newdevs) = @_;
+  my $name = $hash->{NAME};
   my @devspec = devspec2array($devs);
   return if (!@devspec);
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
@@ -1401,7 +1415,7 @@ sub HOMEMODE_cleanUserattr($$;$)
           CommandDeleteAttr(undef,"$dev $_") if ((defined AttrVal($dev,$_,undef) && !@newdevspec) || (defined AttrVal($dev,$_,undef) && @newdevspec && !grep /^$dev$/,@newdevspec));
           next;
         }
-        push @stayattr,$_;
+        push @stayattr,$_ if (!grep /^$_$/,@stayattr);
       }
       if (@stayattr)
       {
@@ -2370,8 +2384,8 @@ sub HOMEMODE_set_userattr
   my $name = shift;
   my $list = shift;
   my $val = AttrVal($name,"userattr","");
-  my $l = $val?"$val ":"";
-  $l .= join " ",@{$list};
+  my $l = join " ",@{$list};
+  $l .= $val?" $val":"";
   CommandAttr(undef,"$name userattr $l");
   return;
 }
