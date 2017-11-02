@@ -2379,10 +2379,9 @@ sub HOMEMODE_addSensorsuserattr($$$)
   return;
 }
 
-sub HOMEMODE_set_userattr
+sub HOMEMODE_set_userattr($$)
 {
-  my $name = shift;
-  my $list = shift;
+  my ($name,$list) = @_;
   my $val = AttrVal($name,"userattr","");
   my $l = join " ",@{$list};
   $l .= $val?" $val":"";
