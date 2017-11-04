@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.1.12";
+my $HOMEMODE_version = "1.2.0";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -2871,7 +2871,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
 {
   my ($hash,$trigger,$read,$val) = @_;
   my $name = $hash->{NAME};
-  if ($trigger && $read && $val)
+  if ($trigger && $read && defined $val)
   {
     foreach (split /,/,$hash->{SENSORSENERGY})
     {
@@ -2936,7 +2936,7 @@ sub HOMEMODE_Twilight($$;$)
     readingsBulkUpdate($hash,"twilightEvent",ReadingsVal($dev,"aktEvent",5));
     readingsEndUpdate($hash,1);
   }
-  elsif ($events)
+  else
   {
     my $pevent = ReadingsVal($name,"twilightEvent","");
     foreach my $event (@{$events})
