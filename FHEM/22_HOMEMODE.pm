@@ -516,7 +516,7 @@ sub HOMEMODE_updateInternals($;$)
       my @sensors;
       foreach my $s (devspec2array($contacts))
       {
-        next if (AttrNum($s,"disable",0));
+        next if (IsDisabled($s));
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
@@ -538,7 +538,7 @@ sub HOMEMODE_updateInternals($;$)
       my @sensors;
       foreach my $s (devspec2array($motion))
       {
-        next if (AttrNum($s,"disable",0));
+        next if (IsDisabled($s));
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
@@ -561,7 +561,7 @@ sub HOMEMODE_updateInternals($;$)
       my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
       foreach my $s (devspec2array($power))
       {
-        next unless (!AttrNum($s,"disable",0) && defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef));
+        next unless (!IsDisabled($s) && defined ReadingsVal($s,$p,undef) && defined ReadingsVal($s,$e,undef));
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
@@ -573,7 +573,7 @@ sub HOMEMODE_updateInternals($;$)
       my @sensors;
       foreach my $s (devspec2array($battery))
       {
-        next if (AttrNum($s,"disable",0));
+        next if (IsDisabled($s));
         my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
         my $val = ReadingsVal($s,$read,undef);
         next unless (defined $val && $val =~ /^(ok|low|nok|\d{1,3})(%|\s%)?$/);
@@ -610,7 +610,7 @@ sub HOMEMODE_updateInternals($;$)
       my @sensors;
       foreach my $s (devspec2array($luminance))
       {
-        next if (AttrNum($s,"disable",0));
+        next if (IsDisabled($s));
         if (defined ReadingsVal($s,AttrVal($name,"HomeSensorsLuminanceReading","luminance"),undef))
         {
           push @sensors,$s;
@@ -647,7 +647,7 @@ sub HOMEMODE_GetUpdate(@)
   my ($hash) = @_;
   my $name = $hash->{NAME};
   RemoveInternalTimer($hash,"HOMEMODE_GetUpdate");
-  return if (AttrNum($name,"disable",0));
+  return if (IsDisabled($name));
   my $mode = HOMEMODE_DayTime($hash);
   HOMEMODE_SetDaytime($hash);
   HOMEMODE_SetSeason($hash);
@@ -1423,6 +1423,7 @@ sub HOMEMODE_cleanUserattr($$;$)
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
+    next if (($newdevs && grep /^$dev$/,@newdevspec) || !IsDevice($dev));
     if (AttrVal($dev,"userattr",undef))
     {
       my @stayattr;
@@ -2357,7 +2358,7 @@ sub HOMEMODE_addSensorsuserattr($$$)
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   foreach my $sensor (@devspec)
   {
-    next if (AttrNum($sensor,"disable",0));
+    next if (IsDisabled($sensor) || ($olddevs && grep /^$sensor$/,@olddevspec));
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
@@ -2456,7 +2457,7 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($contacts))
     {
-      next if (AttrNum($sensor,"disable",0));
+      next if (IsDisabled($sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
@@ -2509,7 +2510,7 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($motions))
     {
-      next if (AttrNum($sensor,"disable",0));
+      next if (IsDisabled($sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
@@ -2653,7 +2654,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     {
       foreach (devspec2array($dtres))
       {
-        next if (AttrNum($_,"disable",0));
+        next if (IsDisabled($_));
         $donttrigger = 1 if (ReadingsVal($_,"state","") =~ /^($dtmode)$/);
       }
     }
