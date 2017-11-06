@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15329 2017-10-27 18:12:35Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15404 2017-11-06 28:11:47Z DeeSPe $
 #
 # Usage
 #
@@ -520,13 +520,9 @@ sub HOMEMODE_updateInternals($;$)
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
-      $hash->{SENSORSCONTACT} = join(",",sort @sensors) if (@sensors);
-      if ($oldContacts)
-      {
-        my @c = devspec2array($contacts);
-        my $n = join(",",sort @c);
-        HOMEMODE_addSensorsuserattr($hash,$n,$oldContacts) if ($oldContacts ne $n);
-      }
+      my $list = join(",",sort @sensors);
+      $hash->{SENSORSCONTACT} = $list;
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts);
     }
     elsif (!$contacts && $oldContacts)
     {
@@ -542,13 +538,9 @@ sub HOMEMODE_updateInternals($;$)
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
-      $hash->{SENSORSMOTION} = join(",",sort @sensors) if (@sensors);
-      if ($oldMotions)
-      {
-        my @c = devspec2array($contacts);
-        my $n = join(",",sort @c);
-        HOMEMODE_addSensorsuserattr($hash,$n,$oldMotions) if ($oldMotions ne $n);
-      }
+      my $list = join(",",sort @sensors);
+      $hash->{SENSORSMOTION} = $list;
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldMotions);
     }
     elsif (!$motion && $oldMotions)
     {
@@ -1423,11 +1415,12 @@ sub HOMEMODE_cleanUserattr($$;$)
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
-    next if (($newdevs && grep /^$dev$/,@newdevspec) || !IsDevice($dev));
-    if (AttrVal($dev,"userattr",undef))
+    next if ($newdevs && grep /^$dev$/,@newdevspec);
+    my $userattr = AttrVal($dev,"userattr","");
+    if ($userattr)
     {
       my @stayattr;
-      foreach (split " ",AttrVal($dev,"userattr",""))
+      foreach (split " ",$userattr)
       {
         if ($_ =~ /^Home/)
         {
@@ -2351,14 +2344,14 @@ sub HOMEMODE_hourMaker($)
 sub HOMEMODE_addSensorsuserattr($$$)
 {
   my ($hash,$devs,$olddevs) = @_;
+  return if (!$devs);
   my $name = $hash->{NAME};
   my @devspec = devspec2array($devs);
-  return if (!@devspec);
   my @olddevspec = devspec2array($olddevs) if ($olddevs);
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   foreach my $sensor (@devspec)
   {
-    next if (IsDisabled($sensor) || ($olddevs && grep /^$sensor$/,@olddevspec));
+    next if ($olddevs && grep /^$sensor$/,@olddevspec);
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
