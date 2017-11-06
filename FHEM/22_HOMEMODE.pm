@@ -151,6 +151,10 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_updateInternals($hash,1);
     }
   }
+  elsif ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST)$/)
+  {
+    HOMEMODE_RESIDENTS($hash,$devname);
+  }
   elsif (AttrVal($name,"HomeYahooWeatherDevice",undef) && $devname eq AttrVal($name,"HomeYahooWeatherDevice",""))
   {
     HOMEMODE_Weather($hash,$devname);
@@ -171,238 +175,231 @@ sub HOMEMODE_Notify($$)
   {
     HOMEMODE_UWZCommands($hash,$events);
   }
-  else
+  elsif ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
   {
-    if ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST)$/)
+    my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
+  }
+  elsif ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
+  {
+    my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError"));
+    HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
+  }
+  elsif ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
+  {
+    my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
+    if (grep /^$read:\s.*$/,@{$events})
     {
-      HOMEMODE_RESIDENTS($hash,$devname);
-    }
-    if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
-    {
-      my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
-      HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
-    }
-    if ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
-    {
-      my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError"));
-      HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
-    }
-    if ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
-    {
-      my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
-      if (grep /^$read:\s.*$/,@{$events})
-      {
-        foreach my $evt (@{$events})
-        {
-          next unless ($evt =~ /^$read:\s(.*)$/);
-          HOMEMODE_Luminance($hash,$devname,(split " ",$1)[0]);
-        }
-      }
-    }
-    if (AttrVal($name,"HomeSensorTemperatureOutside",undef) && $devname eq AttrVal($name,"HomeSensorTemperatureOutside","") && grep /^(temperature|humidity):\s/,@{$events})
-    {
-      my $temp;
-      my $humi;
       foreach my $evt (@{$events})
       {
-        next unless ($evt =~ /^(humidity|temperature):\s(.*)$/);
-        $temp = (split " ",$2)[0] if ($1 eq "temperature");
-        $humi = (split " ",$2)[0] if ($1 eq "humidity");
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        HOMEMODE_Luminance($hash,$devname,(split " ",$1)[0]);
       }
-      readingsBeginUpdate($hash);
-      readingsBulkUpdate($hash,"temperature",$temp);
-      if (defined $humi && !AttrVal($name,"HomeSensorHumidityOutside",undef))
-      {
-        readingsBulkUpdate($hash,"humidity",$humi);
-        $hash->{helper}{externalHumidity} = 1;
-      }
-      elsif (!AttrVal($name,"HomeSensorHumidityOutside",undef))
-      {
-        delete $hash->{helper}{externalHumidity};
-      }
-      readingsEndUpdate($hash,1);
-      HOMEMODE_ReadingTrend($hash,"humidity",$humi) if (defined $humi);
-      HOMEMODE_ReadingTrend($hash,"temperature",$temp);
-      HOMEMODE_Icewarning($hash);
     }
-    if (AttrVal($name,"HomeSensorHumidityOutside",undef) && $devname eq AttrVal($name,"HomeSensorHumidityOutside","") && grep /^humidity:\s/,@{$events})
+  }
+  elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
+  {
+    my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+    $read =~ s/ /\|/g;
+    foreach my $evt (@{$events})
     {
+      next unless ($evt =~ /^($read):\s(.*)$/);
+      HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
+    }
+  }
+  elsif (AttrVal($name,"HomeSensorTemperatureOutside",undef) && $devname eq AttrVal($name,"HomeSensorTemperatureOutside","") && grep /^(temperature|humidity):\s/,@{$events})
+  {
+    my $temp;
+    my $humi;
+    foreach my $evt (@{$events})
+    {
+      next unless ($evt =~ /^(humidity|temperature):\s(.*)$/);
+      $temp = (split " ",$2)[0] if ($1 eq "temperature");
+      $humi = (split " ",$2)[0] if ($1 eq "humidity");
+    }
+    readingsBeginUpdate($hash);
+    readingsBulkUpdate($hash,"temperature",$temp);
+    if (defined $humi && !AttrVal($name,"HomeSensorHumidityOutside",undef))
+    {
+      readingsBulkUpdate($hash,"humidity",$humi);
       $hash->{helper}{externalHumidity} = 1;
+    }
+    elsif (!AttrVal($name,"HomeSensorHumidityOutside",undef))
+    {
+      delete $hash->{helper}{externalHumidity};
+    }
+    readingsEndUpdate($hash,1);
+    HOMEMODE_ReadingTrend($hash,"humidity",$humi) if (defined $humi);
+    HOMEMODE_ReadingTrend($hash,"temperature",$temp);
+    HOMEMODE_Icewarning($hash);
+  }
+  elsif (AttrVal($name,"HomeSensorHumidityOutside",undef) && $devname eq AttrVal($name,"HomeSensorHumidityOutside","") && grep /^humidity:\s/,@{$events})
+  {
+    $hash->{helper}{externalHumidity} = 1;
+    foreach my $evt (@{$events})
+    {
+      next unless ($evt =~ /^humidity:\s(.*)$/);
+      my $val = (split " ",$1)[0];
+      readingsSingleUpdate($hash,"humidity",$val,1);
+      HOMEMODE_ReadingTrend($hash,"humidity",$val);
+    }
+  }
+  elsif (AttrVal($name,"HomeSensorWindspeed",undef) && $devname eq (split /:/,AttrVal($name,"HomeSensorWindspeed",""))[0])
+  {
+    my $read = (split /:/,AttrVal($name,"HomeSensorWindspeed",""))[1];
+    if (grep /^$read:\s(.*)$/,@{$events})
+    {
       foreach my $evt (@{$events})
       {
-        next unless ($evt =~ /^humidity:\s(.*)$/);
+        next unless ($evt =~ /^$read:\s(.*)$/);
         my $val = (split " ",$1)[0];
-        readingsSingleUpdate($hash,"humidity",$val,1);
-        HOMEMODE_ReadingTrend($hash,"humidity",$val);
+        readingsSingleUpdate($hash,"wind",$val,1);
+        HOMEMODE_ReadingTrend($hash,"wind",$val);
       }
     }
-    if (AttrVal($name,"HomeSensorWindspeed",undef) && $devname eq (split /:/,AttrVal($name,"HomeSensorWindspeed",""))[0])
+  }
+  elsif (AttrVal($name,"HomeSensorAirpressure",undef) && $devname eq (split /:/,AttrVal($name,"HomeSensorAirpressure",""))[0])
+  {
+    my $read = (split /:/,AttrVal($name,"HomeSensorAirpressure",""))[1];
+    if (grep /^$read:\s(.*)$/,@{$events})
     {
-      my $read = (split /:/,AttrVal($name,"HomeSensorWindspeed",""))[1];
-      if (grep /^$read:\s(.*)$/,@{$events})
-      {
-        foreach my $evt (@{$events})
-        {
-          next unless ($evt =~ /^$read:\s(.*)$/);
-          my $val = (split " ",$1)[0];
-          readingsSingleUpdate($hash,"wind",$val,1);
-          HOMEMODE_ReadingTrend($hash,"wind",$val);
-        }
-      }
-    }
-    if (AttrVal($name,"HomeSensorAirpressure",undef) && $devname eq (split /:/,AttrVal($name,"HomeSensorAirpressure",""))[0])
-    {
-      my $read = (split /:/,AttrVal($name,"HomeSensorAirpressure",""))[1];
-      if (grep /^$read:\s(.*)$/,@{$events})
-      {
-        foreach my $evt (@{$events})
-        {
-          next unless ($evt =~ /^$read:\s(.*)$/);
-          my $val = (split " ",$1)[0];
-          readingsSingleUpdate($hash,"pressure",$val,1);
-          HOMEMODE_ReadingTrend($hash,"pressure",$val);
-        }
-      }
-    }
-    if ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
-    {
-      my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-      $read =~ s/ /\|/g;
       foreach my $evt (@{$events})
       {
-        next unless ($evt =~ /^($read):\s(.*)$/);
-        HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        my $val = (split " ",$1)[0];
+        readingsSingleUpdate($hash,"pressure",$val,1);
+        HOMEMODE_ReadingTrend($hash,"pressure",$val);
       }
     }
-    if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}))
+  }
+  elsif (AttrNum($name,"HomeAutoPresence",0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
+  {
+    my $resident;
+    my $residentregex;
+    foreach (split /,/,$hash->{RESIDENTS})
     {
-      my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
-      if (grep /^$read:\s/,@{$events})
+      my $regex = lc($_);
+      $regex =~ s/^(rr_|rg_)//;
+      next if (lc($devname) !~ /$regex/);
+      $resident = $_;
+      $residentregex = $regex;
+    }
+    return if (!$resident);
+    $hash->{helper}{lar} = $resident;
+    if (ReadingsVal($devname,"presence","") !~ /^maybe/)
+    {
+      my @presentdevicespresent;
+      foreach my $device (devspec2array("TYPE=$prestype:FILTER=disable!=1:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
       {
-        my @lowOld = split /,/,ReadingsVal($name,"batteryLow","");
-        my @low;
-        @low = @lowOld if (@lowOld);
-        foreach my $evt (@{$events})
-        {
-          next unless ($evt =~ /^$read:\s(.*)$/);
-          my $val = $1;
-          if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrNum($name,"HomeSensorsBatteryLowPercentage",50)) || $val =~ /^(nok|low)$/)
-          {
-            push @low,$devname if (!grep /^$devname$/,@low);
-          }
-          elsif (grep /^$devname$/,@low)
-          {
-            my @lown;
-            foreach (@low)
-            {
-              push @lown,$_ if ($_ ne $devname);
-            }
-            @low = @lown;
-          }
-        }
+        next if (lc($device) !~ /$residentregex/);
+        push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
+      }
+      if (grep /^.*:\s(present|appeared)$/,@{$events})
+      {
         readingsBeginUpdate($hash);
-        if (@low)
+        readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
+        readingsBulkUpdate($hash,"lastPresentByPresenceDevice",$devname);
+        readingsEndUpdate($hash,1);
+        push @commands,AttrVal($name,"HomeCMDpresence-present-device","") if (AttrVal($name,"HomeCMDpresence-present-device",undef));
+        push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device","") if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
+        push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
+        if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
+          && ReadingsVal($resident,"state","") =~ /^(absent|[gn]one)$/)
         {
-          readingsBulkUpdateIfChanged($hash,"batteryLow",join(",",@low));
-          readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
-          readingsBulkUpdateIfChanged($hash,"batteryLow_hr",HOMEMODE_makeHR($hash,1,@low));
-          readingsBulkUpdateIfChanged($hash,"lastBatteryLow",$devname) if (grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
-          push @commands,AttrVal($name,"HomeCMDbatteryLow","") if (AttrVal($name,"HomeCMDbatteryLow",undef) && grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+          CommandSet(undef,"$resident:FILTER=state!=home state home");
+        }
+      }
+      elsif (grep /^.*:\s(absent|disappeared)$/,@{$events})
+      {
+        readingsBeginUpdate($hash);
+        readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
+        readingsBulkUpdate($hash,"lastAbsentByPresenceDevice",$devname);
+        readingsEndUpdate($hash,1);
+        push @commands,AttrVal($name,"HomeCMDpresence-absent-device","") if (AttrVal($name,"HomeCMDpresence-absent-device",undef));
+        push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-device","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-device",undef));
+        push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",undef));
+        my $devcount = 1;
+        $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
+        my $presdevsabsent = $devcount - scalar @presentdevicespresent;
+        if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
+          && ReadingsVal($resident,"state","absent") !~ /^(absent|gone|none)$/)
+        {
+          CommandSet(undef,"$resident:FILTER=state!=absent state absent");
+        }
+      }
+    }
+  }
+  elsif (AttrVal($name,"HomeTriggerPanic",""))
+  {
+    my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerPanic","");
+    if ($devname eq $d)
+    {
+      if (grep /^$r:\s$on$/,@{$events})
+      {
+        if ($off)
+        {
+          CommandSet(undef,"$name:FILTER=panic=off panic on");
         }
         else
         {
-          readingsBulkUpdateIfChanged($hash,"batteryLow","");
-          readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
-          readingsBulkUpdateIfChanged($hash,"batteryLow_hr","");
-        }
-        readingsEndUpdate($hash,1);
-      }
-    }
-    if (AttrNum($name,"HomeAutoPresence",0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
-    {
-      my $resident;
-      my $residentregex;
-      foreach (split /,/,$hash->{RESIDENTS})
-      {
-        my $regex = lc($_);
-        $regex =~ s/^(rr_|rg_)//;
-        next if (lc($devname) !~ /$regex/);
-        $resident = $_;
-        $residentregex = $regex;
-      }
-      return if (!$resident);
-      $hash->{helper}{lar} = $resident;
-      if (ReadingsVal($devname,"presence","") !~ /^maybe/)
-      {
-        my @presentdevicespresent;
-        foreach my $device (devspec2array("TYPE=$prestype:FILTER=disable!=1:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
-        {
-          next if (lc($device) !~ /$residentregex/);
-          push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
-        }
-        if (grep /^.*:\s(present|appeared)$/,@{$events})
-        {
-          readingsBeginUpdate($hash);
-          readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
-          readingsBulkUpdate($hash,"lastPresentByPresenceDevice",$devname);
-          readingsEndUpdate($hash,1);
-          push @commands,AttrVal($name,"HomeCMDpresence-present-device","") if (AttrVal($name,"HomeCMDpresence-present-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device","") if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
-          if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
-            && ReadingsVal($resident,"state","") =~ /^(absent|[gn]one)$/)
-          {
-            CommandSet(undef,"$resident:FILTER=state!=home state home");
-          }
-        }
-        elsif (grep /^.*:\s(absent|disappeared)$/,@{$events})
-        {
-          readingsBeginUpdate($hash);
-          readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
-          readingsBulkUpdate($hash,"lastAbsentByPresenceDevice",$devname);
-          readingsEndUpdate($hash,1);
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-device","") if (AttrVal($name,"HomeCMDpresence-absent-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-device","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",undef));
-          my $devcount = 1;
-          $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
-          my $presdevsabsent = $devcount - scalar @presentdevicespresent;
-          if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
-            && ReadingsVal($resident,"state","absent") !~ /^(absent|gone|none)$/)
-          {
-            CommandSet(undef,"$resident:FILTER=state!=absent state absent");
-          }
-        }
-      }
-    }
-    if (AttrVal($name,"HomeTriggerPanic",""))
-    {
-      my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerPanic","");
-      if ($devname eq $d)
-      {
-        if (grep /^$r:\s$on$/,@{$events})
-        {
-          if ($off)
+          if (ReadingsVal($name,"panic","off") eq "off")
           {
             CommandSet(undef,"$name:FILTER=panic=off panic on");
           }
           else
           {
-            if (ReadingsVal($name,"panic","off") eq "off")
-            {
-              CommandSet(undef,"$name:FILTER=panic=off panic on");
-            }
-            else
-            {
-              CommandSet(undef,"$name:FILTER=panic=on panic off");
-            }
+            CommandSet(undef,"$name:FILTER=panic=on panic off");
           }
         }
-        elsif ($off && grep /^$r:\s$off$/,@{$events})
+      }
+      elsif ($off && grep /^$r:\s$off$/,@{$events})
+      {
+        CommandSet(undef,"$name:FILTER=panic=on panic off");
+      }
+    }
+  }
+  if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}))
+  {
+    my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
+    if (grep /^$read:\s/,@{$events})
+    {
+      my @lowOld = split /,/,ReadingsVal($name,"batteryLow","");
+      my @low;
+      @low = @lowOld if (@lowOld);
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        my $val = $1;
+        if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrNum($name,"HomeSensorsBatteryLowPercentage",50)) || $val =~ /^(nok|low)$/)
         {
-          CommandSet(undef,"$name:FILTER=panic=on panic off");
+          push @low,$devname if (!grep /^$devname$/,@low);
+        }
+        elsif (grep /^$devname$/,@low)
+        {
+          my @lown;
+          foreach (@low)
+          {
+            push @lown,$_ if ($_ ne $devname);
+          }
+          @low = @lown;
         }
       }
+      readingsBeginUpdate($hash);
+      if (@low)
+      {
+        readingsBulkUpdateIfChanged($hash,"batteryLow",join(",",@low));
+        readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+        readingsBulkUpdateIfChanged($hash,"batteryLow_hr",HOMEMODE_makeHR($hash,1,@low));
+        readingsBulkUpdateIfChanged($hash,"lastBatteryLow",$devname) if (grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+        push @commands,AttrVal($name,"HomeCMDbatteryLow","") if (AttrVal($name,"HomeCMDbatteryLow",undef) && grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+      }
+      else
+      {
+        readingsBulkUpdateIfChanged($hash,"batteryLow","");
+        readingsBulkUpdateIfChanged($hash,"batteryLow_ct",scalar @low);
+        readingsBulkUpdateIfChanged($hash,"batteryLow_hr","");
+      }
+      readingsEndUpdate($hash,1);
     }
   }
   HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
@@ -455,7 +452,7 @@ sub HOMEMODE_updateInternals($;$)
     }
     else
     {
-      $hash->{RESIDENTS} = join(",",@residents);
+      $hash->{RESIDENTS} = join(",",sort @residents);
     }
     my @allMonitoredDevices;
     push @allMonitoredDevices,"global";
