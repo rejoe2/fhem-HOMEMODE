@@ -429,7 +429,9 @@ sub HOMEMODE_updateInternals($;$)
   }
   else
   {
-    my @oldMonitoredDevices = split /,/,$hash->{NOTIFYDEV};
+    my @oldMonitoredDevices;
+    my $oldContacts = $hash->{SENSORSCONTACT};
+    my $oldMotions = $hash->{SENSORSMOTION};
     delete $hash->{helper}{presdevs};
     delete $hash->{RESIDENTS};
     delete $hash->{SENSORSCONTACT};
@@ -519,6 +521,16 @@ sub HOMEMODE_updateInternals($;$)
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
       $hash->{SENSORSCONTACT} = join(",",sort @sensors) if (@sensors);
+      if ($oldContacts)
+      {
+        my @c = devspec2array($contacts);
+        my $n = join(",",sort @c);
+        HOMEMODE_addSensorsuserattr($hash,$n,$oldContacts) if ($oldContacts ne $n);
+      }
+    }
+    elsif (!$contacts && $oldContacts)
+    {
+      HOMEMODE_cleanUserattr($hash,$oldContacts);
     }
     my $motion = HOMEMODE_AttrCheck($hash,"HomeSensorsMotion");
     if ($motion)
@@ -531,6 +543,16 @@ sub HOMEMODE_updateInternals($;$)
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
       $hash->{SENSORSMOTION} = join(",",sort @sensors) if (@sensors);
+      if ($oldMotions)
+      {
+        my @c = devspec2array($contacts);
+        my $n = join(",",sort @c);
+        HOMEMODE_addSensorsuserattr($hash,$n,$oldMotions) if ($oldMotions ne $n);
+      }
+    }
+    elsif (!$motion && $oldMotions)
+    {
+      HOMEMODE_cleanUserattr($hash,$oldMotions);
     }
     my $power = HOMEMODE_AttrCheck($hash,"HomeSensorsPowerEnergy");
     if ($power)
@@ -1604,11 +1626,10 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiger Devspec sein!":
         "$attr_value must be a valid devspec!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-      my $od = "";
+      my $od;
       $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
       $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
       HOMEMODE_updateInternals($hash);
-      HOMEMODE_addSensorsuserattr($hash,$attr_value,$od);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
