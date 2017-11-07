@@ -522,14 +522,7 @@ sub HOMEMODE_updateInternals($;$)
       }
       my $list = join(",",sort @sensors);
       $hash->{SENSORSCONTACT} = $list;
-      if ($oldContacts)
-      {
-        foreach my $s (split /,/,$oldContacts)
-        {
-          HOMEMODE_cleanUserattr($hash,$s) if (!grep /^$s$/,@sensors);
-        }
-      }
-      HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts) if ($force);
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts) if (($force && !$oldContacts) || ($oldContacts && $list ne $oldContacts));
     }
     elsif (!$contacts && $oldContacts)
     {
@@ -547,14 +540,7 @@ sub HOMEMODE_updateInternals($;$)
       }
       my $list = join(",",sort @sensors);
       $hash->{SENSORSMOTION} = $list;
-      if ($oldMotions)
-      {
-        foreach my $s (split /,/,$oldMotions)
-        {
-          HOMEMODE_cleanUserattr($hash,$s) if (!grep /^$s$/,@sensors);
-        }
-      }
-      HOMEMODE_addSensorsuserattr($hash,$list,$oldMotions) if ($force);
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldMotions) if (($force && !$oldMotions) || ($oldMotions && $list ne $oldMotions));
     }
     elsif (!$motion && $oldMotions)
     {
@@ -1637,11 +1623,6 @@ sub HOMEMODE_Attr(@)
       $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
       $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
       HOMEMODE_updateInternals($hash);
-      my @oda = split /,/,$od;
-      foreach my $s (devspec2array($attr_value))
-      {
-        HOMEMODE_addSensorsuserattr($hash,$s) if (!grep /^$s$/,@oda);
-      }
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
@@ -2377,6 +2358,7 @@ sub HOMEMODE_addSensorsuserattr($$;$)
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   foreach my $sensor (@devspec)
   {
+    my $inolddevspec = @olddevspec && grep /^$sensor$/,@olddevspec ? 1 : 0;
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
@@ -2391,25 +2373,25 @@ sub HOMEMODE_addSensorsuserattr($$;$)
       push @list,"HomeOpenTimeDividers";
       push @list,"HomeOpenTimes";
       HOMEMODE_set_userattr($sensor,\@list);
-      if (!AttrVal($sensor,"HomeContactType",undef))
+      if (!$inolddevspec)
       {
         my $dr = "[Dd]oor|[Tt](ü|ue)r";
         my $wr = "[Ww]indow|[Ff]enster";
-        CommandAttr(undef,"$sensor HomeContactType doorinside") if ($alias =~ /$dr/ || $sensor =~ /$dr/);
-        CommandAttr(undef,"$sensor HomeContactType window") if ($alias =~ /$wr/ || $sensor =~ /$wr/);
+        CommandAttr(undef,"$sensor HomeContactType doorinside") if (($alias =~ /$dr/ || $sensor =~ /$dr/) && !AttrVal($sensor,"HomeContactType",""));
+        CommandAttr(undef,"$sensor HomeContactType window") if (($alias =~ /$wr/ || $sensor =~ /$wr/) && !AttrVal($sensor,"HomeContactType",""));
+        CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",""));
       }
-      CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",undef));
     }
     if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
     {
       push @list,"HomeSensorLocation:inside,outside";
       HOMEMODE_set_userattr($sensor,\@list);
-      if (!AttrVal($sensor,"HomeSensorLocation",undef))
+      if (!$inolddevspec)
       {
         my $loc = "inside";
-        $loc = "outside" if ($alias =~ /([Aa]u(ss|ß)en)|([Oo]ut)/);
-        CommandAttr(undef,"$sensor HomeSensorLocation $loc");
-        CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",undef) && $loc eq "inside");
+        $loc = "outside" if ($alias =~ /([Aa]u(ss|ß)en)|([Oo]ut)/ || $sensor =~ /([Aa]u(ss|ß)en)|([Oo]ut)/);
+        CommandAttr(undef,"$sensor HomeSensorLocation $loc") if (!AttrVal($sensor,"HomeSensorLocation",""));
+        CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive","") && $loc eq "inside");
       }
     }
   }
@@ -2664,11 +2646,11 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
   if ($maxtrigger)
   {
     my $mode = ReadingsVal($name,"state","");
-    my $dtmode = AttrVal($contact,"HomeOpenDontTriggerModes","");
-    my $dtres = AttrVal($contact,"HomeOpenDontTriggerModesResidents","");
-    my $donttrigger = 0;
+    my $dtmode = AttrVal($contact,"HomeOpenDontTriggerModes",undef);
+    my $dtres = AttrVal($contact,"HomeOpenDontTriggerModesResidents",undef);
+    my $donttrigger;
     $donttrigger = 1 if ($dtmode && $mode =~ /^($dtmode)$/);
-    if (!$donttrigger && $dtres)
+    if (!$donttrigger && $dtmode && $dtres)
     {
       foreach (devspec2array($dtres))
       {
@@ -2678,7 +2660,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     }
     my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
     CommandDelete(undef,$timer) if (IsDevice($timer) && ($retrigger || $donttrigger));
-    return if (!$retrigger && $donttrigger);
+    return if ((!$retrigger && $donttrigger) || $donttrigger);
     my $season = ReadingsVal($name,"season","");
     my $seasons = AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
     my $dividers = AttrVal($contact,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers",""));
@@ -2710,7 +2692,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     $retrigger++;
     Log3 $name,5,"$name: waittime divided: $waittime";
     $waittime = HOMEMODE_hourMaker($waittime);
-    my $at = "{HOMEMODE_ContactOpenCheck(\"$name\",\"$contact\",\"\",$retrigger)}" if ($retrigger <= $maxtrigger);
+    my $at = "{HOMEMODE_ContactOpenCheck(\"$name\",\"$contact\",undef,$retrigger)}" if ($retrigger <= $maxtrigger);
     my $contactname = HOMEMODE_name2alias($contact,1);
     my $contactread = (split " ",AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")))[0];
     $state = $state ? $state : ReadingsVal($contact,$contactread,"");

@@ -3,6 +3,7 @@
     - add 'set modeAlarm confirm' and its HomeCMD attr
     - add 'set panic on/off' and their HomeCMD attr
     - add attr HomeTriggerPanic
+    - fix overwrite some Home attributes on HomeSensorsContact and HomeSensorsMotion while re-adding userattr
     - more robust RESIDENTS Fn
     - more robust NotifyFn
     - more robust handling of disabled devices
