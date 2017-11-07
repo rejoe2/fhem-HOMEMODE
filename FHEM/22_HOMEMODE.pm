@@ -527,7 +527,6 @@ sub HOMEMODE_updateInternals($;$)
         foreach my $s (split /,/,$oldContacts)
         {
           HOMEMODE_cleanUserattr($hash,$s) if (!grep /^$s$/,@sensors);
-          Debug $s if (!grep /^$s$/,@sensors);
         }
       }
       HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts) if ($force);
@@ -1638,7 +1637,11 @@ sub HOMEMODE_Attr(@)
       $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
       $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
       HOMEMODE_updateInternals($hash);
-      HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
+      my @oda = split /,/,$od;
+      foreach my $s (devspec2array($attr_value))
+      {
+        HOMEMODE_addSensorsuserattr($hash,$s) if (!grep /^$s$/,@oda);
+      }
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
@@ -1877,7 +1880,7 @@ sub HOMEMODE_Attr(@)
       $read = "lastMotion|prevMotion|motions.*" if ($attr_name eq "HomeSensorsMotion");
       CommandDeleteReading(undef,"$name $read");
       HOMEMODE_updateInternals($hash);
-      HOMEMODE_addSensorsuserattr($hash,$attr_value,$olddevs);
+      HOMEMODE_cleanUserattr($hash,$olddevs);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy")
     {
@@ -2364,7 +2367,7 @@ sub HOMEMODE_hourMaker($)
   return "$hours:$min:$sec";
 }
 
-sub HOMEMODE_addSensorsuserattr($$$)
+sub HOMEMODE_addSensorsuserattr($$;$)
 {
   my ($hash,$devs,$olddevs) = @_;
   return if (!$devs);
