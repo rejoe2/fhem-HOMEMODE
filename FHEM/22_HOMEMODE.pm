@@ -522,7 +522,15 @@ sub HOMEMODE_updateInternals($;$)
       }
       my $list = join(",",sort @sensors);
       $hash->{SENSORSCONTACT} = $list;
-      HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts);
+      if ($oldContacts)
+      {
+        foreach my $s (split /,/,$oldContacts)
+        {
+          HOMEMODE_cleanUserattr($hash,$s) if (!grep /^$s$/,@sensors);
+          Debug $s if (!grep /^$s$/,@sensors);
+        }
+      }
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldContacts) if ($force);
     }
     elsif (!$contacts && $oldContacts)
     {
@@ -540,7 +548,14 @@ sub HOMEMODE_updateInternals($;$)
       }
       my $list = join(",",sort @sensors);
       $hash->{SENSORSMOTION} = $list;
-      HOMEMODE_addSensorsuserattr($hash,$list,$oldMotions);
+      if ($oldMotions)
+      {
+        foreach my $s (split /,/,$oldMotions)
+        {
+          HOMEMODE_cleanUserattr($hash,$s) if (!grep /^$s$/,@sensors);
+        }
+      }
+      HOMEMODE_addSensorsuserattr($hash,$list,$oldMotions) if ($force);
     }
     elsif (!$motion && $oldMotions)
     {
@@ -1415,7 +1430,6 @@ sub HOMEMODE_cleanUserattr($$;$)
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
-    next if ($newdevs && grep /^$dev$/,@newdevspec);
     my $userattr = AttrVal($dev,"userattr","");
     if ($userattr)
     {
@@ -1425,7 +1439,7 @@ sub HOMEMODE_cleanUserattr($$;$)
         if ($_ =~ /^Home/)
         {
           $_ =~ s/:.*//;
-          CommandDeleteAttr(undef,"$dev $_") if ((defined AttrVal($dev,$_,undef) && !@newdevspec) || (defined AttrVal($dev,$_,undef) && @newdevspec && !grep /^$dev$/,@newdevspec));
+          CommandDeleteAttr(undef,"$dev $_") if ((AttrVal($dev,$_,"") && !@newdevspec) || (AttrVal($dev,$_,"") && @newdevspec && !grep /^$dev$/,@newdevspec));
           next;
         }
         push @stayattr,$_ if (!grep /^$_$/,@stayattr);
@@ -1624,6 +1638,7 @@ sub HOMEMODE_Attr(@)
       $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
       $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
       HOMEMODE_updateInternals($hash);
+      HOMEMODE_addSensorsuserattr($hash,$attr_value,$attr_value_old);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
@@ -1853,12 +1868,20 @@ sub HOMEMODE_Attr(@)
     {
       HOMEMODE_updateInternals($hash,1);
     }
-    elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion|HomeSensorsPowerEnergy)$/)
+    elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion)$/)
     {
-      HOMEMODE_cleanUserattr($hash,$attr_value_old) if ($attr_value_old);
+      my $olddevs;
+      $olddevs = $hash->{SENSORSCONTACT} if ($attr_name eq "HomeSensorsContact");
+      $olddevs = $hash->{SENSORSMOTION} if ($attr_name eq "HomeSensorsMotion");
       my $read = "lastContact|prevContact|contacts.*";
       $read = "lastMotion|prevMotion|motions.*" if ($attr_name eq "HomeSensorsMotion");
-      $read = "energy|power" if ($attr_name eq "HomeSensorsPowerEnergy");
+      CommandDeleteReading(undef,"$name $read");
+      HOMEMODE_updateInternals($hash);
+      HOMEMODE_addSensorsuserattr($hash,$attr_value,$olddevs);
+    }
+    elsif ($attr_name eq "HomeSensorsPowerEnergy")
+    {
+      my $read = "energy|power";
       CommandDeleteReading(undef,"$name $read");
       HOMEMODE_updateInternals($hash);
     }
@@ -2351,7 +2374,6 @@ sub HOMEMODE_addSensorsuserattr($$$)
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   foreach my $sensor (@devspec)
   {
-    next if ($olddevs && grep /^$sensor$/,@olddevspec);
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
