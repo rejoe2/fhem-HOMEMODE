@@ -429,7 +429,6 @@ sub HOMEMODE_updateInternals($;$)
   }
   else
   {
-    my @oldMonitoredDevices;
     my $oldContacts = $hash->{SENSORSCONTACT};
     my $oldMotions = $hash->{SENSORSMOTION};
     delete $hash->{helper}{presdevs};
@@ -618,7 +617,6 @@ sub HOMEMODE_updateInternals($;$)
     my $panic = (split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"))[0];
     push @allMonitoredDevices,$panic if ($panic && !grep /^$panic$/,@allMonitoredDevices);
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
-    Log3 $name,5,"$name: old monitored device count: ".@oldMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
     $hash->{NOTIFYDEV} = join(",",@allMonitoredDevices);
     HOMEMODE_GetUpdate($hash);
@@ -1619,10 +1617,7 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiger Devspec sein!":
         "$attr_value must be a valid devspec!";
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
-      my $od;
-      $od = $hash->{SENSORSCONTACT} if ($hash->{SENSORSCONTACT} && $attr_name eq "HomeSensorsContact");
-      $od = $hash->{SENSORSMOTION} if ($hash->{SENSORSMOTION} && $attr_name eq "HomeSensorsMotion");
-      HOMEMODE_updateInternals($hash);
+      HOMEMODE_updateInternals($hash,1) if ($attr_value ne $attr_value_old);
     }
     elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
     {
