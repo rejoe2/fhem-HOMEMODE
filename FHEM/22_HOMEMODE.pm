@@ -231,63 +231,6 @@ sub HOMEMODE_Notify($$)
         HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
       }
     }
-    elsif (AttrNum($name,"HomeAutoPresence",0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
-    {
-      my $resident;
-      my $residentregex;
-      foreach (split /,/,$hash->{RESIDENTS})
-      {
-        my $regex = lc($_);
-        $regex =~ s/^(rr_|rg_)//;
-        next if (lc($devname) !~ /$regex/);
-        $resident = $_;
-        $residentregex = $regex;
-      }
-      return if (!$resident);
-      $hash->{helper}{lar} = $resident;
-      if (ReadingsVal($devname,"presence","") !~ /^maybe/)
-      {
-        my @presentdevicespresent;
-        foreach my $device (devspec2array("TYPE=$prestype:FILTER=disable!=1:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
-        {
-          next if (lc($device) !~ /$residentregex/);
-          push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
-        }
-        if (grep /^.*:\s(present|appeared)$/,@{$events})
-        {
-          readingsBeginUpdate($hash);
-          readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
-          readingsBulkUpdate($hash,"lastPresentByPresenceDevice",$devname);
-          readingsEndUpdate($hash,1);
-          push @commands,AttrVal($name,"HomeCMDpresence-present-device","") if (AttrVal($name,"HomeCMDpresence-present-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device","") if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
-          if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
-            && ReadingsVal($resident,"state","") =~ /^(absent|[gn]one)$/)
-          {
-            CommandSet(undef,"$resident:FILTER=state!=home state home");
-          }
-        }
-        elsif (grep /^.*:\s(absent|disappeared)$/,@{$events})
-        {
-          readingsBeginUpdate($hash);
-          readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
-          readingsBulkUpdate($hash,"lastAbsentByPresenceDevice",$devname);
-          readingsEndUpdate($hash,1);
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-device","") if (AttrVal($name,"HomeCMDpresence-absent-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-device","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-device",undef));
-          push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",undef));
-          my $devcount = 1;
-          $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
-          my $presdevsabsent = $devcount - scalar @presentdevicespresent;
-          if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
-            && ReadingsVal($resident,"state","absent") !~ /^(absent|gone|none)$/)
-          {
-            CommandSet(undef,"$resident:FILTER=state!=absent state absent");
-          }
-        }
-      }
-    }
     else
     {
       if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
@@ -374,6 +317,63 @@ sub HOMEMODE_Notify($$)
             my $val = (split " ",$1)[0];
             readingsSingleUpdate($hash,"pressure",$val,1);
             HOMEMODE_ReadingTrend($hash,"pressure",$val);
+          }
+        }
+      }
+      if (AttrNum($name,"HomeAutoPresence",0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
+      {
+        my $resident;
+        my $residentregex;
+        foreach (split /,/,$hash->{RESIDENTS})
+        {
+          my $regex = lc($_);
+          $regex =~ s/^(rr_|rg_)//;
+          next if (lc($devname) !~ /$regex/);
+          $resident = $_;
+          $residentregex = $regex;
+        }
+        return if (!$resident);
+        $hash->{helper}{lar} = $resident;
+        if (ReadingsVal($devname,"presence","") !~ /^maybe/)
+        {
+          my @presentdevicespresent;
+          foreach my $device (devspec2array("TYPE=$prestype:FILTER=disable!=1:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
+          {
+            next if (lc($device) !~ /$residentregex/);
+            push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
+          }
+          if (grep /^.*:\s(present|appeared)$/,@{$events})
+          {
+            readingsBeginUpdate($hash);
+            readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
+            readingsBulkUpdate($hash,"lastPresentByPresenceDevice",$devname);
+            readingsEndUpdate($hash,1);
+            push @commands,AttrVal($name,"HomeCMDpresence-present-device","") if (AttrVal($name,"HomeCMDpresence-present-device",undef));
+            push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device","") if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
+            push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
+            if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
+              && ReadingsVal($resident,"state","") =~ /^(absent|[gn]one)$/)
+            {
+              CommandSet(undef,"$resident:FILTER=state!=home state home");
+            }
+          }
+          elsif (grep /^.*:\s(absent|disappeared)$/,@{$events})
+          {
+            readingsBeginUpdate($hash);
+            readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
+            readingsBulkUpdate($hash,"lastAbsentByPresenceDevice",$devname);
+            readingsEndUpdate($hash,1);
+            push @commands,AttrVal($name,"HomeCMDpresence-absent-device","") if (AttrVal($name,"HomeCMDpresence-absent-device",undef));
+            push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-device","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-device",undef));
+            push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",undef));
+            my $devcount = 1;
+            $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
+            my $presdevsabsent = $devcount - scalar @presentdevicespresent;
+            if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
+              && ReadingsVal($resident,"state","absent") !~ /^(absent|gone|none)$/)
+            {
+              CommandSet(undef,"$resident:FILTER=state!=absent state absent");
+            }
           }
         }
       }
