@@ -157,6 +157,80 @@ sub HOMEMODE_Notify($$)
     {
       HOMEMODE_RESIDENTS($hash,$devname);
     }
+    elsif (AttrVal($name,"HomeYahooWeatherDevice",undef) && $devname eq AttrVal($name,"HomeYahooWeatherDevice",""))
+    {
+      HOMEMODE_Weather($hash,$devname);
+    }
+    elsif (AttrVal($name,"HomeTwilightDevice",undef) && $devname eq AttrVal($name,"HomeTwilightDevice",""))
+    {
+      HOMEMODE_Twilight($hash,$devname);
+    }
+    elsif (AttrVal($name,"HomeEventsHolidayDevices",undef) && grep(/^$devname$/,devspec2array(AttrVal($name,"HomeEventsHolidayDevices",""))) && grep /^state:\s/,@{$events})
+    {
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^state:\s(.*)$/);
+        HOMEMODE_EventCommands($hash,$devname,$1);
+      }
+    }
+    elsif (AttrVal($name,"HomeUWZ",undef) && $devname eq AttrVal($name,"HomeUWZ","") && grep /^WarnCount:\s/,@{$events})
+    {
+      HOMEMODE_UWZCommands($hash,$events);
+    }
+    elsif (AttrVal($name,"HomeTriggerPanic","") && $devname eq (split /:/,AttrVal($name,"HomeTriggerPanic",""))[0])
+    {
+      my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerPanic","");
+      if ($devname eq $d)
+      {
+        if (grep /^$r:\s$on$/,@{$events})
+        {
+          if ($off)
+          {
+            CommandSet(undef,"$name:FILTER=panic=off panic on");
+          }
+          else
+          {
+            if (ReadingsVal($name,"panic","off") eq "off")
+            {
+              CommandSet(undef,"$name:FILTER=panic=off panic on");
+            }
+            else
+            {
+              CommandSet(undef,"$name:FILTER=panic=on panic off");
+            }
+          }
+        }
+        elsif ($off && grep /^$r:\s$off$/,@{$events})
+        {
+          CommandSet(undef,"$name:FILTER=panic=on panic off");
+        }
+      }
+    }
+    elsif (AttrVal($name,"HomeTriggerAnyoneElseAtHome","") && $devname eq (split /:/,AttrVal($name,"HomeTriggerAnyoneElseAtHome",""))[0])
+    {
+      my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerAnyoneElseAtHome","");
+      if ($devname eq $d)
+      {
+        if (grep /^$r:\s$on$/,@{$events})
+        {
+          CommandSet(undef,"$name:FILTER=anyoneElseAtHome=off anyoneElseAtHome on");
+        }
+        elsif (grep /^$r:\s$off$/,@{$events})
+        {
+          CommandSet(undef,"$name:FILTER=anyoneElseAtHome=on anyoneElseAtHome off");
+        }
+      }
+    }
+    elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
+    {
+      my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+      $read =~ s/ /\|/g;
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^($read):\s(.*)$/);
+        HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
+      }
+    }
     elsif (AttrNum($name,"HomeAutoPresence",0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
     {
       my $resident;
@@ -211,65 +285,6 @@ sub HOMEMODE_Notify($$)
           {
             CommandSet(undef,"$resident:FILTER=state!=absent state absent");
           }
-        }
-      }
-    }
-    elsif (AttrVal($name,"HomeYahooWeatherDevice",undef) && $devname eq AttrVal($name,"HomeYahooWeatherDevice",""))
-    {
-      HOMEMODE_Weather($hash,$devname);
-    }
-    elsif (AttrVal($name,"HomeTwilightDevice",undef) && $devname eq AttrVal($name,"HomeTwilightDevice",""))
-    {
-      HOMEMODE_Twilight($hash,$devname);
-    }
-    elsif (AttrVal($name,"HomeEventsHolidayDevices",undef) && grep(/^$devname$/,devspec2array(AttrVal($name,"HomeEventsHolidayDevices",""))) && grep /^state:\s/,@{$events})
-    {
-      foreach my $evt (@{$events})
-      {
-        next unless ($evt =~ /^state:\s(.*)$/);
-        HOMEMODE_EventCommands($hash,$devname,$1);
-      }
-    }
-    elsif (AttrVal($name,"HomeUWZ",undef) && $devname eq AttrVal($name,"HomeUWZ","") && grep /^WarnCount:\s/,@{$events})
-    {
-      HOMEMODE_UWZCommands($hash,$events);
-    }
-    elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
-    {
-      my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-      $read =~ s/ /\|/g;
-      foreach my $evt (@{$events})
-      {
-        next unless ($evt =~ /^($read):\s(.*)$/);
-        HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
-      }
-    }
-    elsif (AttrVal($name,"HomeTriggerPanic",""))
-    {
-      my ($d,$r,$on,$off) = split /:/,AttrVal($name,"HomeTriggerPanic","");
-      if ($devname eq $d)
-      {
-        if (grep /^$r:\s$on$/,@{$events})
-        {
-          if ($off)
-          {
-            CommandSet(undef,"$name:FILTER=panic=off panic on");
-          }
-          else
-          {
-            if (ReadingsVal($name,"panic","off") eq "off")
-            {
-              CommandSet(undef,"$name:FILTER=panic=off panic on");
-            }
-            else
-            {
-              CommandSet(undef,"$name:FILTER=panic=on panic off");
-            }
-          }
-        }
-        elsif ($off && grep /^$r:\s$off$/,@{$events})
-        {
-          CommandSet(undef,"$name:FILTER=panic=on panic off");
         }
       }
     }
@@ -622,6 +637,8 @@ sub HOMEMODE_updateInternals($;$)
     push @allMonitoredDevices,$wind if ($wind && !grep /^$wind$/,@allMonitoredDevices);
     my $panic = (split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerPanic"))[0];
     push @allMonitoredDevices,$panic if ($panic && !grep /^$panic$/,@allMonitoredDevices);
+    my $aeah = (split /:/,HOMEMODE_AttrCheck($hash,"HomeTriggerAnyoneElseAtHome"))[0];
+    push @allMonitoredDevices,$aeah if ($aeah && !grep /^$aeah$/,@allMonitoredDevices);
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
     $hash->{NOTIFYDEV} = join(",",@allMonitoredDevices);
@@ -1285,6 +1302,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeTextWeatherLong:textField-long";
   push @attribs,"HomeTextWeatherShort:textField-long";
   push @attribs,"HomeTrendCalcAge:900,1800,2700,3600";
+  push @attribs,"HomeTriggerAnyoneElseAtHome";
   push @attribs,"HomeTriggerPanic";
   push @attribs,"HomeTwilightDevice";
   push @attribs,"HomeUWZ";
@@ -1535,7 +1553,7 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name =~ /^(HomeSensorsContactReadings|HomeSensorsMotionReadings)$/)
     {
       $trans = $HOMEMODE_de?
-        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden wenigstens 2 Leerzeichen separierte Readings benötigt! z.B. state sabotageError":
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden 2 Leerzeichen separierte Readings benötigt! z.B. state sabotageError":
         "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, e.g. state sabotageError";
       return $trans if ($attr_value !~ /^[\w\-\.]+\s[\w\-\.]+$/);
     }
@@ -1549,7 +1567,7 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name eq "HomeIcewarningOnOffTemps")
     {
       $trans = $HOMEMODE_de?
-        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden wenigstens 2 Leerzeichen separierte Temperaturen benötigt, z.B. -0.1 2.5":
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden 2 Leerzeichen separierte Temperaturen benötigt, z.B. -0.1 2.5":
         "Invalid value $attr_value for attribute $attr_name. You have to provide 2 space separated temperatures, e.g. -0.1 2.5";
       return $trans if ($attr_value !~ /^-?\d{1,2}(\.\d)?\s-?\d{1,2}(\.\d)?$/);
     }
@@ -1835,6 +1853,14 @@ sub HOMEMODE_Attr(@)
         "$attr_value muss ein gültiges Gerät, Reading und Wert in Form von \"Gerät:Reading:WertAn:WertAus\" (WertAus ist optional) sein!":
         "$attr_name must be a valid device, reading and value like \"device:reading:valueOn:valueOff\" (valueOff is optional)!";
       return $trans if ($attr_value !~ /^([\w\.]+):([\w\.]+):[\w\-\.]+(:[\w\-\.]+)?$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
+      HOMEMODE_updateInternals($hash);
+    }
+    elsif ($attr_name eq "HomeTriggerAnyoneElseAtHome" && $init_done)
+    {
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiges Gerät, Reading und Wert in Form von \"Gerät:Reading:WertAn:WertAus\" sein!":
+        "$attr_name must be a valid device, reading and value like \"device:reading:valueOn:valueOff\" !";
+      return $trans if ($attr_value !~ /^([\w\.]+):([\w\.]+):[\w\-\.]+(:[\w\-\.]+)$/ || !HOMEMODE_CheckIfIsValidDevspec($1,$2));
       HOMEMODE_updateInternals($hash);
     }
   }
@@ -3859,6 +3885,11 @@ sub HOMEMODE_Details($$$)
       <b><i>HomeTrendCalcAge</i></b><br>
       time in seconds for the max age of the previous measured value for calculating trends<br>
       default: 900
+    </li>
+    <li>
+      <b><i>HomeTriggerAnyoneElseAtHome</i></b><br>
+      your anyoneElseAtHome trigger device (device:reading:valueOn:valueOff)<br>
+      default:
     </li>
     <li>
       <b><i>HomeTriggerPanic</i></b><br>
