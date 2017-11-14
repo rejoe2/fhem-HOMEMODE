@@ -5,6 +5,7 @@
     - add attr HomeTriggerPanic
     - add attr HomeTriggerAnyoneElseAtHome
     - fix overwrite some Home attributes on HomeSensorsContact and HomeSensorsMotion while re-adding userattr
+    - allow more regexps in HomeSensorsContactValues and HomeSensorsMotionValues
     - more robust RESIDENTS Fn
     - more robust NotifyFn
     - more robust handling of disabled devices
