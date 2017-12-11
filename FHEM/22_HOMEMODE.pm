@@ -146,6 +146,14 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_updateInternals($hash);
       push @commands,AttrVal($name,"HomeCMDfhemINITIALIZED","") if (AttrVal($name,"HomeCMDfhemINITIALIZED",""));
     }
+    elsif (grep /^SAVE$/,@{$events})
+    {
+      push @commands,AttrVal($name,"HomeCMDfhemSAVE","") if (AttrVal($name,"HomeCMDfhemSAVE",""));
+    }
+    elsif (grep /^UPDATE$/,@{$events})
+    {
+      push @commands,AttrVal($name,"HomeCMDfhemUPDATE","") if (AttrVal($name,"HomeCMDfhemUPDATE",""));
+    }
     elsif (grep /^(REREADCFG|MODIFIED\s$name)$/,@{$events})
     {
       HOMEMODE_updateInternals($hash,1);
@@ -1243,6 +1251,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
   push @attribs,"HomeCMDfhemINITIALIZED:textField-long";
+  push @attribs,"HomeCMDfhemSAVE:textField-long";
+  push @attribs,"HomeCMDfhemUPDATE:textField-long";
   push @attribs,"HomeCMDicewarning:textField-long";
   push @attribs,"HomeCMDicewarning-on:textField-long";
   push @attribs,"HomeCMDicewarning-off:textField-long";
@@ -3521,7 +3531,15 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeCMDfhemINITIALIZED</i></b><br>
-      cmds to execute on fhem (re)start
+      cmds to execute on fhem start
+    </li>
+    <li>
+      <b><i>HomeCMDfhemSAVE</i></b><br>
+      cmds to execute on fhem save
+    </li>
+    <li>
+      <b><i>HomeCMDfhemUPDATE</i></b><br>
+      cmds to execute on fhem update
     </li>
     <li>
       <b><i>HomeCMDicewarning</i></b><br>
