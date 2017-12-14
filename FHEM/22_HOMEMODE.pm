@@ -154,6 +154,15 @@ sub HOMEMODE_Notify($$)
     {
       push @commands,AttrVal($name,"HomeCMDfhemUPDATE","") if (AttrVal($name,"HomeCMDfhemUPDATE",""));
     }
+    elsif (grep /^DEFINED/,@{$events})
+    {
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^DEFINED:\s(.*)$/);
+        my $dev = $1;
+        CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom","")) if ($dev =~ /^atTmp_.*_$name$/ && AttrVal($name,"HomeAtTmpRoom",""));
+      }
+    }
     elsif (grep /^(REREADCFG|MODIFIED\s$name)$/,@{$events})
     {
       HOMEMODE_updateInternals($hash,1);
@@ -839,7 +848,6 @@ sub HOMEMODE_Set($@)
           my $hour = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
           CommandDelete(undef,"atTmp_set_home_$name") if (IsDevice("atTmp_set_home_$name"));
           CommandDefine(undef,"atTmp_set_home_$name at +$hour set $name:FILTER=location=arrival location home");
-          CommandAttr(undef,"atTmp_set_home_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
           $location = "arrival";
         }
       }
@@ -858,7 +866,6 @@ sub HOMEMODE_Set($@)
         my $hour = HOMEMODE_hourMaker(AttrNum($name,"HomeModeAbsentBelatedTime",0));
         CommandDelete(undef,"atTmp_absent_belated_$name") if (IsDevice("atTmp_absent_belated_$name"));
         CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
-        CommandAttr(undef,"atTmp_absent_belated_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
       }
     }
     HOMEMODE_ContactOpenCheckAfterModeChange($hash,$option,$mode) if ($hash->{SENSORSCONTACT} && $option && $mode ne $option);
@@ -948,7 +955,6 @@ sub HOMEMODE_Set($@)
     {
       my $hours = HOMEMODE_hourMaker(sprintf("%.2f",$delay / 60));
       CommandDefine(undef,"atTmp_modeAlarm_delayed_arm_$name at +$hours {HOMEMODE_set_modeAlarm(\"$name\",\"$option\",\"$amode\")}");
-      CommandAttr(undef,"atTmp_modeAlarm_delayed_arm_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
     }
     else
     {
@@ -1004,7 +1010,6 @@ sub HOMEMODE_set_modeAlarm($$$)
   if ($option eq "confirm")
   {
     CommandDefine(undef,"atTmp_modeAlarm_confirm_$name at +00:00:30 setreading $name:FILTER=alarmState=confirmed alarmState $amode");
-    CommandAttr(undef,"atTmp_modeAlarm_confirm_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
     readingsSingleUpdate($hash,"alarmState",$option."ed",1);
     HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands),$resident) if (@commands);
   }
@@ -1171,7 +1176,6 @@ sub HOMEMODE_RESIDENTS($;$)
           my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAwoken",0));
           CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (IsDevice("atTmp_awoken_".$dev."_$name"));
           CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
-          CommandAttr(undef,"atTmp_awoken_".$dev."_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
         }
       }
       if ($mode eq "home" && ReadingsVal($dev,"lastState","") =~ /^(absent|[gn]one)$/ && AttrNum($name,"HomeAutoArrival",0))
@@ -1180,14 +1184,12 @@ sub HOMEMODE_RESIDENTS($;$)
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
         CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (IsDevice("atTmp_location_home_".$dev."_$name"));
         CommandDefine(undef,"atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home");
-        CommandAttr(undef,"atTmp_location_home_".$dev."_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
       }
       if ($mode eq "gotosleep" && AttrNum($name,"HomeAutoAsleep",0))
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAsleep",0));
         CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (IsDevice("atTmp_asleep_".$dev."_$name"));
         CommandDefine(undef,"atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
-        CommandAttr(undef,"atTmp_asleep_".$dev."_$name room ".AttrVal($name,"HomeAtTmpRoom","")) if (AttrVal($name,"HomeAtTmpRoom",""));
       }
       push @commands,AttrVal($name,"HomeCMDmode-$mode-resident","") if (AttrVal($name,"HomeCMDmode-$mode-resident",undef));
       push @commands,AttrVal($name,"HomeCMDmode-$mode-$dev","") if (AttrVal($name,"HomeCMDmode-$mode-$dev",undef));
@@ -3005,7 +3007,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
 
 sub HOMEMODE_Smoke($$$)
 {
-  my ($hash,$trigger,$val) = @_;
+  my ($hash,$trigger,$state) = @_;
   my $name = $hash->{NAME};
   my $r = AttrVal($name,"HomeSensorsSmokeReading","state");
   my $v = AttrVal($name,"HomeSensorsSmokeValue","on");
@@ -3024,8 +3026,26 @@ sub HOMEMODE_Smoke($$$)
   {
     push @cmds,AttrVal($name,"HomeCMDsmoke-off","") if (AttrVal($name,"HomeCMDsmoke-off",""));
   }
-  readingsSingleUpdate($hash,"alarm_smoke",@sensors,1);
-  HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds)) if (@cmds);
+  if (@cmds)
+  {
+    my @commands;
+    foreach my $cmd (@cmds)
+    {
+      my ($n,$s) = split /\|/,AttrVal($name,"HomeTextNosmokeSmoke","no smoke|smoke");
+      my $sta = $state eq $v ? $s : $n;
+      my $alias = HOMEMODE_name2alias($trigger,1);
+      $cmd =~ s/%ALIAS%/$alias/gm;
+      $cmd =~ s/%SENSOR%/$trigger/gm;
+      $cmd =~ s/%STATE%/$sta/gm;
+      push @commands,$cmd;
+    }
+    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
+  }
+  readingsBeginUpdate($hash);
+  readingsBulkUpdate($hash,"alarm_smoke",join(",",@sensors));
+  readingsBulkUpdate($hash,"alarm_smoke_ct",scalar @sensors);
+  readingsBulkUpdate($hash,"alarm_smoke_hr",HOMEMODE_makeHR($hash,0,@sensors));
+  readingsEndUpdate($hash,1);
 }
 
 sub HOMEMODE_Weather($$)
