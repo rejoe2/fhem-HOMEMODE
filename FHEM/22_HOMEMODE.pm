@@ -156,11 +156,17 @@ sub HOMEMODE_Notify($$)
     }
     elsif (grep /^DEFINED/,@{$events})
     {
-      foreach my $evt (@{$events})
+      foreach (@{$events})
       {
-        next unless ($evt =~ /^DEFINED:\s(.*)$/);
+        next unless ($_ =~ /^DEFINED\s(.*)$/);
         my $dev = $1;
         CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom","")) if ($dev =~ /^atTmp_.*_$name$/ && AttrVal($name,"HomeAtTmpRoom",""));
+        my $cmd = AttrVal($name,"HomeCMDfhemDEFINED","");
+        if ($cmd)
+        {
+          $cmd =~ s/%DEFINED%/$dev/gm;
+          push @commands,$cmd;
+        }
       }
     }
     elsif (grep /^(REREADCFG|MODIFIED\s$name)$/,@{$events})
@@ -689,6 +695,7 @@ sub HOMEMODE_updateInternals($;$)
     HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
     HOMEMODE_Luminance($hash) if ($hash->{SENSORSLUMINANCE});
     HOMEMODE_PowerEnergy($hash) if ($hash->{SENSORSENERGY});
+    HOMEMODE_Smoke($hash) if ($hash->{SENSORSSMOKE});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
   }
@@ -1228,6 +1235,9 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeAutoAwoken";
   push @attribs,"HomeAutoDaytime:0,1";
   push @attribs,"HomeAutoPresence:1,0";
+  push @attribs,"HomeCMDalarmSmoke:textField-long";
+  push @attribs,"HomeCMDalarmSmoke-on:textField-long";
+  push @attribs,"HomeCMDalarmSmoke-off:textField-long";
   push @attribs,"HomeCMDalarmTriggered:textField-long";
   push @attribs,"HomeCMDalarmTriggered-off:textField-long";
   push @attribs,"HomeCMDalarmTriggered-on:textField-long";
@@ -1252,6 +1262,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDdnd-off:textField-long";
   push @attribs,"HomeCMDdnd-on:textField-long";
   push @attribs,"HomeCMDevent:textField-long";
+  push @attribs,"HomeCMDfhemDEFINED:textField-long";
   push @attribs,"HomeCMDfhemINITIALIZED:textField-long";
   push @attribs,"HomeCMDfhemSAVE:textField-long";
   push @attribs,"HomeCMDfhemUPDATE:textField-long";
@@ -1289,9 +1300,6 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDpresence-present-resident:textField-long";
   push @attribs,"HomeCMDpublic-ip-change:textField-long";
   push @attribs,"HomeCMDseason:textField-long";
-  push @attribs,"HomeCMDsmoke:textField-long";
-  push @attribs,"HomeCMDsmoke-on:textField-long";
-  push @attribs,"HomeCMDsmoke-off:textField-long";
   push @attribs,"HomeCMDtwilight:textField-long";
   push @attribs,"HomeCMDtwilight-sr:textField-long";
   push @attribs,"HomeCMDtwilight-sr_astro:textField-long";
@@ -1345,6 +1353,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeTextAndAreIs";
   push @attribs,"HomeTextClosedOpen";
   push @attribs,"HomeTextRisingConstantFalling";
+  push @attribs,"HomeTextNosmokeSmoke";
   push @attribs,"HomeTextTodayTomorrowAfterTomorrow";
   push @attribs,"HomeTextWeatherForecastToday:textField-long";
   push @attribs,"HomeTextWeatherForecastTomorrow:textField-long";
@@ -2847,17 +2856,15 @@ sub HOMEMODE_ContactCommands($$$$)
   push @cmds,AttrVal($name,"HomeCMDcontactDoormainClosed","") if (AttrVal($name,"HomeCMDcontactDoormainClosed",undef) && $kind eq "doormain" && $state eq "closed");
   if (@cmds)
   {
-    my @commands;
-    foreach my $cmd (@cmds)
+    foreach (@cmds)
     {
       my ($c,$o) = split /\|/,AttrVal($name,"HomeTextClosedOpen","closed|open");
       my $sta = $state eq "open" ? $o : $c;
-      $cmd =~ s/%ALIAS%/$alias/gm;
-      $cmd =~ s/%SENSOR%/$contact/gm;
-      $cmd =~ s/%STATE%/$sta/gm;
-      push @commands,$cmd;
+      $_ =~ s/%ALIAS%/$alias/gm;
+      $_ =~ s/%SENSOR%/$contact/gm;
+      $_ =~ s/%STATE%/$sta/gm;
     }
-    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
+    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds));
   }
 }
 
@@ -2872,17 +2879,15 @@ sub HOMEMODE_MotionCommands($$$)
   push @cmds,AttrVal($name,"HomeCMDmotion-off","") if (AttrVal($name,"HomeCMDmotion-off",undef) && $state eq "closed");
   if (@cmds)
   {
-    my @commands;
-    foreach my $cmd (@cmds)
+    foreach (@cmds)
     {
       my ($c,$o) = split /\|/,AttrVal($name,"HomeTextClosedOpen","closed|open");
       $state = $state eq "open" ? $o : $c;
-      $cmd =~ s/%ALIAS%/$alias/gm;
-      $cmd =~ s/%SENSOR%/$sensor/gm;
-      $cmd =~ s/%STATE%/$state/gm;
-      push @commands,$cmd;
+      $_ =~ s/%ALIAS%/$alias/gm;
+      $_ =~ s/%SENSOR%/$sensor/gm;
+      $_ =~ s/%STATE%/$state/gm;
     }
-    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
+    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds));
   }
 }
 
@@ -2904,15 +2909,13 @@ sub HOMEMODE_EventCommands($$$)
     push @cmds,AttrVal($name,"HomeCMDevent-$cal-$pevt-end","") if (AttrVal($name,"HomeCMDevent-$cal-$pevt-end",undef));
     if (@cmds)
     {
-      my @commands;
-      foreach my $cmd (@cmds)
+      foreach (@cmds)
       {
-        $cmd =~ s/%CALENDAR%/$cal/gm;
-        $cmd =~ s/%EVENT%/$event/gm;
-        $cmd =~ s/%PREVEVENT%/$prevevent/gm;
-        push @commands,$cmd;
+        $_ =~ s/%CALENDAR%/$cal/gm;
+        $_ =~ s/%EVENT%/$event/gm;
+        $_ =~ s/%PREVEVENT%/$prevevent/gm;
       }
-      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
+      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds));
     }
     readingsSingleUpdate($hash,"event-$cal",$event,1);
   }
@@ -2960,6 +2963,7 @@ sub HOMEMODE_HomebridgeMapping($)
   $mapping .= "\nStatusTampered=sensorsTampered_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"sensorsTampered_ct",undef));
   $mapping .= "\nMotionDetected=motionsInside_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"motionsInside_ct",undef));
   $mapping .= "\nStatusLowBattery=batteryLow_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"batteryLow_ct",undef));
+  $mapping .= "\nSmokeDetected=alarm_smoke_ct,values=0:0;/.*/:1" if (defined ReadingsVal($name,"alarm_smoke_ct",undef));
   $mapping .= "\nE863F10F-079E-48FF-8F27-9C2605A29F52=pressure,name=AirPressure,format=UINT16" if (defined ReadingsVal($name,"wind",undef));
   addToDevAttrList($name,"genericDeviceType") if (!grep /^genericDeviceType/,split(" ",AttrVal("global","userattr","")));
   addToDevAttrList($name,"homebridgeMapping:textField-long") if (!grep /^homebridgeMapping/,split(" ",AttrVal("global","userattr","")));
@@ -3005,7 +3009,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
   }
 }
 
-sub HOMEMODE_Smoke($$$)
+sub HOMEMODE_Smoke($;$$)
 {
   my ($hash,$trigger,$state) = @_;
   my $name = $hash->{NAME};
@@ -3016,30 +3020,31 @@ sub HOMEMODE_Smoke($$$)
   {
     push @sensors,$_ if (ReadingsVal($_,$r,"") eq $v)
   }
-  my @cmds;
-  push @cmds,AttrVal($name,"HomeCMDsmoke","") if (AttrVal($name,"HomeCMDsmoke",""));
-  if (@sensors)
+  if ($trigger && $state)
   {
-    push @cmds,AttrVal($name,"HomeCMDsmoke-on","") if (AttrVal($name,"HomeCMDsmoke-on",""));
-  }
-  else
-  {
-    push @cmds,AttrVal($name,"HomeCMDsmoke-off","") if (AttrVal($name,"HomeCMDsmoke-off",""));
-  }
-  if (@cmds)
-  {
-    my @commands;
-    foreach my $cmd (@cmds)
+    my @cmds;
+    push @cmds,AttrVal($name,"HomeCMDalarmSmoke","") if (AttrVal($name,"HomeCMDalarmSmoke",""));
+    if (@sensors)
     {
-      my ($n,$s) = split /\|/,AttrVal($name,"HomeTextNosmokeSmoke","no smoke|smoke");
-      my $sta = $state eq $v ? $s : $n;
-      my $alias = HOMEMODE_name2alias($trigger,1);
-      $cmd =~ s/%ALIAS%/$alias/gm;
-      $cmd =~ s/%SENSOR%/$trigger/gm;
-      $cmd =~ s/%STATE%/$sta/gm;
-      push @commands,$cmd;
+      push @cmds,AttrVal($name,"HomeCMDalarmSmoke-on","") if (AttrVal($name,"HomeCMDalarmSmoke-on",""));
     }
-    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands));
+    else
+    {
+      push @cmds,AttrVal($name,"HomeCMDalarmSmoke-off","") if (AttrVal($name,"HomeCMDalarmSmoke-off",""));
+    }
+    if (@cmds)
+    {
+      foreach (@cmds)
+      {
+        my ($n,$s) = split /\|/,AttrVal($name,"HomeTextNosmokeSmoke","no smoke|smoke");
+        my $sta = $state eq $v ? $s : $n;
+        my $alias = HOMEMODE_name2alias($trigger,1);
+        $_ =~ s/%ALIAS%/$alias/gm;
+        $_ =~ s/%SENSOR%/$trigger/gm;
+        $_ =~ s/%STATE%/$sta/gm;
+      }
+      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@cmds));
+    }
   }
   readingsBeginUpdate($hash);
   readingsBulkUpdate($hash,"alarm_smoke",join(",",@sensors));
@@ -3454,6 +3459,14 @@ sub HOMEMODE_Details($$$)
       default: 0
     </li>
     <li>
+      <b><i>HomeCMDalarmSmoke</i></b><br>
+      cmds to execute on any smoke alarm state
+    </li>
+    <li>
+      <b><i>HomeCMDalarmSmoke-&lt;on/off&gt;</i></b><br>
+      cmds to execute on smoke alarm state on/off
+    </li>
+    <li>
       <b><i>HomeCMDalarmTampered</i></b><br>
       cmds to execute on any tamper alarm state
     </li>
@@ -3548,6 +3561,10 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>HomeCMDevent-&lt;%CALENDAR%&gt;-&lt;%EVENT%&gt;-end</i></b><br>
       cmds to execute on end of a specific calendar event
+    </li>
+    <li>
+      <b><i>HomeCMDfhemDEFINED</i></b><br>
+      cmds to execute on any defined device
     </li>
     <li>
       <b><i>HomeCMDfhemINITIALIZED</i></b><br>
@@ -3964,6 +3981,11 @@ sub HOMEMODE_Details($$$)
       <b><i>HomeTextRisingConstantFalling</i></b><br>
       pipe separated list of your local translation for "rising", "constant" and "falling"<br>
       default: rising|constant|falling
+    </li>
+    <li>
+      <b><i>HomeTextNosmokeSmoke</i></b><br>
+      pipe separated list of your local translation for "no smoke" and "smoke"<br>
+      default: so smoke|smoke
     </li>
     <li>
       <b><i>HomeTextTodayTomorrowAfterTomorrow</i></b><br>
@@ -4482,6 +4504,12 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%CONTACT%</i></b><br>
       value of the lastContact reading (last opened sensor)
+    </li>
+    <li>
+      <b><i>%DEFINED%</i></b><br>
+      name of the previously defined device<br>
+      can be used to trigger actions based on the name of the defined device<br>
+      only available within HomeCMDfhemDEFINED
     </li>
     <li>
       <b><i>%DAYTIME%</i></b><br>
