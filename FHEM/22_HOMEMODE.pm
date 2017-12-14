@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15404 2017-11-06 28:11:47Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15605 2017-12-14 21:27:02Z DeeSPe $
 #
 # Usage
 #
@@ -144,15 +144,18 @@ sub HOMEMODE_Notify($$)
     if (grep /^INITIALIZED$/,@{$events})
     {
       HOMEMODE_updateInternals($hash);
-      push @commands,AttrVal($name,"HomeCMDfhemINITIALIZED","") if (AttrVal($name,"HomeCMDfhemINITIALIZED",""));
+      push @commands,AttrVal($name,"HomeCMDfhemINITIALIZED","")
+        if (AttrVal($name,"HomeCMDfhemINITIALIZED",""));
     }
     elsif (grep /^SAVE$/,@{$events})
     {
-      push @commands,AttrVal($name,"HomeCMDfhemSAVE","") if (AttrVal($name,"HomeCMDfhemSAVE",""));
+      push @commands,AttrVal($name,"HomeCMDfhemSAVE","")
+        if (AttrVal($name,"HomeCMDfhemSAVE",""));
     }
     elsif (grep /^UPDATE$/,@{$events})
     {
-      push @commands,AttrVal($name,"HomeCMDfhemUPDATE","") if (AttrVal($name,"HomeCMDfhemUPDATE",""));
+      push @commands,AttrVal($name,"HomeCMDfhemUPDATE","")
+        if (AttrVal($name,"HomeCMDfhemUPDATE",""));
     }
     elsif (grep /^DEFINED/,@{$events})
     {
@@ -160,16 +163,17 @@ sub HOMEMODE_Notify($$)
       {
         next unless ($_ =~ /^DEFINED\s(.*)$/);
         my $dev = $1;
-        CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom","")) if ($dev =~ /^atTmp_.*_$name$/ && AttrVal($name,"HomeAtTmpRoom",""));
         my $cmd = AttrVal($name,"HomeCMDfhemDEFINED","");
         if ($cmd)
         {
           $cmd =~ s/%DEFINED%/$dev/gm;
           push @commands,$cmd;
         }
+        CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom",""))
+          if ($dev =~ /^atTmp_.*_$name$/ && $defs{$dev}->{TYPE} eq "at" && AttrVal($name,"HomeAtTmpRoom",""));
       }
     }
-    elsif (grep /^(REREADCFG|MODIFIED\s$name)$/,@{$events})
+    elsif (grep /^REREADCFG|MODIFIED\s$name$/,@{$events})
     {
       HOMEMODE_updateInternals($hash,1);
     }
