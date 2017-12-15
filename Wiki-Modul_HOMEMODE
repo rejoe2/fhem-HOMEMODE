@@ -13,16 +13,16 @@ Diese Seite beschreibt die Konfiguration und Verwendung des Moduls ''22_HOMEMODE
 =Allgemeines=
 Das Modul ''22_HOMEMODE.pm'' wurde entworfen um den gesamten Heim-/Hausstatus in einem Gerät abzubilden.
 
-Zusätzlich wurde das Modul für die Verwendung mit HomeKit als GUI optimiert. Alle möglichen Mappings für Homebridge sind bereits enthalten und können über einen set Befehl aktualisiert werden.
-
-== Voraussetzungen ==
-Um Modul ''22_HOMEMODE.pm'' benutzen zu können benötigt man als Mindestvoraussetzung ein bereits angelegtes RESIDENTS Gerät mit entsprechenden ROOMMATE/GUEST Geräten.
-
 Viele allgemein typische Automationen sind bereits fertig integriert.
 
 Die jeweils per Event auszuführenden Befehle können in den entsprechenden ''HomeCMD...'' Atributen hinterlegt werden und so in der Detail Ansicht des HOMEMODE Geräts übersichtlich angezeigt und bearbeitet werden.
 
 Das Anlegen vieler notify/DOIF ist damit unnötig.
+
+Zusätzlich wurde das Modul für die Verwendung mit HomeKit als GUI optimiert. Alle möglichen Mappings für Homebridge sind bereits enthalten und können über einen set Befehl aktualisiert werden.
+
+== Voraussetzungen ==
+Um Modul ''22_HOMEMODE.pm'' benutzen zu können benötigt man als Mindestvoraussetzung ein bereits angelegtes RESIDENTS Gerät mit entsprechenden ROOMMATE/GUEST Geräten.
 
 == Beispiele für mögliche Automationen ==
 Alle Automationen sind optional.
@@ -48,6 +48,7 @@ Hier ein paar Beispiele:
 Das HOMEMODE Gerät - hier mit dem Namen ''Home'' versehen - selbst wird über
  define Home HOMEMODE
 bei Vorhandensein nur eines RESIDENTS Geräts definiert.
+
 Bei Verwendung mehrerer RESIDENTS Geräte muss das Master RESIDENTS Gerät beim Definieren mit angegeben werden
  define Home HOMEMODE rgr_Residents
 *Dieses Modul verwendet das globale Attribut ''language'' zur Bestimmung der Anzeigedaten (Standard: EN=english). Für deutsche Ausgabedaten kann in FHEM das Attribut 
