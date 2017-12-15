@@ -21,10 +21,10 @@ Das Anlegen vieler notify/DOIF ist durch den Einsatz von ''HOMEMODE'' unnötig.
 
 Zusätzlich wurde das Modul für die Verwendung mit HomeKit als GUI optimiert. Alle möglichen Mappings für Homebridge sind bereits enthalten und können über einen set Befehl aktualisiert werden.
 
-== Voraussetzungen ==
+==Voraussetzungen==
 Um Modul ''22_HOMEMODE.pm'' benutzen zu können benötigt man als Mindestvoraussetzung ein bereits angelegtes RESIDENTS Gerät mit entsprechenden ROOMMATE/GUEST Geräten.
 
-== Beispiele für mögliche Automationen ==
+==Beispiele für mögliche Automationen==
 Alle Automationen sind optional.
 
 Hier ein paar Beispiele:
