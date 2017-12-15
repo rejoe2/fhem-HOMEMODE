@@ -17,7 +17,7 @@ Viele allgemein typische Automationen sind bereits fertig integriert.
 
 Die jeweils per Event auszuführenden Befehle können in den entsprechenden ''HomeCMD...'' Atributen hinterlegt werden und so in der Detail Ansicht des HOMEMODE Geräts übersichtlich angezeigt und bearbeitet werden.
 
-Das Anlegen vieler notify/DOIF ist damit unnötig.
+Das Anlegen vieler notify/DOIF ist durch den Einsatz von ''HOMEMODE'' unnötig.
 
 Zusätzlich wurde das Modul für die Verwendung mit HomeKit als GUI optimiert. Alle möglichen Mappings für Homebridge sind bereits enthalten und können über einen set Befehl aktualisiert werden.
 
@@ -29,7 +29,7 @@ Alle Automationen sind optional.
 
 Hier ein paar Beispiele:
 *Änderung des Zustands von ROOMMATE/GUEST Geräten anhand von PRESENCE Geräten
-*Bereistellung von CMD Attributen für mögliche Events rund um den "Zuhause Modus"
+*Bereistellung von CMD Attributen für mögliche Events rund um den Heim-/Hausstatus
 *Bereistellung von Platzhaltern innerhalb der CMD Attribute, z.B. %MODE%, %SEASON% oder %PREVMODE% für die Werte der Readings mode, season und prevMode
 *Einbindung von Kontakt Sensoren, für z.B. Offen-Warnungen nach bestimmten Zeitraum oder Alarm Meldungen in bestimmten Alarm Modus - kann pro Kontakt Sensor konfiguriert werden
 *Einbindung von Bewegungs Sensoren, für z.B. automatische Licht Schaltungen oder Alarm Meldungen in bestimmten Alarm Modus - kann pro Bewegungs Sensor konfiguriert werden
@@ -42,6 +42,7 @@ Hier ein paar Beispiele:
 *Bewohner unabhängige Tageszeit-Modus
 *Alarm-Modus
 *DND-Modus
+*Überwachung von Batteriewerten
 
 =HOMEMODE-Gerät=
 ==Definition==
