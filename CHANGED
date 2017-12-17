@@ -1,3 +1,6 @@
+    v1.2.1
+    - rename readings alarm_smoke to alarmSmoke
+    - add placeholders %SENSORSSMOKE%, %SMOKE%, %SMOKECT% and %SMOKEHR%
     v1.2.0
     - set location wayhome automatically if a ROOMMATE/GUEST sets its location to wayhome (reading wayhome 1)
     - add SmokeSensors

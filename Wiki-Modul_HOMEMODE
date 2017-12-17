@@ -24,7 +24,7 @@ Zusätzlich wurde das Modul für die Verwendung mit HomeKit als GUI optimiert. A
 ==Voraussetzungen==
 Um Modul ''22_HOMEMODE.pm'' benutzen zu können benötigt man als Mindestvoraussetzung ein bereits angelegtes RESIDENTS Gerät mit entsprechenden ROOMMATE/GUEST Geräten.
 
-==Beispiele für mögliche Automationen==
+==Mögliche Automationen==
 Alle Automationen sind optional.
 
 Hier ein paar Beispiele:
@@ -52,8 +52,87 @@ bei Vorhandensein nur eines RESIDENTS Geräts definiert.
 
 Bei Verwendung mehrerer RESIDENTS Geräte muss das Master RESIDENTS Gerät beim Definieren mit angegeben werden
  define Home HOMEMODE rgr_Residents
-*Dieses Modul verwendet das globale Attribut ''language'' zur Bestimmung der Anzeigedaten (Standard: EN=english). Für deutsche Ausgabedaten kann in FHEM das Attribut 
+Dieses Modul verwendet das globale Attribut ''language'' zur Bestimmung der Anzeigedaten (Standard: EN=english). Für deutsche Ausgabedaten kann das Attribut
  attr global language DE
-gesetzt werden.
-*alternativ kann auch nur das HOMEMODE Gerät auf deutsch geändert werden
+gesetzt werden.<br>
+Alternativ kann auch nur das HOMEMODE Gerät auf deutsch geändert werden
  attr Home HomeLanguage DE
+
+==Set-Befehle==
+''set &lt;required&gt; [optional]''
+
+ set Home anyoneElseAtHome <on/off>
+einschalten wenn jemand anderes zu Hause ist der kein registrierter ROOMMATE/GUEST ist, z.B. Hund/Katze oder unregistrierte Gäste<br>
+wenn eingeschaltet, dann wird der Alarm Mode beim Verlassen statt auf armaway nur auf armhome gestellt<br>
+schaltet man ein und hat schon Haus/Wohnung verlassen, so wird der Alarm Mode von armaway auf armhome gestellt<br>
+Platzhalter %AEAH% in allen HomeCMD Attributen verfügbar
+
+ set Home dnd <on/off>
+schaltet den "Bitte nicht stören" Modus ein<br>
+z.B. um Benachrichtigungen zu deaktivieren<br>
+Platzhalter %DND% in allen HomeCMD Attributen verfügbar
+
+ set Home dnd-for-minutes <MINUTES>
+schaltet den "Bitte nicht stören" Modus für die angegebenen Minuten ein<br>
+kehrt danach zum vorherigen (tageszeitabhängigen) Modus zurück
+
+ set Home location <arrival/home/bed/underway/wayhome>
+manueller Ortswechsel<br>
+Platzhalter %LOCATION% in allen HomeCMD Attributen verfügbar
+
+ set Home mode <morning/day/afternoon/evening/night/gotosleep/asleep/absent/gone/home>
+manueller Moduswechsel<br>
+Platzhalter %MODE% in allen HomeCMD Attributen verfügbar
+
+ set Home modeAlarm <armaway/armhome/armnight/disarm>
+schaltet den angegebenen Alarm Modus ein<br>
+Platzhalter %AMODE% in allen HomeCMD Attributen verfügbar
+
+ set Home modeAlarm-for-minutes <armaway/armhome/armnight/disarm> <MINUTES>
+schaltet den angegebenen Alarm Modus für die angegebenen Minuten ein
+kehrt danach zum vorherigen Alarm Modus zurück
+
+ set Home updateHomebridgeMapping
+aktualisiert das Attribut homebridgeMapping des HOMEMODDE Device abhängig von den verfügbaren Informationen
+
+ set Home updateInternalForce
+führt eine Aktualisierung der Internals des HOMEMODE Device aus<br>
+das sollte manuell benutzt werden nachdem das Modul aktualisiert und nur ein reload statt restart gemacht wurde<br>
+auch wenn man überwachte/kontrollierte Geräte ändert sollte man diesen Befehl manuell ausführen, z.B. neue ROOMMATE/GUEST im RESIDENTS Device hinzufügt, oder Geräte in FHEM hinzufügt die dem selben Devspec wie bisher entsprechen (Steckdosen, Sensoren)
+
+==Get-Befehle==
+''get &lt;required&gt; [optional]''
+
+ get Home contactsOpen <all/doorsinside/doorsoutside/doorsmain/outside/windows>
+Liste von all/doorsinside/doorsoutside/doorsmain/outside/windows offenen Kontakten<br>
+Platzhalter %OPEN% (contactsOutsideOpen) und %OPENCT% (contactsOutsideOpen_ct) sind in allen HomeCMD Attributen verfügbar
+
+ get Home publicIP
+holen der öffentlichen IP Adresse<br>
+Platzhalter %IP% ist in allen HomeCMD Attributen verfügbar
+
+ get Home sensorsTampered
+Liste aller sabotierten Sensoren<br>
+Platzhalter %TAMPERED% in allen HomeCMD Attributen verfügbar
+
+ get Home weather <long/short>
+Wetterinfo im angegebenen Format<br>
+Platzhalter %WEATHER% und %WEATHERLONG% sind in allen HomeCMD Attributen verfügbar
+
+ get Home weatherForecast [TAG]
+Wettervorhersage für angegebenen Tag<br>
+wenn kein Tag angegeben wird, so wird die Vorhersage für morgen (2) asugegeben<br>
+Platzhalter %FORECAST% (morgen) und %FORECASTTODAY% (heute) sind in allen HomeCMD Attributen verfügbar
+
+
+==Attribute==
+
+=Konfiguration=
+
+==Konfiguration Presence Devices (automatische anwesend/abwesend Umschaltung von ROOMMATE/GUEST)==
+
+==Erweiterte Konfiguration==
+
+==HomeCMD Attribute (mit Beispielen)==
+
+==Platzhalter==
