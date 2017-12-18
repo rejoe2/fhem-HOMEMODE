@@ -1240,12 +1240,12 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeCMDalarmSmoke:textField-long";
   push @attribs,"HomeCMDalarmSmoke-on:textField-long";
   push @attribs,"HomeCMDalarmSmoke-off:textField-long";
-  push @attribs,"HomeCMDalarmTriggered:textField-long";
-  push @attribs,"HomeCMDalarmTriggered-off:textField-long";
-  push @attribs,"HomeCMDalarmTriggered-on:textField-long";
   push @attribs,"HomeCMDalarmTampered:textField-long";
   push @attribs,"HomeCMDalarmTampered-off:textField-long";
   push @attribs,"HomeCMDalarmTampered-on:textField-long";
+  push @attribs,"HomeCMDalarmTriggered:textField-long";
+  push @attribs,"HomeCMDalarmTriggered-off:textField-long";
+  push @attribs,"HomeCMDalarmTriggered-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-on:textField-long";
   push @attribs,"HomeCMDanyoneElseAtHome-off:textField-long";
