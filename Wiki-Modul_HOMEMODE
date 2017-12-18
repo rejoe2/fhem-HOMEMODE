@@ -375,8 +375,8 @@ Werteformat: Devspec<br>
 Standardwert:
 
 ''In meinem Falle sind das Fibaro Motion Sensor Gen4/5.''<br>
-''Darum ist bei mir als Devspec '''modelId=010f-0801-1001|010f-0800-1001''' eingetragen um alle diese Bewegungssensoren zu erfassen.<br>
-Damit bei den Gen5 Sensoren auch das open im reading state steht, habe ich mir bei diesen Sensoren ein userReading angelegt.''<br>
+''Darum ist bei mir als Devspec '''modelId=010f-0801-1001|010f-0800-1001''' eingetragen um alle diese Bewegungssensoren zu erfassen.''<br>
+''Damit bei den Gen5 Sensoren auch das open im reading state steht, habe ich mir bei diesen Sensoren ein userReading angelegt.''<br>
 Nach Übernehmen des Attributs werden alle gefundenen Bewegungssensoren mit ihren Namen im Internal SENSORSMOTION des HOMEMODE Device einzeln aufgelistet und können dort auch direkt angeklickt werden.<br>
 Des weiteren werden beim Übernehmen dieses Attributs jedem Bewegungssensor folgende Attribute im Attribut userattr hinzugefügt:
 
@@ -393,18 +393,18 @@ Werte: frei wählbar<br>
 Werteformat: zwei Wörter<br>
 Standardwert: state sabotageError
 
+=====HomeSensorLocation=====
+Standort des Bewegungssensors (außen oder innen) - wird standardmäßig beim Hinzufügen zum HOMEMODE Device auf "inside" gesetzt, sollte jedoch für jeden Kontaktsensor einzeln überprüft werden<br>
+Werte: inside,outside<br>
+Werteformat: vorgegebene Werteauswahl<br>
+Standardwert: inside
+
 =====HomeValues=====
 Regex der Werte die für offen und sabotiert stehen.<br>
 Die hier eingetragenen Werte überschreiben die Werte aus dem Attribut HomeSensorsMotionValues des HOMEMODE Device.<br>
 Werte: frei wählbar<br>
 Werteformat: Regex<br>
 Standardwert: open|on
-
-=====HomeSensorLocation=====
-Standort des Bewegungssensors (außen oder innen) - wird standardmäßig beim Hinzufügen zum HOMEMODE Device auf "inside" gesetzt, sollte jedoch für jeden Kontaktsensor einzeln überprüft werden<br>
-Werte: inside,outside<br>
-Werteformat: vorgegebene Werteauswahl<br>
-Standardwert: inside
 
 ====HomeSensorsMotionReadings====
 2 leerzeichenseparierte Readings für open und sabotage.<br>
@@ -471,6 +471,18 @@ Standardwert: and|are|is
 Werte: frei wählbar separiert mit |<br>
 Werteformat: Wort<br>
 Standardwert: closed|open
+
+====HomeTextNosmokeSmoke====
+Übersetzung für "no smoke" und "smoke"<br>
+Werte: frei wählbar separiert mit |<br>
+Werteformat: Wort<br>
+Standardwert: no smoke|smoke
+
+====HomeTextRisingConstantFalling====
+Übersetzung für "rising", "constant" und "falling"<br>
+Werte: frei wählbar separiert mit |<br>
+Werteformat: Wort<br>
+Standardwert: rising|constant|falling
 
 ====HomeTextTodayTomorrowAfterTomorrow====
 Übersetzung für "today", "tomorrow" und "day after tomorrow"<br>
@@ -568,7 +580,7 @@ Befehle die beim Anfang/Ende eines Rauchalarms ausgeführt werden sollen.<br>
 Befehle die beim Ende eines Rauchalarms ausgeführt werden sollen.<br>
 Auslöser: Ende Rauchalarm eines beliebigen (von HOMEMODE überwachten) Rauchmelders<br>
 '''Beispiel:'''
- msg audio ENTWARNUNG: Alle Rauchalarme sind beendet!
+ msg push ENTWARNUNG: Alle Rauchalarme sind beendet!
 
 ====HomeCMDalarmSmoke-on====
 Befehle die bei einem Rauchalarm ausgeführt werden sollen.<br>
@@ -582,13 +594,13 @@ Auslöser: Rauchalarm eines beliebigen (von HOMEMODE überwachten) Rauchmelders<
  }
 
 ====HomeCMDalarmTampered====
-Befehle die beim Anfang/Ende eines Sabotage Alarms ausgeführt werden sollen.<br>
+Befehle die beim Anfang/Ende eines Sabotage Alarms ausgeführt werden sollen.
 
 ====HomeCMDalarmTampered-off====
 Befehle die beim Ende eines Sabotage Alarms ausgeführt werden sollen.<br>
 Auslöser: Ende Sabotage Alarm eines beliebigen (von HOMEMODE überwachten) Kontakt-/Bewegungs-Sensors<br>
 '''Beispiel:'''
- msg audio ENTWARNUNG: Alle Manipulationen wurden beseitigt!
+ msg push ENTWARNUNG: Alle Manipulationen wurden beseitigt!
 
 ====HomeCMDalarmTampered-on====
 Befehle die bei einem Sabotage Alarm ausgeführt werden sollen.<br>
@@ -598,7 +610,242 @@ Auslöser: Sabotage Alarm eines beliebigen (von HOMEMODE überwachten) Kontakt-/
    my $t = "%TAMPERED%";
    my $s = "ist";
    $s = "sind" if ($t =~ /und/);
-   fhem "msg audio ACHTUNG: $t $s sabotiert!";
+   fhem "msg push ACHTUNG: $t $s sabotiert!";
  }
+
+====HomeCMDalarmTriggered====
+Befehle die beim Anfang/Ende eines Alarms ausgeführt werden sollen.
+
+====HomeCMDalarmTriggered-off====
+Befehle die beim Ende eines Alarms ausgeführt werden sollen.<br>
+Auslöser: Ende Alarm eines beliebigen (von HOMEMODE überwachten) Kontakt-/Bewegungs-Sensors<br>
+'''Beispiel:'''
+ msg ENTWARNUNG: Alle Alarme sind beendet!
+
+====HomeCMDalarmTriggered-on====
+Befehle die bei einem Alarm ausgeführt werden sollen.<br>
+Auslöser: Alarm eines beliebigen (von HOMEMODE überwachten) Kontakt-/Bewegungs-Sensors<br>
+'''Beispiel:'''
+ {
+   my $t = "%ALARMHR%";
+   my $s = "ist";
+   $s = "sind" if ($t =~ /und/);
+   fhem "msg audio,light 2 !!! ALARM !!! $t $s ausgelöst!";
+ }
+
+====HomeCMDanyoneElseAtHome====
+Befehle die beim on/off von anyoneElseAtHome ausgeführt werden sollen.
+
+====HomeCMDanyoneElseAtHome-off====
+Befehle die ausgeführt werden sollen sobald anyoneElseAtHome deaktiviert wird.<br>
+Bei Abwesenheit und nicht deaktiviertem HomeAutoAlarmModes wird der Alarm Mode von "armaway" auf "armhome" umgeschaltet damit evtl. vorhandene Bewegungsmelder keinen Alarm mehr melden.<br>
+Auslöser: anyoneElseAtHome on<br>
+'''Beispiel:'''
+ msg HINWEIS: Es ist nun niemand anderes mehr zu Hause!
+
+====HomeCMDanyoneElseAtHome-on====
+Befehle die ausgeführt werden sollen sobald anyoneElseAtHome aktiviert wird.<br>
+Bei Abwesenheit und nicht deaktiviertem HomeAutoAlarmModes wird der Alarm Mode von "armhome" auf "armaway" umgeschaltet damit evtl. vorhandene Bewegungsmelder wieder Alarme melden können.<br>
+Wird anyoneElseAtHome bei Anwesenheit und nicht deaktiviertem HomeAutoAlarmModes aktiviert, so passiert erst einmal nichts, ausser dass die hier angegebenen Befehle ausgeführt werden. Wird dann später die Abwesenheit erkannt, schaltet der Alarm Mode auf "armhome" statt auf "armaway" damit evtl. vorhandene Bewegungsmelder keinen Alarm mehr melden.<br>
+Auslöser: anyoneElseAtHome off<br>
+'''Beispiel:'''
+ msg HINWEIS: Es ist nun noch jemand anderes zu Hause!
+
+====HomeCMDbatteryLow====
+Befehle die ausgeführt werden sollen sobald ein Sensor einen niedrigen Batteriewert meldet.<br>
+'''Beispiel:'''
+ {
+   my $t;
+   $t .= "Die Batterien von %BATTERYLOW% gehen zur Neige und sollten ausgetauscht werden!" if (%BATTERYLOWCT% == 1);
+   $t .= "Die Batterien bei folgenden Geräten sollten ausgetauscht werden: %BATTERYLOWALL%" if (%BATTERYLOWCT% > 1);
+   fhem "msg $t";
+ }
+
+====HomeCMDcontact====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor open/tilted/closed meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor open/tilted/closed<br>
+'''Beispiel:'''
+ {
+   my $a = "%ALIAS%";
+   $a =~ s/d/D/;
+   fhem "msg $a ist nun %STATE%!";
+ }
+
+====HomeCMDcontactClosed====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor geschlossen meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor closed<br>
+'''Beispiel:'''
+ {
+   my $a = "%ALIAS%";
+   $a =~ s/d/D/;
+   fhem "msg $a ist nun geschlossen!";
+ }
+
+====HomeCMDcontactOpen====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor offen meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor open/tilted<br>
+'''Beispiel:'''
+ {
+   my $a = "%ALIAS%";
+   $a =~ s/d/D/;
+   fhem "msg $a ist nun offen!";
+ }
+
+==Benötigte Events==
+Folgende Events werden von HOMEMODE ausgewertet bzw. werden benötigt damit HOMEMODE vollumfänglich funktionieren kann.
+
+<table>
+  <tr>
+    <td><b>DEVICE-TYPE</b></td>
+    <td><b>EVENT</b></td>
+  </tr>
+  <tr>
+    <td>RESIDENTS</td>
+    <td>state</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>presence</td>
+  </tr>
+  <tr>
+    <td>ROOMMATE,GUEST</td>
+    <td>state</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>presence</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>wayhome</td>
+  </tr>
+  <tr>
+    <td>{SENSORSCONTACT}</td>
+    <td>state</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>sabotageError</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeReadings"</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeSensorsContactReadings"</td>
+  </tr>
+  <tr>
+    <td>{SENSORSMOTION}</td>
+    <td>state</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>sabotageError</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeReadings"</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeSensorsMotionReadings"</td>
+  </tr>
+  <tr>
+    <td>{SENSORSLUMINANCE}</td>
+    <td>luminance</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeSensorsLuminanceReading"</td>
+  </tr>
+  <tr>
+    <td>{SENSORSENERGY}</td>
+    <td>power</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>energy</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeSensorsPowerEnergyReadings"</td>
+  </tr>
+  <tr>
+    <td>{SENSORSBATTERY}</td>
+    <td>battery</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>"HomeSensorsBatteryReading"</td>
+  </tr>
+  <tr>
+    <td>"HomePresenceDeviceType"</td>
+    <td>presence</td>
+  </tr>
+  <tr>
+    <td>"HomeYahooWeatherDevice"</td>
+    <td>humidity</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>temperature</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>wind</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>pressure</td>
+  </tr>
+  <tr>
+    <td>"HomeTwilightDevice"</td>
+    <td>light</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>twilight</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>aktEvent</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>pressure</td>
+  </tr>
+  <tr>
+    <td>"HomeSensorTemperatureOutside"</td>
+    <td>temperature</td>
+  </tr>
+  <tr>
+    <td></td>
+    <td>humidity</td>
+  </tr>
+  <tr>
+    <td>"HomeSensorHumidityOutside"</td>
+    <td>humidity</td>
+  </tr>
+  <tr>
+    <td>"HomeSensorWindspeed"</td>
+    <td>"HomeSensorWindspeed"</td>
+  </tr>
+  <tr>
+    <td>"HomeSensorAirpressure"</td>
+    <td>"HomeSensorAirpressure"</td>
+  </tr>
+  <tr>
+    <td>"HomeEventsHolidayDevices"</td>
+    <td>state</td>
+  </tr>
+  <tr>
+    <td>"HomeUWZ"</td>
+    <td>WarnCount</td>
+  </tr>
+</table>
 
 ==Platzhalter==
