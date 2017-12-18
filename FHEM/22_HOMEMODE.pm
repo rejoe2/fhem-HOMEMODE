@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15610 2017-12-14 22:56:35Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15645 2017-12-18 22:32:38Z DeeSPe $
 #
 # Usage
 #
@@ -1354,8 +1354,8 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSpecialModes";
   push @attribs,"HomeTextAndAreIs";
   push @attribs,"HomeTextClosedOpen";
-  push @attribs,"HomeTextRisingConstantFalling";
   push @attribs,"HomeTextNosmokeSmoke";
+  push @attribs,"HomeTextRisingConstantFalling";
   push @attribs,"HomeTextTodayTomorrowAfterTomorrow";
   push @attribs,"HomeTextWeatherForecastToday:textField-long";
   push @attribs,"HomeTextWeatherForecastTomorrow:textField-long";
