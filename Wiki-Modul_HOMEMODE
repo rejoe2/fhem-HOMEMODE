@@ -694,6 +694,204 @@ Auslöser: Kontaktsensor open/tilted<br>
    fhem "msg $a ist nun offen!";
  }
 
+====HomeCMDcontactDoormain====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor des Types doormain open/tilted/closed meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor Type doormain open/tilted/closed<br>
+'''Beispiel:'''
+ {
+   my $a = "%ALIAS%";
+   $a =~ s/d/D/;
+   fhem "msg $a ist nun %STATE%!";
+ }
+
+====HomeCMDcontactDoormainClosed====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor des Types doormain closed meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor Type doormain closed<br>
+'''Beispiel:'''
+ {
+   my $arr = "%ARRIVERS%";
+   if ($arr)
+   {
+     my $zh = "%RESIDENT%" eq "rr_Dan" ? "zu Hause " : "";
+     my $d = "%DAYTIME%";
+     if ("%FEIERTAG%")
+     {
+       $d =~ s/morning/%FEIERTAG% Morgen/;
+       $d =~ s/(day|afternoon)/%FEIERTAG% Tag/;
+       $d =~ s/(evening|night)/%FEIERTAG% Abend/;
+     }
+     else
+     {
+       $d =~ s/morning/Morgen/;
+       $d =~ s/(day|afternoon)/Tag/;
+       $d =~ s/(evening|night)/Abend/;
+     }
+     fhem "msg audio Guten $d $zh$arr!" if (%DURABSENCELAST% > 60);
+   }
+ }
+
+====HomeCMDcontactDoormainOpen====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor des Types doormain open/tilted meldet.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Kontaktsensor Type doormain open/tilted<br>
+'''Beispiel:'''
+ {
+   my $a = "%ALIAS%";
+   $a =~ s/d/D/;
+   fhem "msg $a ist nun geöffnet!";
+ }
+
+====HomeCMDcontactOpenWarning1====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor die erste Offenwarnzeit erreicht hat.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: erste Offenwarnzeit des Kontakts erreicht<br>
+'''Beispiel:'''
+ msg audio %ALIAS% steht noch offen!
+
+====HomeCMDcontactOpenWarning2====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor die zweite Offenwarnzeit erreicht hat.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: ab Erreichen der zweiten Offenwarnzeit des Kontakts<br>
+'''Beispiel:'''
+ msg audio %ALIAS% steht immer noch offen! Vielleicht sollte %ALIAS% endlich geschlossen werden!?
+
+====HomeCMDcontactOpenWarningLast====
+Befehle die ausgeführt werden sollen sobald ein Kontaktsensor die letzte Offenwarnzeit erreicht hat.<br>
+Die speziellen Platzhalter %ALIAS%, %SENSOR% und %STATE% können in diesem Attribut benutzt werden.<br>
+Auslöser: Erreichen der letzten Offenwarnzeit des Kontakts<br>
+'''Beispiel:'''
+ msg audio Das ist der letzte Hinweis %ALIAS% endlich zu schliessen!
+
+====HomeCMDdaytime====
+Befehle die ausgeführt werden sollen sobald sich die Tageszeit (daytime) auf einen beliebigen Wert ändert.<br>
+Um die jeweilige eingetretene Tageszeit zu ermitteln ist der Platzhalter %DAYTIME% vorgesehen.<br>
+Auslöser: Änderung der Tageszeit (daytime)
+
+====HomeCMDdaytime-<afternoon/day/evening/morning/night>====
+Befehle die ausgeführt werden sollen sobald die jeweilige Tageszeit (daytime) erreicht ist.<br>
+Auslöser: Änderung der Tageszeit (daytime) auf bestimmten Wert<br>
+Bei "night" könnte man z.B. die Heizung bewohnerunabhängig ausschalten, bei "morning" wieder ein.
+
+====HomeCMDdnd====
+Befehle die beim Anfang/Ende des DND Modus ausgeführt werden sollen.<br>
+Auslöser: Ende des DND Modus<br>
+'''Beispiel:'''
+ {
+   if (%DND%)
+   {
+     fhem "msg audio Der DND Modus ist nun eingeschaltet!";
+   }
+   else
+   {
+     fhem "Der DND Modus ist nun beendet!";
+   }
+ }
+
+====HomeCMDdnd-off====
+Befehle die beim Ende des DND Modus ausgeführt werden sollen.<br>
+Auslöser: Ende des DND Modus<br>
+'''Beispiel:'''
+ msg audio Der DND Modus ist nun beendet!
+
+====HomeCMDdnd-on====
+Befehle die beim Beginn des DND Modus ausgeführt werden sollen.<br>
+Auslöser: Beginn des DND Modus<br>
+'''Beispiel:'''
+ msg audio Der DND Modus ist nun eingeschaltet!
+
+====HomeCMDevent====
+Befehle die beim Beginn eines beliebigen (holiday)Kalender Events ausgeführt werden sollen.<br>
+Auslöser: Beginn eines beliebigen (holiday)Kalender Events<br>
+Platzhalter %CALENDAR%, %EVENT% und %PREVEVENT% können zusätzlich verwendet werden<br>
+'''Beispiel:'''
+ {
+   fhem "set Weihnachten on" if ("%EVENT%" eq "Weihnachten");
+   fhem "set Weihnachten off" if ("%CALENDAR%" eq "FEIERTAGE" && "%PREVEVENT%" eq "Weihnachten");
+ }
+
+====HomeCMDevent-<KALENDER>-each====
+Befehle die beim Beginn/Ende eines beliebigen (holiday)Kalender Events eines bestimmten KALENDERs ausgeführt werden sollen.<br>
+Auslöser: Beginn eines beliebigen (holiday)Kalender Events eines bestimmten KALENDERs<br>
+Platzhalter %EVENT% und %PREVEVENT% können zusätzlich verwendet werden<br>
+'''Beispiel:'''
+ {
+   fhem "set Weihnachten off" if ("%CALENDAR%" eq "FEIERTAGE" && "%PREVEVENT%" eq "Weihnachten");
+ }
+
+====HomeCMDevent-<KALENDER>-<EVENT>-begin====
+Befehle die beim Beginn eines bestimmten (holiday)Kalender EVENTs eines bestimmten KALENDERs ausgeführt werden sollen.<br>
+Auslöser: Beginn eines bestimmten (holiday)Kalender EVENTs eines bestimmten KALENDERs<br>
+Platzhalter %PREVEVENT% kann zusätzlich verwendet werden<br>
+'''Beispiel:'''
+ set %SENSORSENERGY% meterReset
+
+====HomeCMDevent-<KALENDER>-<EVENT>-end====
+Befehle die bei Ende der (holiday)Kalender EVENTs eines bestimmten KALENDERs ausgeführt werden sollen.<br>
+Auslöser: Ende der (holiday)Kalender EVENTs eines bestimmten KALENDERs<br>
+Platzhalter %PREVEVENT% kann zusätzlich verwendet werden<br>
+'''Beispiel:'''
+ {
+   fhem "set Neujahr off" if ("%PREVEVENT%" eq "Neujahr");
+ }
+
+====HomeCMDfhemDEFINED====
+Befehle die ausgeführt werden sollen wenn ein neues Gerät angelegt wird (define)<br>
+'''Beispiel:'''
+ {
+   fhem "attr %DEFINED% room ".$defs{"%DEFINED%"}->{TYPE};
+ }
+
+====HomeCMDfhemINITIALIZED====
+Befehle die ausgeführt werden sollen wenn FHEM gestartet wurde<br>
+'''Beispiel:'''
+ msg FHEM Home wurde gestartet...
+
+====HomeCMDfhemSAVE====
+Befehle die ausgeführt werden sollen wenn in FHEM die Konfigurationsdatei gespeichert wird<br>
+'''Beispiel (Backup von fhem.cfg und fhem.state):'''
+ {
+   my $now = Timeow();
+   $now =~ s/ /_/g;
+   `cp $attr{global}{configfile} ./backup/fhe.cfg.$now`;
+   Log3 undef,3,"saved ./backup/fhem.cfg.$now";
+   `cp $attr{global}{statefile} ./backup/fhem.sate.$now`;
+   Log3 undef,3,"saved ./backup/fhem.state.$now";
+ }
+
+====HomeCMDfhemUPDATE====
+Befehle die ausgeführt werden sollen wenn das Update von FHEM ausgeführt wurde<br>
+'''Beispiel:'''
+ msg audio Das Update für FHEM ist beendet!
+
+====HomeCMDicewarning====
+Befehle die bei Anfang/Ende der Eiswarnung ausgeführt werden sollen<br>
+Auslöser: icewarning 0/1<br>
+'''Beispiel:'''
+ {
+   if (%ICE%)
+   {
+     fhem "msg push ACHTUNG EISWARNUNG! Es könnte glatt werden.";
+   }
+   else
+   {
+     fhem "msg push HINWEIS! Die Eiswarnung ist hiermit beendet.";
+   }
+ }
+
+====HomeCMDicewarning-off====
+Befehle die bei Ende der Eiswarnung ausgeführt werden sollen<br>
+Auslöser: icewarning 0<br>
+'''Beispiel:'''
+ msg audio Es sind wieder %TEMPERATURE%°C! Die Glättewarnung ist damit beendet!
+
+====HomeCMDicewarning-on====
+Befehle die bei Beginn der Eiswarnung ausgeführt werden sollen<br>
+Auslöser: icewarning 1<br>
+'''Beispiel:'''
+ msg audio ACHTUNG!!! Es sind nur noch %TEMPERATURE%°C! Somit könnte es glatt werden!
+
 ==Benötigte Events==
 Folgende Events werden von HOMEMODE ausgewertet bzw. werden benötigt damit HOMEMODE vollumfänglich funktionieren kann.
 
