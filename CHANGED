@@ -1,3 +1,5 @@
+    v1.2.2
+    - add missing placeholders %NAME%, %TAMPEREDCT% and %TAMPEREDHR%
     v1.2.1
     - rename readings alarm_smoke to alarmSmoke
     - add placeholders %SENSORSSMOKE%, %SMOKE%, %SMOKECT% and %SMOKEHR%

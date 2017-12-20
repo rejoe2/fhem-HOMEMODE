@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.2.1";
+my $HOMEMODE_version = "1.2.2";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -2021,8 +2021,9 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $dnd = ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0;
   my $aeah = ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0;
   my $panic = ReadingsVal($name,"panic","off") eq "on" ? 1 : 0;
-  my $sensorsTampered = ReadingsVal($name,"sensorsTampered_hr","");
-  my $sensorsTamperedCt = ReadingsVal($name,"sensorsTampered_ct","");
+  my $tampered = ReadingsVal($name,"sensorsTampered_hr","");
+  my $tamperedc = ReadingsVal($name,"sensorsTampered_ct","");
+  my $tamperedhr = ReadingsVal($name,"sensorsTampered_hr","");
   my $ice = ReadingsVal($name,"icewarning",0);
   my $ip = ReadingsVal($name,"publicIP","");
   my $light = ReadingsVal($name,"light",0);
@@ -2133,6 +2134,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%LUMINANCETREND%/$luminancetrend/g;
   $cmd =~ s/%MODE%/$mode/g;
   $cmd =~ s/%MOTION%/$motion/g;
+  $cmd =~ s/%NAME%/$name/g;
   $cmd =~ s/%OPEN%/$contactsOpen/g;
   $cmd =~ s/%OPENCT%/$contactsOpenCt/g;
   $cmd =~ s/%RESIDENT%/$resident/g;
@@ -2156,7 +2158,9 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%SMOKE%/$smoke/g;
   $cmd =~ s/%SMOKECT%/$smokec/g;
   $cmd =~ s/%SMOKEHR%/$smokehr/g;
-  $cmd =~ s/%TAMPERED%/$sensorsTampered/g;
+  $cmd =~ s/%TAMPERED%/$tampered/g;
+  $cmd =~ s/%TAMPEREDCT%/$tamperedc/g;
+  $cmd =~ s/%TAMPEREDHR%/$tamperedhr/g;
   $cmd =~ s/%TEMPERATURE%/$temp/g;
   $cmd =~ s/%TEMPERATURETREND%/$temptrend/g;
   $cmd =~ s/%TOBE%/$conditionart/g;
@@ -4636,6 +4640,10 @@ sub HOMEMODE_Details($$$)
       value of the lastMotion reading (last opened sensor)
     </li>
     <li>
+      <b><i>%NAME%</i></b><br>
+      name of the HOMEMODE device itself (same as %SELF%)
+    </li>
+    <li>
       <b><i>%OPEN%</i></b><br>
       value of the contactsOutsideOpen_hr reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations, e.g. to warn leaving residents of open contact sensors
@@ -4699,7 +4707,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%SELF%</i></b><br>
-      name of the HOMEMODE device itself
+      name of the HOMEMODE device itself (same as %NAME%)
     </li>
     <li>
       <b><i>%SENSORSBATTERY%</i></b><br>
@@ -4738,11 +4746,16 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%TAMPERED%</i></b><br>
-      will return all tampered sensors
+      value of the sensorsTampered reading of the HOMEMODE device
     </li>
     <li>
       <b><i>%TAMPEREDCT%</i></b><br>
-      will return the number of tampered sensors
+      value of the sensorsTampered_ct reading of the HOMEMODE device
+    </li>
+    <li>
+      <b><i>%TAMPEREDHR%</i></b><br>
+      value of the sensorsTampered_hr reading of the HOMEMODE device<br>
+      can be used for sending msg e.g.
     </li>
     <li>
       <b><i>%TEMPERATURE%</i></b><br>
