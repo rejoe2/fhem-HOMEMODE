@@ -2018,6 +2018,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $conditionart = ReadingsVal($name,".be","");
   my $contactsOpen = ReadingsVal($name,"contactsOutsideOpen_hr","");
   my $contactsOpenCt = ReadingsVal($name,"contactsOutsideOpen_ct",0);
+  my $contactsOpenHr = ReadingsVal($name,"contactsOutsideOpen_hr",0);
   my $dnd = ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0;
   my $aeah = ReadingsVal($name,"anyoneElseAtHome","off") eq "on" ? 1 : 0;
   my $panic = ReadingsVal($name,"panic","off") eq "on" ? 1 : 0;
@@ -2137,6 +2138,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%NAME%/$name/g;
   $cmd =~ s/%OPEN%/$contactsOpen/g;
   $cmd =~ s/%OPENCT%/$contactsOpenCt/g;
+  $cmd =~ s/%OPENHR%/$contactsOpenHr/g;
   $cmd =~ s/%RESIDENT%/$resident/g;
   $cmd =~ s/%PANIC%/$panic/g;
   $cmd =~ s/%PRESENT%/$pres/g;
@@ -3031,7 +3033,7 @@ sub HOMEMODE_Smoke($;$$)
   my @sensors;
   foreach (split /,/,$hash->{SENSORSSMOKE})
   {
-    push @sensors,$_ if (ReadingsVal($_,$r,"") eq $v)
+    push @sensors,$_ if (ReadingsVal($_,$r,"") =~ /^$v$/);
   }
   if ($trigger && $state)
   {
@@ -3723,16 +3725,16 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeAtTmpRoom</i></b><br>
-      move temporary ats to this room<br>
+      add this room to temporary at(s) (generated from HOMEMODE)<br>
       default:
     </li>
     <li>
-      <b><i>HomePresenceDeviceAbsentCount-&lt;%RESIDENT%&gt;</i></b><br>
+      <b><i>HomePresenceDeviceAbsentCount-&lt;ROOMMATE/GUEST&gt;</i></b><br>
       number of resident associated presence device to turn resident to absent<br>
       default: maximum number of available presence device for each resident
     </li>
     <li>
-      <b><i>HomePresenceDevicePresentCount-&lt;%RESIDENT%&gt;</i></b><br>
+      <b><i>HomePresenceDevicePresentCount-&lt;ROOMMATE/GUEST&gt;</i></b><br>
       number of resident associated presence device to turn resident to home<br>
       default: 1
     </li>
@@ -3962,12 +3964,12 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeSensorsSmokeReading</i></b><br>
-      readings for smoke sensors on/off state<br>
+      reading for smoke sensors on/off state<br>
       default: state
     </li>
     <li>
       <b><i>HomeSensorsSmokeValue</i></b><br>
-      on value for smoke sensors<br>
+      regex of on values for smoke sensors<br>
       default: on
     </li>
     <li>
@@ -4053,7 +4055,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeTriggerPanic</i></b><br>
-      your panic trigger device (device:reading:valueOn[:valueOff])<br>
+      your panic alarm trigger device (device:reading:valueOn[:valueOff])<br>
       valueOff is optional<br>
       valueOn will toggle panic mode if valueOff is not given<br>
       default:
@@ -4652,6 +4654,11 @@ sub HOMEMODE_Details($$$)
       <b><i>%OPENCT%</i></b><br>
       value of the contactsOutsideOpen_ct reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations depending on the number of open contact sensors, maybe in combination with placeholder %OPEN%
+    </li>
+    <li>
+      <b><i>%OPENHR%</i></b><br>
+      value of the contactsOutsideOpen_hr reading of the HOMEMODE device<br>
+      can be used to send msg(s)
     </li>
     <li>
       <b><i>%PANIC%</i></b><br>
