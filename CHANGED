@@ -1,5 +1,6 @@
     v1.2.2
     - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
+    - fix placeholder %OPEN%
     - use regex for HomeSensorsSmokeValue
     - minor commandref adjustments
     v1.2.1

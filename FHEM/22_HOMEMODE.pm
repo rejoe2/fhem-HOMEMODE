@@ -2016,7 +2016,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $dursleep = ReadingsVal($resident,"durTimerSleep_cr",0);
   my $condition = ReadingsVal($sensor,"condition","");
   my $conditionart = ReadingsVal($name,".be","");
-  my $contactsOpen = ReadingsVal($name,"contactsOutsideOpen_hr","");
+  my $contactsOpen = ReadingsVal($name,"contactsOutsideOpen","");
   my $contactsOpenCt = ReadingsVal($name,"contactsOutsideOpen_ct",0);
   my $contactsOpenHr = ReadingsVal($name,"contactsOutsideOpen_hr",0);
   my $dnd = ReadingsVal($name,"dnd","off") eq "on" ? 1 : 0;
@@ -4573,12 +4573,12 @@ sub HOMEMODE_Details($$$)
       value of the lastDurSleep_cr reading of the last triggered resident
     </li>
     <li>
-      <b><i>%CALENDARNAME%</i></b><br>
+      <b><i>%&lt;CALENDARNAME&gt;%</i></b><br>
       will return the current event of the given calendar name, will return 0 if event is none<br>
       can be used to trigger actions on any event of the given calendar
     </li>
     <li>
-      <b><i>%CALENDARNAME-EVENTNAME%</i></b><br>
+      <b><i>&lt;%CALENDARNAME-EVENTNAME%&gt;</i></b><br>
       will return 1 if given event of given calendar is current, will return 0 if event is not current<br>
       can be used to trigger actions during specific events only (Christmas?)
     </li>
@@ -4647,7 +4647,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%OPEN%</i></b><br>
-      value of the contactsOutsideOpen_hr reading of the HOMEMODE device<br>
+      value of the contactsOutsideOpen reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations, e.g. to warn leaving residents of open contact sensors
     </li>
     <li>
