@@ -1,8 +1,8 @@
     v1.2.2
     - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
-    - fix placeholder %OPEN%
+    - fix placeholder %OPEN% and %PRESSURETREND%
     - use regex for HomeSensorsSmokeValue
-    - minor commandref adjustments
+    - minor commandref additions and changes
     - add Wiki page to commandref
     v1.2.1
     - rename readings alarm_smoke to alarmSmoke

@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15645 2017-12-18 22:32:38Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15665 2017-12-21 23:38:50Z DeeSPe $
 #
 # Usage
 #
@@ -2052,7 +2052,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $ppdevice = ReadingsVal($name,"lastPresentByPresenceDevice","");
   my $paddress = InternalVal($pdevice,"ADDRESS","");
   my $pressure = ReadingsVal($name,"pressure","");
-  my $pressuretrend = ReadingsVal($sensor,"pressure_trend_txt","");
+  my $pressuretrend = ReadingsVal($sensor,"pressureTrend","");
   my $weatherlong = HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong",""));
   my $weathershort = HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort",""));
   my $forecast = HOMEMODE_ForecastTXT($hash);
@@ -2234,7 +2234,7 @@ sub HOMEMODE_WeatherTXT($$)
   my $condition = ReadingsVal($weather,"condition","");
   my $conditionart = ReadingsVal($name,".be","");
   my $pressure = ReadingsVal($name,"pressure","");
-  my $pressuretrend = ReadingsVal($weather,"pressure_trend_txt","");
+  my $pressuretrend = ReadingsVal($weather,"pressureTrend","");
   my $humi = ReadingsVal($name,"humidity",0);
   my $temp = ReadingsVal($name,"temperature",0);
   my $windchill = ReadingsVal($weather,"wind_chill",0);
@@ -4687,7 +4687,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%PRESSURETREND%</i></b><br>
-      value of the pressure_trend_txt reading of the Yahoo weather device<br>
+      value of the pressureTrend reading of the Yahoo weather device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
@@ -4783,6 +4783,11 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%TWILIGHTEVENT%</i></b><br>
       current twilight event
+    </li>
+    <li>
+      <b><i>%TOBE%</i></b><br>
+      are or is of the weather condition<br>
+      useful for phrasing sentens
     </li>
     <li>
       <b><i>%UWZ%</i></b><br>
