@@ -3318,6 +3318,8 @@ sub HOMEMODE_Details($$$)
     </li>
   </ul>
   <br>
+  <p>A german Wiki page is also available at <a href="https://wiki.fhem.de/wiki/Modul_HOMEMODE" target="_blank">https://wiki.fhem.de/wiki/Modul_HOMEMODE</a>. There you can find lots of example code.</p>
+  <br>
   <a name="HOMEMODE_define"></a>
   <p><b>define [optional]</b></p>
   <ul>
