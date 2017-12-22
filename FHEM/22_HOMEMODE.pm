@@ -2292,15 +2292,13 @@ sub HOMEMODE_uwzTXT($;$$)
   my ($hash,$count,$sl) = @_;
   my $name = $hash->{NAME};
   $count = defined $count ? $count : ReadingsVal($name,"uwz_warnCount",0);
-  $sl = $sl ? "LongText" : "ShortText";
   my $text = "";
   for (my $i = 0; $i < $count; $i++)
   {
-    my $read = "Warn_$i";
-    my $ii = $i + 1;
     $text .= " " if ($i > 0);
-    $text .= "$ii. " if ($count > 1);
-    $text .= ReadingsVal(AttrVal($name,"HomeUWZ",""),$read."_$sl","");
+    $text .= $i+1." " if ($count > 1);
+    $sl = $sl ? "LongText" : "ShortText";
+    $text .= ReadingsVal(AttrVal($name,"HomeUWZ",""),"Warn_".$i."_$sl","");
   }
   return $text;
 }
