@@ -656,25 +656,19 @@ sub HOMEMODE_updateInternals($;$$)
     my $temperature = HOMEMODE_AttrCheck($hash,"HomeSensorTemperatureOutside");
     push @allMonitoredDevices,$temperature if ($temperature && !grep /^$temperature$/,@allMonitoredDevices);
     my $humidity = HOMEMODE_AttrCheck($hash,"HomeSensorHumidityOutside");
-    if ($humidity && $temperature ne $humidity)
+    if ($humidity)
     {
       push @allMonitoredDevices,$humidity if (!grep /^$humidity$/,@allMonitoredDevices);
     }
-    my $holiday = HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices");
-    if ($holiday)
+    my @cals;
+    push @cals,HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices") if (HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices"));
+    push @cals,HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices") if (HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices"));
+    foreach my $c (devspec2array(join ",",@cals))
     {
-      foreach my $c (devspec2array($holiday))
-      {
-        push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
-      }
-    }
-    my $calendar = HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices");
-    if ($calendar)
-    {
-      foreach my $c (devspec2array($calendar))
-      {
-        push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
-      }
+      next if (IsDisabled($c));
+      push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
+      HOMEMODE_EventCommands($hash,$c,"modeStarted",ReadingsVal($c,"modeStarted","none")) if (IsDevice($c,"Calendar"));
+      readingsSingleUpdate($hash,"event-$c",ReadingsVal($c,"state","none"),1) if (IsDevice($c,"holiday"));
     }
     my $uwz = HOMEMODE_AttrCheck($hash,"HomeUWZ","");
     push @allMonitoredDevices,$uwz if ($uwz && !grep /^$uwz$/,@allMonitoredDevices);
@@ -2953,8 +2947,11 @@ sub HOMEMODE_EventCommands($$$$)
   my $name = $hash->{NAME};
   my $prevevent = ReadingsVal($name,"event-$cal","");
   my @cmds;
-  push @cmds,AttrVal($name,"HomeCMDevent","") if (AttrVal($name,"HomeCMDevent",undef));
-  push @cmds,AttrVal($name,"HomeCMDevent-$cal-each","") if (AttrVal($name,"HomeCMDevent-$cal-each",undef));
+  if ($read ne "modeStarted")
+  {
+    push @cmds,AttrVal($name,"HomeCMDevent","") if (AttrVal($name,"HomeCMDevent",undef));
+    push @cmds,AttrVal($name,"HomeCMDevent-$cal-each","") if (AttrVal($name,"HomeCMDevent-$cal-each",undef));
+  }
   if (IsDevice($cal,"holiday"))
   {
     if ($event ne $prevevent)
@@ -3009,16 +3006,23 @@ sub HOMEMODE_EventCommands($$$$)
           @prevevents = @sevents;
         }
       }
+      elsif ($read eq "modeStarted")
+      {
+        push @prevevents,$summary if (!grep /^$summary$/,@prevevents);
+      }
       foreach (@cmds)
       {
+        my @pe = split /,/,$prevevent;
         if ($read eq "start")
         {
+          $prevevent = (@pe)[length(scalar @pe)-1];
           $_ =~ s/%EVENT%/$summary/gm;
-          $_ =~ s/%PREVEVENT%/none/gm;
+          $_ =~ s/%PREVEVENT%/$prevevent/gm;
         }
         elsif ($read eq "end")
         {
-          $_ =~ s/%EVENT%/none/gm;
+          $event = (@pe)[length(scalar @pe)-1];
+          $_ =~ s/%EVENT%/$event/gm;
           $_ =~ s/%PREVEVENT%/$summary/gm;
         }
       }
