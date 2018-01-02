@@ -1,3 +1,9 @@
+    v1.3.0
+    - add attr HomeEventCalendarDevices
+    - minor changes in sub HOMEMODE_uwzTXT
+    - add readings alarmSmoke to commandref
+    - checkIP: return "Service not available" if no IP available
+    - logtexte only on set updateInternalsForce
     v1.2.2
     - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
     - fix placeholder %OPEN% and %PRESSURETREND%
