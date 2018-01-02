@@ -35,7 +35,7 @@ sub HOMEMODE_Initialize($)
   $hash->{SetFn}        = "HOMEMODE_Set";
   $hash->{UndefFn}      = "HOMEMODE_Undef";
   $hash->{FW_detailFn}  = "HOMEMODE_Details";
-  $hash->{AttrList}     = HOMEMODE_Attributes($hash);
+  $hash->{AttrList}     = HOMEMODE_Attributes($hash)." $readingFnAttributes";
   $hash->{NotifyOrderPrefix} = "51-";
   $hash->{FW_deviceOverview} = 1;
   $hash->{FW_addDetailToSummary} = 1;
@@ -1377,7 +1377,6 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeTwilightDevice";
   push @attribs,"HomeUWZ";
   push @attribs,"HomeYahooWeatherDevice";
-  push @attribs,$readingFnAttributes;
   return join(" ",@attribs);
 }
 
@@ -3373,6 +3372,26 @@ sub HOMEMODE_Details($$$)
   $html .= "\$(\".homeinfopanel\").text(t).attr(\"informid\",id);";
   $html .= "if(r){\$.post(window.location.pathname+\"?cmd=setreading%20$name%20lastInfo%20\"+r+\"$FW_CSRF\")};";
   $html .= "});</script>";
+  $html .= HOMEMODE_editTable($hash);
+  return $html;
+}
+
+sub HOMEMODE_editTable($)
+{
+  my ($hash) = @_;
+  my $cmd = "configure devices";
+  my $html = "\n\n<!--Beginning Edit-Table-->\n";
+
+  my @devices = ($cmd,"HomeSensorsContact","HomeSensorsMotion","HomeSensorsPowerEnergy");
+  my $dd .= "<form method=\"get\" action=\"" . $FW_ME . "/HOMEMODE\">\n";
+  $dd .= FW_select("$hash->{NAME}-$cmd",$cmd,\@devices,$cmd,"dropdown","submit()")."\n";
+  $dd .= FW_hidden("detail",$hash->{NAME}) . "\n";
+  $dd .= "</form>\n";
+  $html .="<table><tr><td>Configure monitored devices</td><td>$dd</td></tr></table>";
+  $html .= "<table class=\"block wide\">";
+  $html .= "<tr><th>Device</th><th>Command</th></tr>\n";
+  $html .= "</table><br>\n";
+  $html .= "<!--End Edit-Table-->\n";
   return $html;
 }
 
