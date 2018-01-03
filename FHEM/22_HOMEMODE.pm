@@ -3330,7 +3330,8 @@ sub HOMEMODE_CalendarEvents($$)
       push @events,$evt if (!grep /^$evt$/,@events);
     }
   }
-  return @events ? \@events : "";
+  return \@events if (@events);
+  return;
 }
 
 sub HOMEMODE_checkIP($;$)
