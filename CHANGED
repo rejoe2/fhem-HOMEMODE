@@ -2,8 +2,9 @@
     - add attr HomeEventCalendarDevices
     - minor changes in sub HOMEMODE_uwzTXT
     - add readings alarmSmoke to commandref
-    - checkIP: return "Service not available" if no IP available
+    - get checkIP return "Service not available" if no IP available
     - logtexte only on set updateInternalsForce
+    - fix name for atTmp for modeAlarm-for-minutes and dnd-for-minutes
     v1.2.2
     - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
     - fix placeholder %OPEN% and %PRESSURETREND%

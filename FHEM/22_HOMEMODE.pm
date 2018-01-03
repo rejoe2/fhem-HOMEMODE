@@ -68,7 +68,7 @@ sub HOMEMODE_Define($$)
       $trans = $HOMEMODE_de?
         "$resdevs[0] existiert nicht":
         "$resdevs[0] doesn't exists";
-      return $trans if (!IsDevice($resdevs[0]));
+      return $trans if (!HOMEMODE_ID($resdevs[0]));
       $hash->{DEF} = $resdevs[0];
     }
     elsif (@resdevs > 1)
@@ -170,7 +170,7 @@ sub HOMEMODE_Notify($$)
           push @commands,$cmd;
         }
         CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom",""))
-          if ($dev =~ /^atTmp_.*_$name$/ && IsDevice($dev,"at") && AttrVal($name,"HomeAtTmpRoom",""));
+          if ($dev =~ /^atTmp_.*_$name$/ && HOMEMODE_ID($dev,"at") && AttrVal($name,"HomeAtTmpRoom",""));
       }
     }
     elsif (grep /^REREADCFG|MODIFIED\s$name$/,@{$events})
@@ -200,8 +200,7 @@ sub HOMEMODE_Notify($$)
     {
       foreach my $evt (@{$events})
       {
-        next unless ((IsDevice($devname,"holiday") && $evt =~ /^(state):\s(.+)$/)
-          || (IsDevice($devname,"Calendar") && $evt =~ /^(start|end):\s(.+)$/));
+        next unless ((HOMEMODE_ID($devname,"Calendar") && $evt =~ /^(start|end):\s(.+)$/) || (HOMEMODE_ID($devname,"holiday") && $evt =~ /^(state):\s(.+)$/));
         HOMEMODE_EventCommands($hash,$devname,$1,$2);
       }
     }
@@ -475,14 +474,14 @@ sub HOMEMODE_updateInternals($;$$)
   my $name = $hash->{NAME};
   my $resdev = $hash->{DEF};
   my $trans;
-  if (!IsDevice($resdev))
+  if (!HOMEMODE_ID($resdev))
   {
     $trans = $HOMEMODE_de?
       "$resdev ist nicht definiert!":
       "$resdev is not defined!";
     readingsSingleUpdate($hash,"state",$trans,0);
   }
-  elsif (!IsDevice($resdev,"RESIDENTS"))
+  elsif (!HOMEMODE_ID($resdev,"RESIDENTS"))
   {
     $trans = $HOMEMODE_de?
       "$resdev ist kein gültiges RESIDENTS Gerät!":
@@ -661,14 +660,31 @@ sub HOMEMODE_updateInternals($;$$)
       push @allMonitoredDevices,$humidity if (!grep /^$humidity$/,@allMonitoredDevices);
     }
     my @cals;
-    push @cals,HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices") if (HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices"));
-    push @cals,HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices") if (HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices"));
-    foreach my $c (devspec2array(join ",",@cals))
+    if (HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices"))
     {
-      next if (IsDisabled($c));
+      foreach my $c (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices")))
+      {
+        push @cals,$c if (!IsDisabled($c) && !grep /^$c$/,@cals);
+      }
+    }
+    if (HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices"))
+    {
+      foreach my $c (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices")))
+      {
+        push @cals,$c if (!IsDisabled($c) && !grep /^$c$/,@cals);
+      }
+    }
+    foreach my $c (@cals)
+    {
       push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
-      HOMEMODE_EventCommands($hash,$c,"modeStarted",ReadingsVal($c,"modeStarted","none")) if (IsDevice($c,"Calendar"));
-      readingsSingleUpdate($hash,"event-$c",ReadingsVal($c,"state","none"),1) if (IsDevice($c,"holiday"));
+      if (HOMEMODE_ID($c,"Calendar"))
+      {
+        HOMEMODE_EventCommands($hash,$c,"modeStarted",ReadingsVal($c,"modeStarted","none"));
+      }
+      else
+      {
+        readingsSingleUpdate($hash,"event-$c",ReadingsVal($c,"state","none"),1);
+      }
     }
     my $uwz = HOMEMODE_AttrCheck($hash,"HomeUWZ","");
     push @allMonitoredDevices,$uwz if ($uwz && !grep /^$uwz$/,@allMonitoredDevices);
@@ -864,7 +880,7 @@ sub HOMEMODE_Set($@)
         if (AttrNum($name,"HomeAutoArrival",0))
         {
           my $hour = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
-          CommandDelete(undef,"atTmp_set_home_$name") if (IsDevice("atTmp_set_home_$name"));
+          CommandDelete(undef,"atTmp_set_home_$name") if (HOMEMODE_ID("atTmp_set_home_$name","at"));
           CommandDefine(undef,"atTmp_set_home_$name at +$hour set $name:FILTER=location=arrival location home");
           $location = "arrival";
         }
@@ -882,7 +898,7 @@ sub HOMEMODE_Set($@)
       if (AttrNum($name,"HomeModeAbsentBelatedTime",0) && AttrVal($name,"HomeCMDmode-absent-belated",undef))
       {
         my $hour = HOMEMODE_hourMaker(AttrNum($name,"HomeModeAbsentBelatedTime",0));
-        CommandDelete(undef,"atTmp_absent_belated_$name") if (IsDevice("atTmp_absent_belated_$name"));
+        CommandDelete(undef,"atTmp_absent_belated_$name") if (HOMEMODE_ID("atTmp_absent_belated_$name","at"));
         CommandDefine(undef,"atTmp_absent_belated_$name at +$hour {HOMEMODE_execCMDs_belated(\"$name\",\"HomeCMDmode-absent-belated\",\"$option\")}");
       }
     }
@@ -893,7 +909,7 @@ sub HOMEMODE_Set($@)
     CommandSet(undef,"$name:FILTER=location!=$location location $location");
     if (AttrNum($name,"HomeAutoAlarmModes",1))
     {
-      CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (IsDevice("atTmp_modeAlarm_delayed_arm_$name"));
+      CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (HOMEMODE_ID("atTmp_modeAlarm_delayed_arm_$name","at"));
       CommandSet(undef,"$name:FILTER=modeAlarm!=$namode modeAlarm $namode");
     }
     readingsBeginUpdate($hash);
@@ -908,9 +924,9 @@ sub HOMEMODE_Set($@)
       "$cmd benötigt zwei Parameter: einen modeAlarm und die Minuten":
       "$cmd needs two paramters: a modeAlarm and minutes";
     return $trans if (!$option || !$value);
-    my $timer = $name."_alarmMode_for_timer_$option";
+    my $timer = "atTmp_alarmMode_for_timer_$name";
     my $time = HOMEMODE_hourMaker($value);
-    CommandDelete(undef,$timer) if (IsDevice($timer));
+    CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,"at"));
     CommandDefine(undef,"$timer at +$time set $name:FILTER=modeAlarm!=$amode modeAlarm $amode");
     CommandSet(undef,"$name:FILTER=modeAlarm!=$option modeAlarm $option");
   }
@@ -924,9 +940,9 @@ sub HOMEMODE_Set($@)
       "$name darf nicht im dnd Modus sein um diesen Modus für bestimmte Minuten zu setzen! Bitte deaktiviere den dnd Modus zuerst!":
       "$name can't be in dnd mode to turn dnd on for minutes! Please disable dnd mode first!";
     return $trans if (ReadingsVal($name,"dnd","off") eq "on");
-    my $timer = $name."_dnd_for_timer";
+    my $timer = "atTmp_dnd_for_timer_$name";
     my $time = HOMEMODE_hourMaker($option);
-    CommandDelete(undef,$timer) if (IsDevice($timer));
+    CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,"at"));
     CommandDefine(undef,"$timer at +$time set $name:FILTER=dnd!=off dnd off");
     CommandSet(undef,"$name:FILTER=dnd!=on dnd on");
   }
@@ -951,7 +967,7 @@ sub HOMEMODE_Set($@)
   }
   elsif ($cmd eq "modeAlarm")
   {
-    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (IsDevice("atTmp_modeAlarm_delayed_arm_$name"));
+    CommandDelete(undef,"atTmp_modeAlarm_delayed_arm_$name") if (HOMEMODE_ID("atTmp_modeAlarm_delayed_arm_$name","at"));
     my $delay;
     if ($option =~ /^arm/ && AttrVal($name,"HomeModeAlarmArmDelay",0))
     {
@@ -1190,7 +1206,7 @@ sub HOMEMODE_RESIDENTS($;$)
         elsif ($mode eq "awoken")
         {
           my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAwoken",0));
-          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (IsDevice("atTmp_awoken_".$dev."_$name"));
+          CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (HOMEMODE_ID("atTmp_awoken_".$dev."_$name","at"));
           CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
         }
       }
@@ -1198,13 +1214,13 @@ sub HOMEMODE_RESIDENTS($;$)
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
-        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (IsDevice("atTmp_location_home_".$dev."_$name"));
+        CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (HOMEMODE_ID("atTmp_location_home_".$dev."_$name","at"));
         CommandDefine(undef,"atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home");
       }
       if ($mode eq "gotosleep" && AttrNum($name,"HomeAutoAsleep",0))
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAsleep",0));
-        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (IsDevice("atTmp_asleep_".$dev."_$name"));
+        CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (HOMEMODE_ID("atTmp_asleep_".$dev."_$name","at"));
         CommandDefine(undef,"atTmp_asleep_".$dev."_$name at +$hours set $dev:FILTER=state=gotosleep state asleep");
       }
       push @commands,AttrVal($name,"HomeCMDmode-$mode-resident","") if (AttrVal($name,"HomeCMDmode-$mode-resident",undef));
@@ -1407,35 +1423,43 @@ sub HOMEMODE_userattr($)
   {
     push @userattrAll,"HomeCMDlocation-$_";
   }
-  foreach my $cal (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices")))
+  if (HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices"))
   {
-    my $events = HOMEMODE_CalendarEvents($name,$cal);
-    push @userattrAll,"HomeCMDevent-$cal-each";
-    if ($adv)
+    foreach my $cal (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices")))
     {
-      foreach my $evt (@{$events})
+      next if (IsDisabled($cal));
+      my $events = HOMEMODE_CalendarEvents($name,$cal);
+      push @userattrAll,"HomeCMDevent-$cal-each";
+      if ($adv)
       {
-        push @userattrAll,"HomeCMDevent-$cal-$evt-begin";
-        push @userattrAll,"HomeCMDevent-$cal-$evt-end";
+        foreach my $evt (@{$events})
+        {
+          push @userattrAll,"HomeCMDevent-$cal-$evt-begin";
+          push @userattrAll,"HomeCMDevent-$cal-$evt-end";
+        }
       }
     }
   }
-  foreach my $cal (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices")))
+  if (HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices"))
   {
-    my $events = HOMEMODE_CalendarEvents($name,$cal);
-    push @userattrAll,"HomeCMDevent-$cal-each";
-    if ($adv)
+    foreach my $cal (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsCalendarDevices")))
     {
-      foreach my $evt (@{$events})
+      next if (IsDisabled($cal));
+      my $events = HOMEMODE_CalendarEvents($name,$cal);
+      push @userattrAll,"HomeCMDevent-$cal-each";
+      if ($adv)
       {
-        push @userattrAll,"HomeCMDevent-$cal-$evt-begin";
-        push @userattrAll,"HomeCMDevent-$cal-$evt-end";
+        foreach my $evt (@{$events})
+        {
+          push @userattrAll,"HomeCMDevent-$cal-$evt-begin";
+          push @userattrAll,"HomeCMDevent-$cal-$evt-end";
+        }
       }
     }
   }
   foreach my $resident (split /,/,$hash->{RESIDENTS})
   {
-    my $devtype = IsDevice($resident) ? $defs{$resident}->{TYPE} : "";
+    my $devtype = HOMEMODE_ID($resident,"ROOMMATE|GUEST") ? $defs{$resident}->{TYPE} : "";
     next if (!$devtype);
     if ($adv)
     {
@@ -1606,20 +1630,22 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^HomeEvents(Holiday|Calendar)Devices$/ && $init_done)
     {
-      my @wrongdevices;
+      my @wd;
       foreach (devspec2array($attr_value))
       {
-        push @wrongdevices,$_ if (!IsDevice($_,"holiday|Calendar"));
+        next unless (!HOMEMODE_ID($_,"holiday|Calendar"));
+        push @wd,$_ ;
       }
-      if (@wrongdevices)
+      if (@wd)
       {
         $trans = $HOMEMODE_de?
           "Ungültige Calendar/holiday Geräte gefunden: ":
           "Invalid Calendar/holiday device(s) found: ";
-        return $trans.join(",",@wrongdevices);
+        return $trans.join(",",@wd);
       }
       else
       {
+        CommandDeleteReading(undef,"$name event-.*");
         HOMEMODE_updateInternals($hash,1);
       }
     }
@@ -1958,6 +1984,8 @@ sub HOMEMODE_Attr(@)
     }
     elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEvents(Holiday|Calendar)Devices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
     {
+      CommandDeleteReading(undef,"$name event-.*") if ($attr_name =~ /^HomeEvents(Holiday|Calendar)Devices$/);
+      CommandDeleteReading(undef,"$name battery.*") if ($attr_name eq "HomeSensorsBattery");
       HOMEMODE_updateInternals($hash,1);
     }
     elsif ($attr_name =~ /^(HomeSensorsContact|HomeSensorsMotion)$/)
@@ -2121,33 +2149,45 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%DEVICEA%/$apdevice/g;
   $cmd =~ s/%DEVICEP%/$ppdevice/g;
   $cmd =~ s/%DND%/$dnd/g;
-  if (AttrVal($name,"HomeEventsHolidayDevices",undef))
+  if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsHolidayDevices",undef))
   {
-    foreach my $cal (devspec2array(AttrVal($name,"HomeEventsHolidayDevices","")))
+    my @cals;
+    if (AttrVal($name,"HomeEventsHolidayDevices",""))
     {
-      my $state = ReadingsVal($name,"event-$cal","none") ne "none" ? ReadingsVal($name,"event-$cal","") : "";
-      $cmd =~ s/%$cal%/$state/g;
-      my $events = HOMEMODE_CalendarEvents($name,$cal);
-      foreach my $evt (@{$events})
+      foreach (devspec2array(AttrVal($name,"HomeEventsHolidayDevices","")))
       {
-        my $val = $state eq $evt ? 1 : "";
-        $cmd =~ s/%$cal-$evt%/$val/g;
+        push @cals,$_ if (!IsDisabled($_));
       }
     }
-  }
-  if (AttrVal($name,"HomeEventsCalendarDevices",undef))
-  {
-    foreach my $cal (devspec2array(AttrVal($name,"HomeEventsCalendarDevices","")))
+    else
+    {
+      foreach (devspec2array(AttrVal($name,"HomeEventsCalendarDevices","")))
+      {
+        push @cals,$_ if (!IsDisabled($_));
+      }
+    }
+    foreach my $cal (@cals)
     {
       my $state = ReadingsVal($name,"event-$cal","none") ne "none" ? ReadingsVal($name,"event-$cal","") : "";
       $cmd =~ s/%$cal%/$state/g;
       my $events = HOMEMODE_CalendarEvents($name,$cal);
-      foreach my $evt (@{$events})
+      if (HOMEMODE_ID($cal,"holiday"))
       {
-        foreach my $e (split /,/,$state)
+        foreach my $evt (@{$events})
         {
-          my $val = $e eq $evt ? 1 : "";
+          my $val = $state eq $evt ? 1 : "";
           $cmd =~ s/%$cal-$evt%/$val/g;
+        }
+      }
+      else
+      {
+        foreach my $evt (@{$events})
+        {
+          foreach my $e (split /,/,$state)
+          {
+            my $val = $e eq $evt ? 1 : "";
+            $cmd =~ s/%$cal-$evt%/$val/g;
+          }
         }
       }
     }
@@ -2339,18 +2379,30 @@ sub HOMEMODE_uwzTXT($;$$)
   return $text;
 }
 
+sub HOMEMODE_ID($;$$$)
+{
+  my ($devname,$devtype,$devread,$readval) = @_;
+  return 0
+    if (!defined($devname) || !defined($defs{$devname}));
+  return 0
+    if (defined($devtype) && $defs{$devname}{TYPE} !~ /^$devtype$/);
+  return 0
+    if (defined($devread) && !defined(ReadingsVal($devname,$devread,undef)));
+  return 0
+    if (defined($readval) && ReadingsVal($devname,$devread,"") !~ /^$readval$/);
+  return $devname;
+}
+
 sub HOMEMODE_CheckIfIsValidDevspec($;$)
 {
   my ($spec,$read) = @_;
   my @names;
   foreach (devspec2array($spec))
   {
-    next unless (IsDevice($_));
-    next if ($read && !defined ReadingsVal($_,$read,undef));
+    next unless (HOMEMODE_ID($_,undef,$read));
     push @names,$_;
   }
-  return if (!@names);
-  return \@names;
+  return @names ? \@names : undef;
 }
 
 sub HOMEMODE_execUserCMDs($)
@@ -2637,7 +2689,7 @@ sub HOMEMODE_TriggerState($;$$$)
           readingsEndUpdate($hash,1);
           HOMEMODE_ContactCommands($hash,$sensor,"closed",$kind);
           my $timer = "atTmp_HomeOpenTimer_".$sensor."_$name";
-          CommandDelete(undef,$timer) if (IsDevice($timer));
+          CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,"at"));
         }
       }
       if ($tread && $tstate =~ /^($otcmd)$/)
@@ -2799,7 +2851,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
       }
     }
     my $timer = "atTmp_HomeOpenTimer_".$contact."_$name";
-    CommandDelete(undef,$timer) if (IsDevice($timer) && ($retrigger || $donttrigger));
+    CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,"at") && ($retrigger || $donttrigger));
     return if ((!$retrigger && $donttrigger) || $donttrigger);
     my $season = ReadingsVal($name,"season","");
     my $seasons = AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons);
@@ -2839,7 +2891,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     my $opencmds = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
     if ($state =~ /^($opencmds|open)$/)
     {
-      CommandDefine(undef,"$timer at +$waittime $at") if ($at && !IsDevice($timer));
+      CommandDefine(undef,"$timer at +$waittime $at") if ($at && !HOMEMODE_ID($timer));
       if ($retrigger > 1)
       {
         my @commands;
@@ -2951,7 +3003,7 @@ sub HOMEMODE_EventCommands($$$$)
     push @cmds,AttrVal($name,"HomeCMDevent","") if (AttrVal($name,"HomeCMDevent",undef));
     push @cmds,AttrVal($name,"HomeCMDevent-$cal-each","") if (AttrVal($name,"HomeCMDevent-$cal-each",undef));
   }
-  if (IsDevice($cal,"holiday"))
+  if (HOMEMODE_ID($cal,"holiday"))
   {
     if ($event ne $prevevent)
     {
@@ -2970,7 +3022,7 @@ sub HOMEMODE_EventCommands($$$$)
       }
     }
   }
-  elsif (IsDevice($cal,"Calendar"))
+  else
   {
     my @prevevents;
     @prevevents = split /,/,$prevevent if ($prevevent ne "none");
@@ -3011,17 +3063,14 @@ sub HOMEMODE_EventCommands($$$$)
       }
       foreach (@cmds)
       {
-        my @pe = split /,/,$prevevent;
         if ($read eq "start")
         {
-          $prevevent = (@pe)[length(scalar @pe)-1];
           $_ =~ s/%EVENT%/$summary/gm;
-          $_ =~ s/%PREVEVENT%/$prevevent/gm;
+          $_ =~ s/%PREVEVENT%/none/gm;
         }
         elsif ($read eq "end")
         {
-          $event = (@pe)[length(scalar @pe)-1];
-          $_ =~ s/%EVENT%/$event/gm;
+          $_ =~ s/%EVENT%/none/gm;
           $_ =~ s/%PREVEVENT%/$summary/gm;
         }
       }
@@ -3253,7 +3302,7 @@ sub HOMEMODE_CalendarEvents($$)
 {
   my ($name,$cal) = @_;
   my @events;
-  if (IsDevice($cal,"holiday"))
+  if (HOMEMODE_ID($cal,"holiday"))
   {
     my $fname = AttrVal("global","modpath",".")."/FHEM/".$cal.".holiday";
     my (undef,@holidayfile) = FileRead($fname);
@@ -3270,7 +3319,7 @@ sub HOMEMODE_CalendarEvents($$)
       push @events,$evt if (!grep /^$evt$/,@events);
     }
   }
-  elsif (IsDevice($cal,"Calendar"))
+  else
   {
     foreach (Calendar_GetEvents($defs{$cal},time(),undef,undef))
     {
@@ -3281,18 +3330,21 @@ sub HOMEMODE_CalendarEvents($$)
       push @events,$evt if (!grep /^$evt$/,@events);
     }
   }
-  return \@events;
+  return @events ? \@events : "";
 }
 
 sub HOMEMODE_checkIP($;$)
 {
   my ($hash,$r) = @_;
   my $name = $hash->{NAME};
-  my $ip = GetFileFromURL("http://icanhazip.com/");
-  return if (!$ip);
+  my $url = "http://icanhazip.com/";
+  my $ip = GetFileFromURL($url);
+  if (!$ip || $ip =~ /[<>]/)
+  {
+    return $r ? "publicIP service check ($url) is temporary not available" : undef;
+  }
   $ip =~ s/\s+//g;
   chomp $ip;
-  return "checkIP service temporary not available" if ($r && $ip !~ /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/);
   if (ReadingsVal($name,"publicIP","") ne $ip)
   {
     my @commands;
@@ -3305,8 +3357,7 @@ sub HOMEMODE_checkIP($;$)
     my $timer = gettimeofday() + 60 * AttrNum($name,"HomePublicIpCheckInterval",0);
     $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
   }
-  return $ip if ($r);
-  return;
+  return $r ? $ip : undef;
 }
 
 sub HOMEMODE_Details($$$)
@@ -3372,26 +3423,6 @@ sub HOMEMODE_Details($$$)
   $html .= "\$(\".homeinfopanel\").text(t).attr(\"informid\",id);";
   $html .= "if(r){\$.post(window.location.pathname+\"?cmd=setreading%20$name%20lastInfo%20\"+r+\"$FW_CSRF\")};";
   $html .= "});</script>";
-  $html .= HOMEMODE_editTable($hash);
-  return $html;
-}
-
-sub HOMEMODE_editTable($)
-{
-  my ($hash) = @_;
-  my $cmd = "configure devices";
-  my $html = "\n\n<!--Beginning Edit-Table-->\n";
-
-  my @devices = ($cmd,"HomeSensorsContact","HomeSensorsMotion","HomeSensorsPowerEnergy");
-  my $dd .= "<form method=\"get\" action=\"" . $FW_ME . "/HOMEMODE\">\n";
-  $dd .= FW_select("$hash->{NAME}-$cmd",$cmd,\@devices,$cmd,"dropdown","submit()")."\n";
-  $dd .= FW_hidden("detail",$hash->{NAME}) . "\n";
-  $dd .= "</form>\n";
-  $html .="<table><tr><td>Configure monitored devices</td><td>$dd</td></tr></table>";
-  $html .= "<table class=\"block wide\">";
-  $html .= "<tr><th>Device</th><th>Command</th></tr>\n";
-  $html .= "</table><br>\n";
-  $html .= "<!--End Edit-Table-->\n";
   return $html;
 }
 
@@ -3825,11 +3856,11 @@ sub HOMEMODE_editTable($)
     </li>
     <li>
       <b><i>HomeEventsHolidayDevices</i></b><br>
-      devspec of holiday calendars
+      devspec of Calendar/holiday calendars
     </li>
     <li>
       <b><i>HomeEventsCalendarDevices</i></b><br>
-      devspec of Calendar calendars
+      devspec of Calendar/holiday calendars
     </li>
     <li>
       <b><i>HomeIcewarningOnOffTemps</i></b><br>
