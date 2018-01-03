@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15665 2017-12-21 23:38:50Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15769 2018-01-03 19:02:36Z DeeSPe $
 #
 # Usage
 #
@@ -3331,8 +3331,7 @@ sub HOMEMODE_CalendarEvents($$)
       push @events,$evt if (!grep /^$evt$/,@events);
     }
   }
-  return \@events if (@events);
-  return;
+  return \@events;
 }
 
 sub HOMEMODE_checkIP($;$)
