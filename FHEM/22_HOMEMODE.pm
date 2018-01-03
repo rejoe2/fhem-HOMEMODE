@@ -660,6 +660,7 @@ sub HOMEMODE_updateInternals($;$$)
       push @allMonitoredDevices,$humidity if (!grep /^$humidity$/,@allMonitoredDevices);
     }
     my @cals;
+    CommandDeleteReading(undef,"$name event-.*");
     if (HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices"))
     {
       foreach my $c (devspec2array(HOMEMODE_AttrCheck($hash,"HomeEventsHolidayDevices")))
@@ -1645,7 +1646,6 @@ sub HOMEMODE_Attr(@)
       }
       else
       {
-        CommandDeleteReading(undef,"$name event-.*");
         HOMEMODE_updateInternals($hash,1);
       }
     }
@@ -2402,7 +2402,8 @@ sub HOMEMODE_CheckIfIsValidDevspec($;$)
     next unless (HOMEMODE_ID($_,undef,$read));
     push @names,$_;
   }
-  return @names ? \@names : undef;
+  return \@names if (@names);
+  return;
 }
 
 sub HOMEMODE_execUserCMDs($)
