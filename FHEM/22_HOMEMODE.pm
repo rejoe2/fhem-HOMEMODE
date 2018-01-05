@@ -5151,7 +5151,7 @@ sub HOMEMODE_Details($$$)
       previous event of the calendar
     </li>
   </ul>
-  <p>These placeholders can only be used within HomeCMDdeviceDisable/HomeCMDdeviceEnable attributes</p>
+  <p>These placeholders can only be used within HomeCMDdeviceDisable and HomeCMDdeviceEnable attributes</p>
   <ul>
     <li>
       <b><i>%DEVICE%</i></b><br>
