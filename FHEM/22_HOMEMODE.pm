@@ -3635,7 +3635,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>devicesDisabled</i></b><br>
-      get current disabled devices<br>
+      get new line separated list of currently disabled devices<br>
       placeholder %DISABLED% is available in all HomeCMD attributes
     </li>
     <li>
@@ -4820,7 +4820,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%DISABLED%</i></b><br>
-      list of disabled devices
+      comma separated list of disabled devices
     </li>
     <li>
       <b><i>%DND%</i></b><br>
