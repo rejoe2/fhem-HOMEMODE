@@ -2133,6 +2133,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $lowBat = HOMEMODE_name2alias(ReadingsVal($name,"lastBatteryLow",""));
   my $lowBatAll = ReadingsVal($name,"batteryLow_hr","");
   my $lowBatCount = ReadingsVal($name,"batteryLow_ct",0);
+  my $disabled = ReadingsVal($name,"devicesDisabled","");
   my $sensorsbattery = $hash->{SENSORSBATTERY};
   my $sensorscontact = $hash->{SENSORSCONTACT};
   my $sensorsenergy = $hash->{SENSORSENERGY};
@@ -2159,6 +2160,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%DEVICE%/$pdevice/g;
   $cmd =~ s/%DEVICEA%/$apdevice/g;
   $cmd =~ s/%DEVICEP%/$ppdevice/g;
+  $cmd =~ s/%DISABLED%/$disabled/g;
   $cmd =~ s/%DND%/$dnd/g;
   if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsHolidayDevices",undef))
   {
@@ -2221,6 +2223,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%LUMINANCE%/$luminance/g;
   $cmd =~ s/%LUMINANCETREND%/$luminancetrend/g;
   $cmd =~ s/%MODE%/$mode/g;
+  $cmd =~ s/%MODEALARM%/$amode/g;
   $cmd =~ s/%MOTION%/$motion/g;
   $cmd =~ s/%NAME%/$name/g;
   $cmd =~ s/%OPEN%/$contactsOpen/g;
@@ -3564,6 +3567,18 @@ sub HOMEMODE_Details($$$)
       placeholder %AEAH% is available in all HomeCMD attributes
     </li>
     <li>
+      <b><i>deviceDisable &lt;DEVICE&gt;</i></b><br>
+      disable HOMEMODE integration for given device<br>
+      placeholder %DISABLED% is available in all HomeCMD attributes<br>
+      placeholders %DEVICE% and %ALIAS% are available in HomeCMDdeviceDisable attribute
+    </li>
+    <li>
+      <b><i>deviceEnable &lt;DEVICE&gt;</i></b><br>
+      enable HOMEMODE integration for given device<br>
+      placeholder %DISABLED% is available in all HomeCMD attributes<br>
+      placeholders %DEVICE% and %ALIAS% are available in HomeCMDdeviceEnable attribute
+    </li>
+    <li>
       <b><i>dnd &lt;on/off&gt;</i></b><br>
       turn "do not disturb" mode on or off<br>
       e.g. to disable notification or alarms or, or, or...<br>
@@ -3587,7 +3602,7 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>modeAlarm &lt;armaway/armhome/armnight/confirm/disarm&gt;</i></b><br>
       switch to given alarm mode manually<br>
-      placeholder %AMODE% is available in all HomeCMD attributes
+      placeholder %MODEALARM% is available in all HomeCMD attributes
     </li>
     <li>
       <b><i>modeAlarm-for-minutes &lt;armaway/armhome/armnight/disarm&gt; &lt;MINUTES&gt;</i></b><br>
@@ -3617,6 +3632,21 @@ sub HOMEMODE_Details($$$)
       <b><i>contactsOpen &lt;all/doorsinside/doorsoutside/doorsmain/outside/windows&gt;</i></b><br>
       get a list of all/doorsinside/doorsoutside/doorsmain/outside/windows open contacts<br>
       placeholders %OPEN% (open contacts outside) and %OPENCT% (open contacts outside count) are available in all HomeCMD attributes
+    </li>
+    <li>
+      <b><i>devicesDisabled</i></b><br>
+      get current disabled devices<br>
+      placeholder %DISABLED% is available in all HomeCMD attributes
+    </li>
+    <li>
+      <b><i>mode</i></b><br>
+      get current mode<br>
+      placeholder %MODE% is available in all HomeCMD attributes
+    </li>
+    <li>
+      <b><i>modeAlarm</i></b><br>
+      get current modeAlarm<br>
+      placeholder %MODEALARM% is available in all HomeCMD attributes
     </li>
     <li>
       <b><i>publicIP</i></b><br>
@@ -4789,6 +4819,10 @@ sub HOMEMODE_Details($$$)
       name of the last triggered present presence device
     </li>
     <li>
+      <b><i>%DISABLED%</i></b><br>
+      list of disabled devices
+    </li>
+    <li>
       <b><i>%DND%</i></b><br>
       state of dnd, will return 1 if on and 0 if off
     </li>
@@ -4880,6 +4914,10 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%MODE%</i></b><br>
       current mode of the HOMEMODE device
+    </li>
+    <li>
+      <b><i>%MODEALARM%</i></b><br>
+      current alarm mode
     </li>
     <li>
       <b><i>%MOTION%</i></b><br>
@@ -5111,6 +5149,17 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%PREVEVENT%</i></b><br>
       previous event of the calendar
+    </li>
+  </ul>
+  <p>These placeholders can only be used within HomeCMDdeviceDisable/HomeCMDdeviceEnable attributes</p>
+  <ul>
+    <li>
+      <b><i>%DEVICE%</i></b><br>
+      name of the disabled/enabled device
+    </li>
+    <li>
+      <b><i>%ALIAS%</i></b><br>
+      alias of the disabled/enabled device
     </li>
   </ul>
 </ul>

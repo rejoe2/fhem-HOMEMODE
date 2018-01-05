@@ -1,7 +1,10 @@
     v1.4.0
     - add set deviceDisable/deviceEnable
     - add get mode/modeAlarm/devicesDisabled
-    - don't filter disabled devices for creating NOTIFYDEV, disabled devices are only filtered in NotifyFn and TriggerFn(s)
+    - add attributes HomeCMDdeviceDisable and HomeCMDdeviceEnable
+    - add placeholders %DISABLED% and %MODEALARM% (same as %AMODE%) for all HomeCMD attributes
+    - add placeholders %DEVICE% and %ALIAS% for HomeCMDdevice attributes
+    - don't filter disabled devices for creating NOTIFYDEV
     v1.3.0
     - add attr HomeEventCalendarDevices
     - minor changes in sub HOMEMODE_uwzTXT
