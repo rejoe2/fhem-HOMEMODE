@@ -5,7 +5,6 @@
     - add placeholders %DISABLED% and %MODEALARM% (same as %AMODE%) for all HomeCMD attributes
     - add placeholders %DEVICE% and %ALIAS% for HomeCMDdevice attributes
     - don't filter disabled devices for creating NOTIFYDEV
-    - fix some line endings
     v1.3.0
     - add attr HomeEventCalendarDevices
     - minor changes in sub HOMEMODE_uwzTXT

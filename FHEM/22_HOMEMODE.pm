@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15769 2018-01-03 19:02:36Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15806 2018-01-06 23:19:53Z DeeSPe $
 #
 # Usage
 #
@@ -2436,7 +2436,7 @@ sub HOMEMODE_execCMDs($$;$)
   my $name = $hash->{NAME};
   my $cmd = HOMEMODE_replacePlaceholders($hash,$cmds,$resident);
   my $err = AnalyzeCommandChain(undef,$cmd);
-  if ($err && $err !~ /^Deleted.reading/)
+  if ($err && $err !~ /^Deleted.reading|Wrote.configuration/)
   {
     Log3 $name,3,"$name: error: $err";
     Log3 $name,3,"$name: error in command: $cmd";
@@ -3404,7 +3404,7 @@ sub HOMEMODE_ToggleDevice($$)
     }
     my $dis = "";
     $dis = join(",",@disabled) if (@disabled);
-    readingsSingleUpdate($hash,"devicesDisabled",$dis,0);
+    readingsSingleUpdate($hash,"devicesDisabled",$dis,1);
     if (@cmds)
     {
       foreach (@cmds)
@@ -4471,6 +4471,10 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>dnd</i></b><br>
       dnd (do not disturb) on or off
+    </li>
+    <li>
+      <b><i>devicesDisabled</i></b><br>
+      comma separated list of disabled devices
     </li>
     <li>
       <b><i>energy</i></b><br>
