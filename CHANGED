@@ -1,3 +1,5 @@
+    v1.4.1
+    - fix for not checking RESIDENTS events for state before applying state
     v1.4.0
     - add set deviceDisable/deviceEnable
     - add get mode/modeAlarm/devicesDisabled
