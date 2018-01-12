@@ -368,7 +368,7 @@ sub HOMEMODE_Notify($$)
         {
           my $regex = lc($_);
           $regex =~ s/^(rr_|rg_)//;
-          next if (lc($devname) !~ /$regex/);
+          next unless (lc($devname) =~ /$regex/);
           $resident = $_;
           $residentregex = $regex;
         }
@@ -379,7 +379,7 @@ sub HOMEMODE_Notify($$)
           my @presentdevicespresent;
           foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
           {
-            next if (lc($device) !~ /$residentregex/);
+            next unless (lc($device) =~ /$residentregex/);
             push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
           }
           if (grep /^.*:\s(present|appeared)$/,@{$events})
@@ -536,7 +536,7 @@ sub HOMEMODE_updateInternals($;$$)
         my @residentspresdevs;
         foreach my $p (@presdevs)
         {
-          next if (lc($p) !~ /$short/);
+          next unless (lc($p) =~ /$short/);
           push @residentspresdevs,$p;
           push @allMonitoredDevices,$p if (!grep /^$p$/,@allMonitoredDevices);
         }
@@ -1471,7 +1471,7 @@ sub HOMEMODE_userattr($)
   foreach my $resident (split /,/,$hash->{RESIDENTS})
   {
     my $devtype = HOMEMODE_ID($resident,"ROOMMATE|GUEST") ? $defs{$resident}->{TYPE} : "";
-    next if (!$devtype);
+    next unless ($devtype);
     if ($adv)
     {
       my $states = "absent";
@@ -2278,7 +2278,7 @@ sub HOMEMODE_serializeCMD($@)
     my @newcmd;
     foreach (split /\n+/,$cmd)
     {
-      next if ($_ =~ /^\s*(#|$)/);
+      next unless ($_ !~ /^\s*(#|$)/);
       $_ =~ s/\s{2,}/ /g;
       push @newcmd,$_;
     }
@@ -2624,10 +2624,10 @@ sub HOMEMODE_Luminance($;$$)
   my @sensorsa;
   foreach (@sensors)
   {
-    next if (HOMEMODE_IsDisabled($hash,$_));
+    next unless (!HOMEMODE_IsDisabled($hash,$_));
     push @sensorsa,$_;
     my $val = ReadingsNum($_,$read,0);
-    next if ($val < 0);
+    next unless ($val > 0);
     $lum += $val if (!$dev || $dev ne $_);
   }
   my $lumval = defined $lum ? int ($lum / scalar @sensorsa) : undef;
@@ -2666,14 +2666,14 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($contacts))
     {
-      next if (HOMEMODE_IsDisabled($hash,$sensor));
+      next unless (!HOMEMODE_IsDisabled($hash,$sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
       my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeContactType","window");
-      next if (!$ostate && !$tstate);
+      next unless ($ostate && $tstate);
       if ($ostate =~ /^($otcmd)$/)
       {
         push @contactsOpen,$sensor;
@@ -2719,14 +2719,14 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($motions))
     {
-      next if (HOMEMODE_IsDisabled($hash,$sensor));
+      next unless (!HOMEMODE_IsDisabled($hash,$sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
       my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeSensorLocation","inside");
-      next if (!$ostate && !$tstate);
+      next unless ($ostate && $tstate);
       if ($ostate =~ /^($otcmd)$/)
       {
         push @motionsOpen,$sensor;
@@ -2863,7 +2863,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     {
       foreach (devspec2array($dtres))
       {
-        next if (HOMEMODE_IsDisabled(undef,$_));
+        next unless (!HOMEMODE_IsDisabled(undef,$_));
         $donttrigger = 1 if (ReadingsVal($_,"state","") =~ /^($dtmode)$/);
       }
     }
@@ -3049,7 +3049,7 @@ sub HOMEMODE_EventCommands($$$$)
       my $summary;
       foreach (Calendar_GetEvents($defs{$cal},time(),undef,undef))
       {
-        next if ($_->{uid} ne $event);
+        next unless ($_->{uid} eq $event);
         $summary = $_->{summary};
       }
       $summary =~ s/[,;]//g;
@@ -3162,7 +3162,7 @@ sub HOMEMODE_PowerEnergy($;$$$)
   {
     foreach (split /,/,$hash->{SENSORSENERGY})
     {
-      next if ($_ eq $trigger);
+      next unless ($_ ne $trigger);
       my $v = ReadingsNum($_,$read,0);
       $val += $v if ($v && $v > 0);
     }
@@ -3325,7 +3325,7 @@ sub HOMEMODE_CalendarEvents($$)
     my (undef,@holidayfile) = FileRead($fname);
     foreach (@holidayfile)
     {
-      next if ($_ =~ /^\s*(#|$)/);
+      next unless ($_ !~ /^\s*(#|$)/);
       my @parts = split;
       my $part = $parts[0] =~ /^(1|2)$/ ? 2 : $parts[0] == 3 ? 4 : $parts[0] == 4 ? 3 : 5;
       for (my $p = 0; $p < $part; $p++)
