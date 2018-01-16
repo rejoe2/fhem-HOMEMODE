@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15855 2018-01-15 19:21:00Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15908 2018-01-16 21:40:30Z DeeSPe $
 #
 # Usage
 #
@@ -171,6 +171,7 @@ sub HOMEMODE_Notify($$)
         }
         CommandAttr(undef,"$dev room ".AttrVal($name,"HomeAtTmpRoom",""))
           if ($dev =~ /^atTmp_.*_$name$/ && HOMEMODE_ID($dev,"at") && AttrVal($name,"HomeAtTmpRoom",""));
+        last;
       }
     }
     elsif (grep /^REREADCFG|MODIFIED\s$name$/,@{$events})
@@ -260,6 +261,7 @@ sub HOMEMODE_Notify($$)
       {
         next unless ($evt =~ /^($read):\s(.*)$/);
         HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
+        last;
       }
     }
     elsif ($hash->{SENSORSSMOKE} && grep(/^$devname$/,split /,/,$hash->{SENSORSSMOKE}))
@@ -269,6 +271,7 @@ sub HOMEMODE_Notify($$)
       {
         next unless ($evt =~ /^$read:\s(.*)$/);
         HOMEMODE_Smoke($hash,$devname,$1);
+        last;
       }
     }
     else
@@ -292,6 +295,7 @@ sub HOMEMODE_Notify($$)
           {
             next unless ($evt =~ /^$read:\s(.*)$/);
             HOMEMODE_Luminance($hash,$devname,(split " ",$1)[0]);
+            last;
           }
         }
       }
@@ -330,6 +334,7 @@ sub HOMEMODE_Notify($$)
           my $val = (split " ",$1)[0];
           readingsSingleUpdate($hash,"humidity",$val,1);
           HOMEMODE_ReadingTrend($hash,"humidity",$val);
+          last;
         }
       }
       if (AttrVal($name,"HomeSensorWindspeed",undef) && $devname eq (split /:/,AttrVal($name,"HomeSensorWindspeed",""))[0])
@@ -343,6 +348,7 @@ sub HOMEMODE_Notify($$)
             my $val = (split " ",$1)[0];
             readingsSingleUpdate($hash,"wind",$val,1);
             HOMEMODE_ReadingTrend($hash,"wind",$val);
+            last;
           }
         }
       }
@@ -357,6 +363,7 @@ sub HOMEMODE_Notify($$)
             my $val = (split " ",$1)[0];
             readingsSingleUpdate($hash,"pressure",$val,1);
             HOMEMODE_ReadingTrend($hash,"pressure",$val);
+            last;
           }
         }
       }
@@ -371,9 +378,12 @@ sub HOMEMODE_Notify($$)
           next unless (lc($devname) =~ /$regex/);
           $resident = $_;
           $residentregex = $regex;
+          last;
         }
         return if (!$resident);
         $hash->{helper}{lar} = $resident;
+        my $residentstate = ReadingsVal($resident,"state","");
+        my $suppressstate = "[gn]one|absent";
         if (ReadingsVal($devname,"presence","") !~ /^maybe/)
         {
           my @presentdevicespresent;
@@ -382,7 +392,7 @@ sub HOMEMODE_Notify($$)
             next unless (lc($device) =~ /$residentregex/);
             push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
           }
-          if (grep /^.*:\s(present|appeared)$/,@{$events})
+          if (grep /^presence:\s(present|appeared)$/,@{$events})
           {
             readingsBeginUpdate($hash);
             readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
@@ -392,12 +402,12 @@ sub HOMEMODE_Notify($$)
             push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device","") if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
             push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname","") if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
             if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
-              && ReadingsVal($resident,"state","") =~ /^(absent|[gn]one)$/)
+                && $residentstate =~ /^($suppressstate)$/)
             {
               CommandSet(undef,"$resident:FILTER=state!=home state home");
             }
           }
-          elsif (grep /^.*:\s(absent|disappeared)$/,@{$events})
+          elsif (grep /^presence:\s(absent|disappeared)$/,@{$events})
           {
             readingsBeginUpdate($hash);
             readingsBulkUpdate($hash,"lastActivityByPresenceDevice",$devname);
@@ -409,8 +419,9 @@ sub HOMEMODE_Notify($$)
             my $devcount = 1;
             $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
             my $presdevsabsent = $devcount - scalar @presentdevicespresent;
+            $suppressstate .= "|".AttrVal($name,"HomeAutoPresenceSuppressState","") if (AttrVal($name,"HomeAutoPresenceSuppressState",""));
             if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
-              && ReadingsVal($resident,"state","absent") !~ /^(absent|gone|none)$/)
+                && $residentstate !~ /^($suppressstate)$/)
             {
               CommandSet(undef,"$resident:FILTER=state!=absent state absent");
             }
@@ -443,6 +454,7 @@ sub HOMEMODE_Notify($$)
             }
             @low = @lown;
           }
+          last;
         }
         readingsBeginUpdate($hash);
         if (@low)
@@ -1171,6 +1183,7 @@ sub HOMEMODE_RESIDENTS($;$)
       next unless ($_ =~ /^state:.(.*)$/ && grep /^$1$/,split /,/,$HOMEMODE_UserModesAll);
       $mode = $1;
       Log3 $name,5,"$name: HOMEMODE_RESIDENTS mode: $mode";
+      last;
     }
   }
   if ($mode && $devtype eq "RESIDENTS")
@@ -1271,6 +1284,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeAutoAwoken";
   push @attribs,"HomeAutoDaytime:0,1";
   push @attribs,"HomeAutoPresence:1,0";
+  push @attribs,"HomeAutoPresenceSuppressState";
   push @attribs,"HomeCMDalarmSmoke:textField-long";
   push @attribs,"HomeCMDalarmSmoke-on:textField-long";
   push @attribs,"HomeCMDalarmSmoke-off:textField-long";
@@ -1639,6 +1653,13 @@ sub HOMEMODE_Attr(@)
         return $err if ($err);
       }
     }
+    elsif ($attr_name =~ /^HomeAutoPresenceSuppressState$/ && $init_done)
+    {
+      $trans = $HOMEMODE_de?
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird wenigstens ein Wert oder maximal 3 Pipe separierte Werte benötigt! z.B. asleep|gotosleep":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or max 3 values pipe separated, e.g. asleep|gotosleep";
+      return $trans if ($attr_value !~ /^(asleep|gotosleep|awoken)(\|(asleep|gotosleep|awoken)){0,2}$/);
+    }
     elsif ($attr_name =~ /^HomeEvents(Holiday|Calendar)Devices$/ && $init_done)
     {
       my @wd;
@@ -1677,7 +1698,7 @@ sub HOMEMODE_Attr(@)
     elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues|HomeSensorsSmokeValue)$/)
     {
       $trans = $HOMEMODE_de?
-        "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird wenigstens ein Wert oder mehrere Pipe separierte Readings benötigt! z.B. open|tilted|on":
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird wenigstens ein Wert oder mehrere Pipe separierte Werte benötigt! z.B. open|tilted|on":
         "Invalid value $attr_value for attribute $attr_name. You have to provide at least one value or more values pipe separated, e.g. open|tilted|on";
       return $trans if ($attr_value !~ /^[\w\-\+\*\.\(\)]+(\|[\w\-\+\*\.\(\)]+){0,}$/i);
     }
@@ -3047,11 +3068,14 @@ sub HOMEMODE_EventCommands($$$$)
     {
       $event =~ s/[\s ]//g;
       my $summary;
+      my $description = "";
       my $t = time();
       foreach (Calendar_GetEvents($defs{$cal},$t,undef,undef))
       {
         next unless ($_->{uid} eq $event);
         $summary = $_->{summary};
+        $description = $_->{description};
+        last;
       }
       next unless $summary;
       $summary =~ s/[,;]//g;
@@ -3086,11 +3110,13 @@ sub HOMEMODE_EventCommands($$$$)
         {
           $_ =~ s/%EVENT%/$summary/gm;
           $_ =~ s/%PREVEVENT%/none/gm;
+          $_ =~ s/%DESCRIPTION%/$description/gm;
         }
         elsif ($read eq "end")
         {
           $_ =~ s/%EVENT%/none/gm;
           $_ =~ s/%PREVEVENT%/$summary/gm;
+          $_ =~ s/%DESCRIPTION%/$description/gm;
         }
       }
     }
@@ -3118,6 +3144,7 @@ sub HOMEMODE_UWZCommands($$)
     next unless (grep /^WarnCount:\s[0-9]$/,$evt);
     $count = $evt;
     $count =~ s/^WarnCount:\s//;
+    last;
   }
   if (defined $count)
   {
@@ -3732,6 +3759,13 @@ sub HOMEMODE_Details($$$)
       automatically change the state of residents between home and absent depending on their associated presence device<br>
       values 0 or 1, value 0 disables auto presence<br>
       default: 0
+    </li>
+    <li>
+      <b><i>HomeAutoPresenceSuppressState</i></b><br>
+      suppress mode(s) for HomeAutoPresence (p.e. gotosleep|asleep)<br>
+      if set this/these mode(s) of a resident will not affect the residents to change to absent by its presence device<br>
+      p.e. for misteriously disappearing presence devices in the middle of the night<br>
+      default:
     </li>
     <li>
       <b><i>HomeCMDalarmSmoke</i></b><br>
@@ -5149,12 +5183,16 @@ sub HOMEMODE_Details($$$)
       name of the calendar
     </li>
     <li>
+      <b><i>%DESCRIPTION%</i></b><br>
+      description of current event of the calendar (not applicable for holiday devices)
+    </li>
+    <li>
       <b><i>%EVENT%</i></b><br>
-      current event of the calendar
+      summary of current event of the calendar
     </li>
     <li>
       <b><i>%PREVEVENT%</i></b><br>
-      previous event of the calendar
+      summary of previous event of the calendar
     </li>
   </ul>
   <p>These placeholders can only be used within HomeCMDdeviceDisable and HomeCMDdeviceEnable attributes</p>
