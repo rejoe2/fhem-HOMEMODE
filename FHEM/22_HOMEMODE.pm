@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15855 2018-01-12 10:03:00Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 15855 2018-01-15 19:21:00Z DeeSPe $
 #
 # Usage
 #
@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.1";
+my $HOMEMODE_version = "1.4.2";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -2666,14 +2666,14 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($contacts))
     {
-      next unless (!HOMEMODE_IsDisabled($hash,$sensor));
+      next if (HOMEMODE_IsDisabled($hash,$sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
       my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeContactType","window");
-      next unless ($ostate && $tstate);
+      next if (!$ostate && !$tstate);
       if ($ostate =~ /^($otcmd)$/)
       {
         push @contactsOpen,$sensor;
@@ -2719,14 +2719,14 @@ sub HOMEMODE_TriggerState($;$$$)
   {
     foreach my $sensor (devspec2array($motions))
     {
-      next unless (!HOMEMODE_IsDisabled($hash,$sensor));
+      next if (HOMEMODE_IsDisabled($hash,$sensor));
       my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
       my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
       my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeSensorLocation","inside");
-      next unless ($ostate && $tstate);
+      next if (!$ostate && !$tstate);
       if ($ostate =~ /^($otcmd)$/)
       {
         push @motionsOpen,$sensor;
@@ -2863,7 +2863,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     {
       foreach (devspec2array($dtres))
       {
-        next unless (!HOMEMODE_IsDisabled(undef,$_));
+        next if (HOMEMODE_IsDisabled(undef,$_));
         $donttrigger = 1 if (ReadingsVal($_,"state","") =~ /^($dtmode)$/);
       }
     }
@@ -3047,11 +3047,13 @@ sub HOMEMODE_EventCommands($$$$)
     {
       $event =~ s/[\s ]//g;
       my $summary;
-      foreach (Calendar_GetEvents($defs{$cal},time(),undef,undef))
+      my $t = time();
+      foreach (Calendar_GetEvents($defs{$cal},$t,undef,undef))
       {
         next unless ($_->{uid} eq $event);
         $summary = $_->{summary};
       }
+      next unless $summary;
       $summary =~ s/[,;]//g;
       Log3 $name,5,"Calendar_GetEvents event: $summary";
       my $sum = $summary;
@@ -3338,7 +3340,8 @@ sub HOMEMODE_CalendarEvents($$)
   }
   else
   {
-    foreach (Calendar_GetEvents($defs{$cal},time(),undef,undef))
+    my $t = time();
+    foreach (Calendar_GetEvents($defs{$cal},$t,undef,undef))
     {
       my $evt = $_->{summary};
       Log3 $name,5,"Calendar_GetEvents event: $evt";
