@@ -2,7 +2,7 @@
     - fix "Use of uninitialized value $summary/$sum"
     - fix time not assigned to variable for Calendar_GetEvents
     - add placeholder %DESCRIPTION% for Calendar events
-    - add attr HomeAutoPresenceSuppressMode
+    - add attr HomeAutoPresenceSuppressState
     - other minor improvements
     v1.4.1
     - fix for not checking RESIDENTS events for state before applying state
