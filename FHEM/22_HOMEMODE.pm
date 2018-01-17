@@ -506,6 +506,7 @@ sub HOMEMODE_updateInternals($;$$)
     my $oldMotions = $hash->{SENSORSMOTION};
     delete $hash->{helper}{presdevs};
     delete $hash->{RESIDENTS};
+    delete $hash->{CALENDARS};
     delete $hash->{SENSORSCONTACT};
     delete $hash->{SENSORSMOTION};
     delete $hash->{SENSORSENERGY};
@@ -684,6 +685,7 @@ sub HOMEMODE_updateInternals($;$$)
         push @cals,$c if (!grep /^$c$/,@cals);
       }
     }
+    $hash->{CALENDARS} = join ",",@cals if (@cals);
     foreach my $c (@cals)
     {
       push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
