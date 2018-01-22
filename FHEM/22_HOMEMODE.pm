@@ -1384,6 +1384,7 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorHumidityOutside";
   push @attribs,"HomeSensorTemperatureOutside";
   push @attribs,"HomeSensorWindspeed";
+  push @attribs,"HomeSensorsAlarmDelay";
   push @attribs,"HomeSensorsBattery";
   push @attribs,"HomeSensorsBatteryLowPercentage";
   push @attribs,"HomeSensorsBatteryReading";
@@ -3531,6 +3532,7 @@ sub HOMEMODE_Details($$$)
       $html .= "<th>Sensor name</th>";
       $html .= "<th>HomeContactType</th>";
       $html .= "<th>HomeModeAlarmActive</th>";
+      $html .= "<th>HomeAlarmDelay</th>";
       $html .= "<th>HomeContactReading</th>";
       $html .= "<th>HomeContactValue</th>";
       $html .= "<th>HomeOpenMaxTrigger</th>";
@@ -3559,12 +3561,12 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeContactValue",10,"",AttrVal($s,"HomeContactValue",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
-        # $html .= "<td>".FW_textfieldv("$s.HomeOpenDontTriggerModes",10,"",AttrVal($s,"HomeOpenDontTriggerModes",""))."</td>";
         $html .= "<td>";
         foreach my $m (split /,/,$HOMEMODE_UserModesAll)
         {
@@ -4180,6 +4182,13 @@ sub HOMEMODE_Details($$$)
       all sensors with a percentage battery value or a ok/low/nok battery value are applicable
     </li>
     <li>
+      <b><i>HomeSensorsAlarmDelay</i></b><br>
+      1 to 3 space separated values in seconds to delay the current alert for the different alarm modes (armaway, armhome, armnight)<br>
+      after the given seconds the alarm will only be triggered if the sensor is still in alarm mode<br>
+      this is the device setting which will override the global setting from attribute HomeSensorsAlarmDelay from the HOMEMODE device<br>
+      default: 0
+    </li>
+    <li>
       <b><i>HomeSensorsBatteryLowPercentage</i></b><br>
       percentage to recognize a sensors battery as low (only percentage based sensors)<br>
       default: 50
@@ -4226,10 +4235,16 @@ sub HOMEMODE_Details($$$)
           default: 0
         </li>
         <li>
+          <b><i>HomeAlarmDelay</i></b><br>
+          1 to 3 space separated values in seconds to delay the current alert for the different alarm modes (armaway, armhome, armnight)<br>
+          after the given seconds the alarm will only be triggered if the sensor is still in alarm mode<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsAlarmDelay from the HOMEMODE device<br>
+          default: 0
+        </li>
           <b><i>HomeContactReading</i></b><br>
           reading for contact sensors open/tiled state<br>
           this is the device setting which will override the global setting from attribute HomeSensorsContactReading from the HOMEMODE device<br>
-          default: state sabotageError
+          default: state
         </li>
         <li>
           <b><i>HomeContactValue</i></b><br>
@@ -4317,6 +4332,13 @@ sub HOMEMODE_Details($$$)
       devspec of motion sensors<br>
       each applied motion sensor will get the following attributes, attributes will be removed after removing the motion sensors from the HOMEMODE device.<br>
       <ul>
+        <li>
+          <b><i>HomeAlarmDelay</i></b><br>
+          1 to 3 space separated values in seconds to delay the current alert for the different alarm modes (armaway, armhome, armnight)<br>
+          after the given seconds the alarm will only be triggered if the sensor is still in alarm mode<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsAlarmDelay from the HOMEMODE device<br>
+          default: 0
+        </li>
         <li>
           <b><i>HomeModeAlarmActive</i></b><br>
           specify the alarm mode(s) by regex in which the motion sensor should trigger motions as alerts<br>
