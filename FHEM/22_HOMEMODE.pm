@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.2";
+my $HOMEMODE_version = "2.0.0";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -3471,8 +3471,7 @@ sub HOMEMODE_Details($$$)
   my $hash = $defs{$name};
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
   my $info = ReadingsVal($name,$iid,"");
-  my $html = "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js\"></script>\n";;
-  $html .= "<div>";
+  my $html .= "<div>";
   $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
@@ -3521,120 +3520,140 @@ sub HOMEMODE_Details($$$)
   $html .= "</table>";
   $html .= "</div>";
   # new v2
-  my @contacts;
-  my @motions;
-  my @energies;
-  my @lumies;
-  foreach my $s (split ",",InternalVal($name,"NOTIFYDEV",""))
+  if ($FW_detail eq $name)
   {
-    push @contacts,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSCONTACT",""));
-    push @motions,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSMOTION",""));
-    push @energies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSENERGY",""));
-    push @lumies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSLUMINANCE",""));
-  }
-  # contacts
-  if (@contacts)
-  {
-    my @hct = ("doorinside","dooroutside","doormain","window");
-    my @seasons;
-    foreach (split " ",AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons))
+    my @contacts;
+    my @motions;
+    my @energies;
+    my @lumies;
+    foreach my $s (split ",",InternalVal($name,"NOTIFYDEV",""))
     {
-      push @seasons,(split /\|/,$_)[1];
+      push @contacts,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSCONTACT",""));
+      push @motions,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSMOTION",""));
+      push @energies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSENERGY",""));
+      push @lumies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSLUMINANCE",""));
     }
-    my $sea = join " ",@seasons;
-    $html .= "<div>";
-    $html .= "<div><h4>Configuration contact sensors</h4></div>";
-    $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
-    $html .= "<table class=\"block wide\">";
-    $html .= "<tr>";
-    $html .= "<th>Sensor name</th>";
-    $html .= "<th>HomeContactType</th>";
-    $html .= "<th>HomeModeAlarmActive</th>";
-    $html .= "<th>HomeReadings</th>";
-    $html .= "<th>HomeValues</th>";
-    $html .= "<th>HomeOpenMaxTrigger</th>";
-    $html .= "<th>HomeOpenTimeDividers<br>($sea)</th>";
-    $html .= "<th>HomeOpenTimes</th>";
-    $html .= "<th>HomeOpenDontTriggerModes</th>";
-    $html .= "<th>HomeOpenDontTriggerModesResidents</th>";
-    $html .= "</tr>";
-    my $c = 1;
-    foreach my $s (@contacts)
+    # contacts
+    if (@contacts)
     {
-      $html .= "<tr";
-      $html .= " class=\"";
-      $html .= (int($c/2) != $c/2) ? "odd" : "even";
-      $html .= "\">";
-      $html .= "<td><a href='/fhem?detail=$s'>".AttrVal($s,"alias",$s)."</a><td>";
-      $html .= FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","submit()");
-      $html .= "<td>";
-      $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
-      $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armaway</label><br>";
-      $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armhome\"";
-      $html .= " checked=\"checked\"" if (grep /^armhome$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armhome</label><br>";
-      $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armnight\"";
-      $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armnight</label>";
-      $html .= FW_hidden("devname",$s) . "\n";
-      $html .= "</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeOpenDontTriggerModes",10,"",AttrVal($s,"HomeOpenDontTriggerModes",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeOpenDontTriggerModesResidents",10,"",AttrVal($s,"HomeOpenDontTriggerModesResidents",""))."</td>";
+      my @hct = ("doorinside","dooroutside","doormain","window");
+      my @seasons;
+      foreach (split " ",AttrVal($name,"HomeSeasons",$HOMEMODE_Seasons))
+      {
+        push @seasons,(split /\|/,$_)[1];
+      }
+      my $sea = join " ",@seasons;
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer\">Configuration contact sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th>HomeContactType</th>";
+      $html .= "<th>HomeModeAlarmActive</th>";
+      $html .= "<th>HomeReadings</th>";
+      $html .= "<th>HomeValues</th>";
+      $html .= "<th>HomeOpenMaxTrigger</th>";
+      $html .= "<th>HomeOpenTimeDividers<br>($sea)</th>";
+      $html .= "<th>HomeOpenTimes</th>";
+      $html .= "<th>HomeOpenDontTriggerModes</th>";
+      $html .= "<th>HomeOpenDontTriggerModesResidents</th>";
       $html .= "</tr>";
-      $c++;
+      my $c = 1;
+      foreach my $s (sort @contacts)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>".AttrVal($s,"alias",$s)."</a>".FW_hidden("devname",$s)."<td>";
+        $html .= FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","submit()");
+        $html .= "<td>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
+        $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armaway</label><br>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armhome\"";
+        $html .= " checked=\"checked\"" if (grep /^armhome$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armhome</label><br>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armnight\"";
+        $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armnight</label>";
+        $html .= "</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
+        # $html .= "<td>".FW_textfieldv("$s.HomeOpenDontTriggerModes",10,"",AttrVal($s,"HomeOpenDontTriggerModes",""))."</td>";
+        $html .= "<td>";
+        foreach my $m (split /,/,$HOMEMODE_UserModesAll)
+        {
+          $html .= "<label><input type=\"checkbox\" name=\"HomeOpenDontTriggerModes\" value=\"$m\"";
+          $html .= " checked=\"checked\"" if (grep /^$m$/,split /\|/,AttrVal($s,"HomeOpenDontTriggerModes",""));
+          $html .= ">$m</label><br>";
+        }
+        $html .= "</td>";
+        $html .= "<td>";
+        foreach my $r (split /,/,$hash->{RESIDENTS})
+        {
+          $html .= "<label><input type=\"checkbox\" name=\"HomeOpenDontTriggerModesResidents\" value=\"$r\"";
+          $html .= " checked=\"checked\"" if (grep /^$r$/,split /\|/,AttrVal($s,"HomeOpenDontTriggerModesResidents",""));
+          $html .= ">".AttrVal($r,"alias",$r)."</label><br>";
+        }
+        $html .= "</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
     }
-    $html .= "</table>";
-    $html .= "</form>";
-    $html .= "</div>";
-  }
-  # motions
-  if (@motions)
-  {
-    my @hml = ("inside","outside");
-    $html .= "<div>";
-    $html .= "<div><h4>Configuration motion sensors</h4></div>";
-    $html .= "<table class=\"block wide\">";
-    $html .= "<tr>";
-    $html .= "<th>Sensor name</th>";
-    $html .= "<th>HomeSensorLocation</th>";
-    $html .= "<th>HomeModeAlarmActive</th>";
-    $html .= "<th>HomeReadings</th>";
-    $html .= "<th>HomeValues</th>";
-    $html .= "</tr>";
-    my $c = 1;
-    foreach my $s (@motions)
+    # motions
+    if (@motions)
     {
-      $html .= "<tr";
-      $html .= " class=\"";
-      $html .= (int($c/2) != $c/2) ? "odd" : "even";
-      $html .= "\">";
-      $html .= "<td><a href='/fhem?detail=$s'>$s</a><td>";
-      $html .= FW_select("$s","$s.HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","submit()");
-      $html .= "<td>";
-      $html .= "<label><input type=\"checkbox\" name=\"armaway\" value=\"armaway\"";
-      $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armaway</label><br>";
-      $html .= "<label><input type=\"checkbox\" name=\"armhome\" value=\"armhome\"";
-      $html .= " checked=\"checked\"" if (grep /^armhome$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armhome</label><br>";
-      $html .= "<label><input type=\"checkbox\" name=\"armnight\" value=\"armnight\"";
-      $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
-      $html .= ">armnight</label>";
-      $html .= "</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+      my @hml = ("inside","outside");
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer\">Configuration motion sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th>HomeSensorLocation</th>";
+      $html .= "<th>HomeModeAlarmActive</th>";
+      $html .= "<th>HomeReadings</th>";
+      $html .= "<th>HomeValues</th>";
       $html .= "</tr>";
-      $c++;
+      my $c = 1;
+      foreach my $s (sort @motions)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."<td>";
+        $html .= FW_select("$s","$s.HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","submit()");
+        $html .= "<td>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
+        $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armaway</label><br>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armhome\"";
+        $html .= " checked=\"checked\"" if (grep /^armhome$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armhome</label><br>";
+        $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armnight\"";
+        $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
+        $html .= ">armnight</label>";
+        $html .= "</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
     }
-    $html .= "</table>";
-    $html .= "</div>";
   }
+  $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js\"></script>\n";
   return $html;
 }
 
