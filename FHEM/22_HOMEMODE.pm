@@ -253,7 +253,7 @@ sub HOMEMODE_Notify($$)
         }
       }
     }
-    elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
+    elsif (InternalVal($name,"SENSORSENERGY","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSENERGY","")))
     {
       my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
       $read =~ s/ /\|/g;
@@ -264,7 +264,7 @@ sub HOMEMODE_Notify($$)
         last;
       }
     }
-    elsif ($hash->{SENSORSSMOKE} && grep(/^$devname$/,split /,/,$hash->{SENSORSSMOKE}))
+    elsif (InternalVal($name,"SENSORSSMOKE","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSSMOKE","")))
     {
       my $read = AttrVal($name,"HomeSensorsSmokeReading","state");
       foreach my $evt (@{$events})
@@ -276,17 +276,17 @@ sub HOMEMODE_Notify($$)
     }
     else
     {
-      if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
+      if (InternalVal($name,"SENSORSCONTACT","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSCONTACT","")))
       {
-        my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError"));
-        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
+        my $oread = AttrVal($devname,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"));
+        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread):\s.*$/,@{$events});
       }
-      if ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
+      if (InternalVal($name,"SENSORSMOTION","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSMOTION","")))
       {
-        my ($oread,$tread) = split " ",AttrVal($devname,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError"));
-        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.*$/,@{$events});
+        my $oread = AttrVal($devname,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state"));
+        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread):\s.*$/,@{$events});
       }
-      if ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
+      if (InternalVal($name,"SENSORSLUMINANCE","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSLUMINANCE","")))
       {
         my $read = AttrVal($name,"HomeSensorsLuminanceReading","luminance");
         if (grep /^$read:\s.*$/,@{$events})
@@ -429,7 +429,7 @@ sub HOMEMODE_Notify($$)
         }
       }
     }
-    if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}))
+    if (InternalVal($name,"SENSORSBATTERY","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSBATTERY","")))
     {
       my $read = AttrVal($name,"HomeSensorsBatteryReading","battery");
       if (grep /^$read:\s(.*)$/,@{$events})
@@ -2591,10 +2591,10 @@ sub HOMEMODE_addSensorsuserattr($$;$)
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
-    push @list,"HomeReadings";
-    push @list,"HomeValues";
-    if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
+    if (InternalVal($name,"SENSORSCONTACT","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSCONTACT","")))
     {
+      push @list,"HomeContactReading";
+      push @list,"HomeContactValue";
       push @list,"HomeContactType:doorinside,dooroutside,doormain,window";
       push @list,"HomeOpenMaxTrigger";
       push @list,"HomeOpenDontTriggerModes";
@@ -2611,8 +2611,10 @@ sub HOMEMODE_addSensorsuserattr($$;$)
         CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive",""));
       }
     }
-    if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
+    if (InternalVal($name,"SENSORSMOTION","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSMOTION","")))
     {
+      push @list,"HomeMotionReading";
+      push @list,"HomeMotionValue";
       push @list,"HomeSensorLocation:inside,outside";
       HOMEMODE_set_userattr($sensor,\@list);
       if (!$inolddevspec)
@@ -2669,11 +2671,9 @@ sub HOMEMODE_TriggerState($;$$$)
   $type = "all" if (!$type);
   my $name = $hash->{NAME};
   my $events = deviceEvents($defs{$trigger},1) if ($trigger);
-  my $contacts = $hash->{SENSORSCONTACT};
-  my $motions = $hash->{SENSORSMOTION};
-  my $tampered = ReadingsVal($name,"sensorsTampered","");
+  my $contacts = InternalVal($name,"SENSORSCONTACT","");
+  my $motions = InternalVal($name,"SENSORSMOTION","");
   my @contactsOpen;
-  my @sensorsTampered;
   my @doorsOOpen;
   my @doorsMOpen;
   my @insideOpen;
@@ -2690,14 +2690,13 @@ sub HOMEMODE_TriggerState($;$$$)
     foreach my $sensor (devspec2array($contacts))
     {
       next if (HOMEMODE_IsDisabled($hash,$sensor));
-      my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")),2;
-      my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
+      my $oread = AttrVal($sensor,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"));
+      my $ocmd = AttrVal($sensor,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
-      my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeContactType","window");
-      next if (!$ostate && !$tstate);
-      if ($ostate =~ /^($otcmd)$/)
+      next if (!$ostate);
+      if ($ostate =~ /^($ocmd)$/)
       {
         push @contactsOpen,$sensor;
         push @insideOpen,$sensor if ($kind eq "doorinside");
@@ -2732,10 +2731,6 @@ sub HOMEMODE_TriggerState($;$$$)
           CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,"at"));
         }
       }
-      if ($tread && $tstate =~ /^($otcmd)$/)
-      {
-        push @sensorsTampered,$sensor;
-      }
     }
   }
   if ($motions)
@@ -2743,14 +2738,13 @@ sub HOMEMODE_TriggerState($;$$$)
     foreach my $sensor (devspec2array($motions))
     {
       next if (HOMEMODE_IsDisabled($hash,$sensor));
-      my ($oread,$tread) = split " ",AttrVal($sensor,"HomeReadings",AttrVal($name,"HomeSensorsMotionReadings","state sabotageError")),2;
-      my $otcmd = AttrVal($sensor,"HomeValues",AttrVal($name,"HomeSensorsMotionValues","open|on"));
+      my $oread = AttrVal($sensor,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state"));
+      my $ocmd = AttrVal($sensor,"HomeMotionValue",AttrVal($name,"HomeSensorsMotionValue","open|motion|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
-      my $tstate = ReadingsVal($sensor,$tread,"") if ($tread);
       my $kind = AttrVal($sensor,"HomeSensorLocation","inside");
-      next if (!$ostate && !$tstate);
-      if ($ostate =~ /^($otcmd)$/)
+      next if (!$ostate);
+      if ($ostate =~ /^($ocmd)$/)
       {
         push @motionsOpen,$sensor;
         push @motionsInsideOpen,$sensor if ($kind eq "inside");
@@ -2779,10 +2773,6 @@ sub HOMEMODE_TriggerState($;$$$)
           HOMEMODE_MotionCommands($hash,$sensor,"closed");
         }
       }
-      if ($tread && $tstate =~ /^($otcmd)$/)
-      {
-        push @sensorsTampered,$sensor;
-      }
     }
   }
   HOMEMODE_alarmTriggered($hash,@alarmSensors);
@@ -2795,7 +2785,6 @@ sub HOMEMODE_TriggerState($;$$$)
   my $openmo  = @motionsOutsideOpen ? join(",",@motionsOutsideOpen) : "";
   my $openo   = @outsideOpen ? join(",",@outsideOpen) : "";
   my $openw   = @windowsOpen ? join(",",@windowsOpen) : "";
-  my $tamp    = @sensorsTampered ? join(",",@sensorsTampered) : "";
   readingsBeginUpdate($hash);
   if ($contacts)
   {
@@ -2818,9 +2807,6 @@ sub HOMEMODE_TriggerState($;$$$)
     readingsBulkUpdateIfChanged($hash,"contactsWindowsOpen_ct",@windowsOpen);
     readingsBulkUpdateIfChanged($hash,"contactsWindowsOpen_hr",HOMEMODE_makeHR($hash,0,@windowsOpen));
   }
-  readingsBulkUpdateIfChanged($hash,"sensorsTampered",$tamp);
-  readingsBulkUpdateIfChanged($hash,"sensorsTampered_ct",@sensorsTampered);
-  readingsBulkUpdateIfChanged($hash,"sensorsTampered_hr",HOMEMODE_makeHR($hash,0,@sensorsTampered));
   if ($motions)
   {
     readingsBulkUpdateIfChanged($hash,"motionsSensors",$openm);
@@ -2834,7 +2820,6 @@ sub HOMEMODE_TriggerState($;$$$)
     readingsBulkUpdateIfChanged($hash,"motionsOutside_hr",HOMEMODE_makeHR($hash,0,@motionsOutsideOpen));
   }
   readingsEndUpdate($hash,1);
-  HOMEMODE_alarmTampered($hash,@sensorsTampered) if (join(",",@sensorsTampered) ne $tampered);
   if ($getter eq "contactsOpen")
   {
     return "open contacts: $open" if ($open && $type eq "all");
@@ -2849,11 +2834,6 @@ sub HOMEMODE_TriggerState($;$$$)
     return "no open outside" if (!$openo && $type eq "outside");
     return "open windows: $openw" if ($openw && $type eq "windows");
     return "no open windows" if (!$openw && $type eq "windows");
-  }
-  elsif ($getter eq "sensorsTampered")
-  {
-    return "tampered sensors: $tamp" if ($tamp);
-    return "no tampered sensors" if (!$tamp);
   }
   return;
 }
@@ -2926,9 +2906,9 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     $waittime = HOMEMODE_hourMaker($waittime);
     my $at = "{HOMEMODE_ContactOpenCheck(\"$name\",\"$contact\",undef,$retrigger)}" if ($retrigger <= $maxtrigger);
     my $contactname = HOMEMODE_name2alias($contact,1);
-    my $contactread = (split " ",AttrVal($contact,"HomeReadings",AttrVal($name,"HomeSensorsContactReadings","state sabotageError")))[0];
+    my $contactread = AttrVal($contact,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"));
     $state = $state ? $state : ReadingsVal($contact,$contactread,"");
-    my $opencmds = AttrVal($contact,"HomeValues",AttrVal($name,"HomeSensorsContactValues","open|tilted|on"));
+    my $opencmds = AttrVal($contact,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted"));
     if ($state =~ /^($opencmds|open)$/)
     {
       CommandDefine(undef,"$timer at +$waittime $at") if ($at && !HOMEMODE_ID($timer));
@@ -3551,8 +3531,8 @@ sub HOMEMODE_Details($$$)
       $html .= "<th>Sensor name</th>";
       $html .= "<th>HomeContactType</th>";
       $html .= "<th>HomeModeAlarmActive</th>";
-      $html .= "<th>HomeReadings</th>";
-      $html .= "<th>HomeValues</th>";
+      $html .= "<th>HomeContactReading</th>";
+      $html .= "<th>HomeContactValue</th>";
       $html .= "<th>HomeOpenMaxTrigger</th>";
       $html .= "<th>HomeOpenTimeDividers<br>($sea)</th>";
       $html .= "<th>HomeOpenTimes</th>";
@@ -3579,8 +3559,8 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeContactValue",10,"",AttrVal($s,"HomeContactValue",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
@@ -3620,8 +3600,8 @@ sub HOMEMODE_Details($$$)
       $html .= "<th>Sensor name</th>";
       $html .= "<th>HomeSensorLocation</th>";
       $html .= "<th>HomeModeAlarmActive</th>";
-      $html .= "<th>HomeReadings</th>";
-      $html .= "<th>HomeValues</th>";
+      $html .= "<th>HomeMotionReading</th>";
+      $html .= "<th>HomeMotionValue</th>";
       $html .= "</tr>";
       my $c = 1;
       foreach my $s (sort @motions)
@@ -3643,8 +3623,8 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeMotionValue",10,"",AttrVal($s,"HomeMotionValue",""))."</td>";
         $html .= "</tr>";
         $c++;
       }
@@ -4246,15 +4226,15 @@ sub HOMEMODE_Details($$$)
           default: 0
         </li>
         <li>
-          <b><i>HomeReadings</i></b><br>
-          2 space separated readings for contact sensors open state and tamper alert<br>
-          this is the device setting which will override the global setting from attribute HomeSensorsContactReadings from the HOMEMODE device<br>
+          <b><i>HomeContactReading</i></b><br>
+          reading for contact sensors open/tiled state<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsContactReading from the HOMEMODE device<br>
           default: state sabotageError
         </li>
         <li>
-          <b><i>HomeValues</i></b><br>
-          regex of open, tilted and tamper values for contact sensors<br>
-          this is the device setting which will override the global setting from attribute HomeSensorsContactValues from the HOMEMODE device<br>
+          <b><i>HomeContactValue</i></b><br>
+          regex of open/tilted values for contact sensors<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsContactValue from the HOMEMODE device<br>
           default: open|tilted|on
         </li>
         <li>
@@ -4277,15 +4257,15 @@ sub HOMEMODE_Details($$$)
       </ul>
     </li>
     <li>
-      <b><i>HomeSensorsContactReadings</i></b><br>
-      2 space separated readings for contact sensors open state and tamper alert<br>
-      this is the global setting, you can also set these readings in each contact sensor individually in attribute HomeReadings once they are added to the HOMEMODE device<br>
-      default: state sabotageError
+      <b><i>HomeSensorsContactReading</i></b><br>
+      reading for contact sensors open state<br>
+      this is the global setting, you can also set this reading in each contact sensor individually in attribute HomeContactReading once they are added to the HOMEMODE device<br>
+      default: state
     </li>
     <li>
-      <b><i>HomeSensorsContactValues</i></b><br>
-      regex of open, tilted and tamper values for contact sensors<br>
-      this is the global setting, you can also set these values in each contact sensor individually in attribute HomeValues once they are added to the HOMEMODE device<br>
+      <b><i>HomeSensorsContactValue</i></b><br>
+      regex of open/tilted/on values for contact sensors<br>
+      this is the global setting, you can also set these value in each contact sensor individually in attribute HomeContactValue once they are added to the HOMEMODE device<br>
       default: open|tilted|on
     </li>
     <li>
@@ -4350,30 +4330,30 @@ sub HOMEMODE_Details($$$)
           default: inside
         </li>
         <li>
-          <b><i>HomeReadings</i></b><br>
-          2 space separated readings for motion sensors open/closed state and tamper alert<br>
-          this is the device setting which will override the global setting from attribute HomeSensorsMotionReadings from the HOMEMODE device<br>
-          default: state sabotageError
+          <b><i>HomeMotionReading</i></b><br>
+          reading for motion sensors open/motion state<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsMotionReading from the HOMEMODE device<br>
+          default: state
         </li>
         <li>
-          <b><i>HomeValues</i></b><br>
-          regex of open and tamper values for motion sensors<br>
-          this is the device setting which will override the global setting from attribute HomeSensorsMotionValues from the HOMEMODE device<br>
-          default: open|on
+          <b><i>HomeMotionValue</i></b><br>
+          regex of open/motion/on values for motion sensors<br>
+          this is the device setting which will override the global setting from attribute HomeSensorsMotionValue from the HOMEMODE device<br>
+          default: open|motion|on
         </li>
       </ul>
     </li>
     <li>
-      <b><i>HomeSensorsMotionReadings</i></b><br>
-      2 space separated readings for motion sensors open/closed state and tamper alert<br>
-      this is the global setting, you can also set these readings in each motion sensor individually in attribute HomeReadings once they are added to the HOMEMODE device<br>
-      default: state sabotageError
+      <b><i>HomeSensorsMotionReading</i></b><br>
+      reading for motion sensors open/motion state<br>
+      this is the global setting, you can also set this reading in each motion sensor individually in attribute HomeMotionReading once they are added to the HOMEMODE device<br>
+      default: state
     </li>
     <li>
-      <b><i>HomeSensorsMotionValues</i></b><br>
-      regex of open and tamper values for motion sensors<br>
-      this is the global setting, you can also set these values in each contact sensor individually in attribute HomeValues once they are added to the HOMEMODE device<br>
-      default: open|on
+      <b><i>HomeSensorsMotionValue</i></b><br>
+      regex of open/motion/on values for motion sensors<br>
+      this is the global setting, you can also set these values in each contact sensor individually in attribute HomeMotionValue once they are added to the HOMEMODE device<br>
+      default: open|motion|on
     </li>
     <li>
       <b><i>HomeSensorsPowerEnergy</i></b><br>
