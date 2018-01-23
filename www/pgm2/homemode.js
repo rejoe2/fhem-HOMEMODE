@@ -34,4 +34,9 @@ $(document).ready(function() {
       kt.hide();
     }
   });
+  $("select[name=HomeContactType]").unbind().change(function() {
+    var v = $(this).val();
+    var name = $(this).parent().parent().parent().find("input[name=devname]").val();
+    $.post(window.location.pathname+"?cmd=attr%20"+name+"%20HomeContactType%20"+v+"&fwcsrf="+FW_csrfToken);
+  });
 });

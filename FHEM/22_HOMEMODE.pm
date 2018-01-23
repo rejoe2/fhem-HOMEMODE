@@ -1389,16 +1389,16 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorsBatteryLowPercentage";
   push @attribs,"HomeSensorsBatteryReading";
   push @attribs,"HomeSensorsContact";
-  push @attribs,"HomeSensorsContactReadings";
-  push @attribs,"HomeSensorsContactValues";
+  push @attribs,"HomeSensorsContactReading";
+  push @attribs,"HomeSensorsContactValue";
   push @attribs,"HomeSensorsContactOpenTimeDividers";
   push @attribs,"HomeSensorsContactOpenTimeMin";
   push @attribs,"HomeSensorsContactOpenTimes";
   push @attribs,"HomeSensorsLuminance";
   push @attribs,"HomeSensorsLuminanceReading";
   push @attribs,"HomeSensorsMotion";
-  push @attribs,"HomeSensorsMotionReadings";
-  push @attribs,"HomeSensorsMotionValues";
+  push @attribs,"HomeSensorsMotionReading";
+  push @attribs,"HomeSensorsMotionValue";
   push @attribs,"HomeSensorsPowerEnergy";
   push @attribs,"HomeSensorsPowerEnergyReadings";
   push @attribs,"HomeSensorsSmoke";
@@ -1691,14 +1691,14 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec("TYPE=$attr_value","presence"));
       HOMEMODE_updateInternals($hash,1);
     }
-    elsif ($attr_name =~ /^(HomeSensorsContactReadings|HomeSensorsMotionReadings|HomeSensorsSmokeReading)$/)
+    elsif ($attr_name =~ /^(HomeSensorsContactReading|HomeSensorsMotionReading|HomeSensorsSmokeReading)$/)
     {
       $trans = $HOMEMODE_de?
-        "Ungültiger Wert $attr_value für Attribut $attr_name. Es werden 2 Leerzeichen separierte Readings benötigt! z.B. state sabotageError":
-        "Invalid value $attr_value for attribute $attr_name. You have to provide at least 2 space separated readings, e.g. state sabotageError";
-      return $trans if ($attr_value !~ /^[\w\-\.]+\s[\w\-\.]+$/);
+        "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird ein Reading benötigt! z.B. state":
+        "Invalid value $attr_value for attribute $attr_name. You have to provide a reading, e.g. state";
+      return $trans if ($attr_value !~ /^[\w\-\.]+$/);
     }
-    elsif ($attr_name =~ /^(HomeSensorsContactValues|HomeSensorsMotionValues|HomeSensorsSmokeValue)$/)
+    elsif ($attr_name =~ /^(HomeSensorsContactValue|HomeSensorsMotionValue|HomeSensorsSmokeValue)$/)
     {
       $trans = $HOMEMODE_de?
         "Ungültiger Wert $attr_value für Attribut $attr_name. Es wird wenigstens ein Wert oder mehrere Pipe separierte Werte benötigt! z.B. open|tilted|on":
@@ -2692,7 +2692,7 @@ sub HOMEMODE_TriggerState($;$$$)
     {
       next if (HOMEMODE_IsDisabled($hash,$sensor));
       my $oread = AttrVal($sensor,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"));
-      my $ocmd = AttrVal($sensor,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted"));
+      my $ocmd = AttrVal($sensor,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"));
       my $amodea = AttrVal($sensor,"HomeModeAlarmActive","-");
       my $ostate = ReadingsVal($sensor,$oread,"");
       my $kind = AttrVal($sensor,"HomeContactType","window");
@@ -2909,7 +2909,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     my $contactname = HOMEMODE_name2alias($contact,1);
     my $contactread = AttrVal($contact,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"));
     $state = $state ? $state : ReadingsVal($contact,$contactread,"");
-    my $opencmds = AttrVal($contact,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted"));
+    my $opencmds = AttrVal($contact,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"));
     if ($state =~ /^($opencmds|open)$/)
     {
       CommandDefine(undef,"$timer at +$waittime $at") if ($at && !HOMEMODE_ID($timer));
@@ -3530,16 +3530,16 @@ sub HOMEMODE_Details($$$)
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
-      $html .= "<th>HomeContactType</th>";
-      $html .= "<th>HomeModeAlarmActive</th>";
-      $html .= "<th>HomeAlarmDelay</th>";
-      $html .= "<th>HomeContactReading</th>";
-      $html .= "<th>HomeContactValue</th>";
-      $html .= "<th>HomeOpenMaxTrigger</th>";
-      $html .= "<th>HomeOpenTimeDividers<br>($sea)</th>";
-      $html .= "<th>HomeOpenTimes</th>";
-      $html .= "<th>HomeOpenDontTriggerModes</th>";
-      $html .= "<th>HomeOpenDontTriggerModesResidents</th>";
+      $html .= "<th>ModeAlarmActive</th>";
+      $html .= "<th>AlarmDelay</th>";
+      $html .= "<th>OpenMaxTrigger</th>";
+      $html .= "<th>OpenTimes</th>";
+      $html .= "<th>OpenTimeDividers<br>($sea)</th>";
+      $html .= "<th>OpenDontTriggerModes</th>";
+      $html .= "<th>OpenDontTriggerModesResidents</th>";
+      $html .= "<th>ContactType</th>";
+      $html .= "<th>ContactReading</th>";
+      $html .= "<th>ContactValue</th>";
       $html .= "</tr>";
       my $c = 1;
       foreach my $s (sort @contacts)
@@ -3548,8 +3548,7 @@ sub HOMEMODE_Details($$$)
         $html .= " class=\"";
         $html .= (int($c/2) != $c/2) ? "odd" : "even";
         $html .= "\">";
-        $html .= "<td><a href='/fhem?detail=$s'>".AttrVal($s,"alias",$s)."</a>".FW_hidden("devname",$s)."<td>";
-        $html .= FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","submit()");
+        $html .= "<td><a href='/fhem?detail=$s'>".AttrVal($s,"alias",$s)."</a>".FW_hidden("devname",$s)."</td>";
         $html .= "<td>";
         $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
         $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
@@ -3561,12 +3560,10 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeContactValue",10,"",AttrVal($s,"HomeContactValue",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0")))."</td>";
         $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10")))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers","")))."</td>";
         $html .= "<td>";
         foreach my $m (split /,/,$HOMEMODE_UserModesAll)
         {
@@ -3583,6 +3580,9 @@ sub HOMEMODE_Details($$$)
           $html .= ">".AttrVal($r,"alias",$r)."</label><br>";
         }
         $html .= "</td>";
+        $html .= "<td>".FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","")."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state")))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeContactValue",15,"",AttrVal($s,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on")))."</td>";
         $html .= "</tr>";
         $c++;
       }
@@ -3600,10 +3600,11 @@ sub HOMEMODE_Details($$$)
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
-      $html .= "<th>HomeSensorLocation</th>";
-      $html .= "<th>HomeModeAlarmActive</th>";
-      $html .= "<th>HomeMotionReading</th>";
-      $html .= "<th>HomeMotionValue</th>";
+      $html .= "<th>ModeAlarmActive</th>";
+      $html .= "<th>AlarmDelay</th>";
+      $html .= "<th>SensorLocation</th>";
+      $html .= "<th>MotionReading</th>";
+      $html .= "<th>MotionValue</th>";
       $html .= "</tr>";
       my $c = 1;
       foreach my $s (sort @motions)
@@ -3612,8 +3613,7 @@ sub HOMEMODE_Details($$$)
         $html .= " class=\"";
         $html .= (int($c/2) != $c/2) ? "odd" : "even";
         $html .= "\">";
-        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."<td>";
-        $html .= FW_select("$s","$s.HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","submit()");
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
         $html .= "<td>";
         $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
         $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
@@ -3625,8 +3625,10 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeMotionValue",10,"",AttrVal($s,"HomeMotionValue",""))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0")))."</td>";
+        $html .= "<td>".FW_select("$s","$s.HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","")."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state")))."</td>";
+        $html .= "<td>".FW_textfieldv("$s.HomeMotionValue",15,"",AttrVal($s,"HomeMotionValue",AttrVal($name,"HomeSensorsMotionValues","open|motion|on")))."</td>";
         $html .= "</tr>";
         $c++;
       }
