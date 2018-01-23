@@ -3580,8 +3580,8 @@ sub HOMEMODE_Details($$$)
         }
         $html .= "</td>";
         $html .= "<td>".FW_select("HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","")."</td>";
-        $html .= "<td>".FW_textfieldv("HomeContactReading",10,"",AttrVal($s,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"))).FW_hidden("HomeSensorsContactReading-global",AttrVal($name,"HomeSensorsContactReading","0"))."</td>";
-        $html .= "<td>".FW_textfieldv("HomeContactValue",15,"",AttrVal($s,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"))).FW_hidden("HomeSensorsContactValue-global",AttrVal($name,"HomeSensorsContactValue","0"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeContactReading",10,"",AttrVal($s,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"))).FW_hidden("HomeSensorsContactReading-global",AttrVal($name,"HomeSensorsContactReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeContactValue",15,"",AttrVal($s,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"))).FW_hidden("HomeSensorsContactValue-global",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"))."</td>";
         $html .= "</tr>";
         $c++;
       }
