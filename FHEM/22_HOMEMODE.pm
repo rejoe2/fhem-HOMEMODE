@@ -2624,10 +2624,10 @@ sub HOMEMODE_addSensorsuserattr($$;$)
     my $inolddevspec = @olddevspec && grep /^$sensor$/,@olddevspec ? 1 : 0;
     my $alias = AttrVal($sensor,"alias","");
     my @list;
-    push @list,"HomeModeAlarmActive";
-    push @list,"HomeAlarmDelay";
-    if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
+    if (InternalVal($name,"SENSORSCONTACT","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSCONTACT","")))
     {
+      push @list,"HomeModeAlarmActive";
+      push @list,"HomeAlarmDelay";
       push @list,"HomeContactReading";
       push @list,"HomeContactValue";
       push @list,"HomeContactType:doorinside,dooroutside,doormain,window";
@@ -2648,6 +2648,8 @@ sub HOMEMODE_addSensorsuserattr($$;$)
     }
     if (InternalVal($name,"SENSORSMOTION","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSMOTION","")))
     {
+      push @list,"HomeModeAlarmActive";
+      push @list,"HomeAlarmDelay";
       push @list,"HomeMotionReading";
       push @list,"HomeMotionValue";
       push @list,"HomeSensorLocation:inside,outside";
@@ -2659,6 +2661,18 @@ sub HOMEMODE_addSensorsuserattr($$;$)
         CommandAttr(undef,"$sensor HomeSensorLocation $loc") if (!AttrVal($sensor,"HomeSensorLocation",""));
         CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,"HomeModeAlarmActive","") && $loc eq "inside");
       }
+    }
+    if (InternalVal($name,"SENSORSPOWER","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSPOWER","")))
+    {
+      push @list,"HomePowerReading";
+      push @list,"HomePowerDivider";
+      HOMEMODE_set_userattr($sensor,\@list);
+    }
+    if (InternalVal($name,"SENSORSENERGY","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSENERGY","")))
+    {
+      push @list,"HomeEnergyReading";
+      push @list,"HomeEnergyDivider";
+      HOMEMODE_set_userattr($sensor,\@list);
     }
   }
   return;
