@@ -253,14 +253,23 @@ sub HOMEMODE_Notify($$)
         }
       }
     }
-    elsif (InternalVal($name,"SENSORSENERGY","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSENERGY","")))
+    elsif (InternalVal($name,"SENSORSPOWER","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSPOWER","")))
     {
-      my $read = AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-      $read =~ s/ /\|/g;
+      my $read = AttrVal($name,"HomeSensorsPowerReading","power");
       foreach my $evt (@{$events})
       {
-        next unless ($evt =~ /^($read):\s(.*)$/);
-        HOMEMODE_PowerEnergy($hash,$devname,$1,(split " ",$2)[0]);
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        HOMEMODE_Power($hash,$devname,$1,(split " ",$2)[0]);
+        last;
+      }
+    }
+    elsif (InternalVal($name,"SENSORSENERGY","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSENERGY","")))
+    {
+      my $read = AttrVal($name,"HomeSensorsEnergyReading","energy");
+      foreach my $evt (@{$events})
+      {
+        next unless ($evt =~ /^$read:\s(.*)$/);
+        HOMEMODE_Energy($hash,$devname,$1,(split " ",$2)[0]);
         last;
       }
     }
@@ -618,14 +627,27 @@ sub HOMEMODE_updateInternals($;$$)
     {
       HOMEMODE_cleanUserattr($hash,$oldMotions);
     }
-    my $power = HOMEMODE_AttrCheck($hash,"HomeSensorsPowerEnergy");
+    my $power = HOMEMODE_AttrCheck($hash,"HomeSensorsPower");
     if ($power)
     {
       my @sensors;
-      my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+      my $p = AttrVal($name,"HomeSensorsPowerReading","power");
       foreach my $s (devspec2array($power))
       {
-        next unless (HOMEMODE_ID($s,undef,$p) && HOMEMODE_ID($s,undef,$e));
+        next unless (HOMEMODE_ID($s,undef,$p));
+        push @sensors,$s;
+        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+      }
+      $hash->{SENSORSPOWER} = join(",",sort @sensors) if (@sensors);
+    }
+    my $energy = HOMEMODE_AttrCheck($hash,"HomeSensorsEnergy");
+    if ($energy)
+    {
+      my @sensors;
+      my $e = AttrVal($name,"HomeSensorsEnergyReading","energy");
+      foreach my $s (devspec2array($energy))
+      {
+        next unless (HOMEMODE_ID($s,undef,$e));
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
       }
@@ -1399,8 +1421,10 @@ sub HOMEMODE_Attributes($)
   push @attribs,"HomeSensorsMotion";
   push @attribs,"HomeSensorsMotionReading";
   push @attribs,"HomeSensorsMotionValue";
-  push @attribs,"HomeSensorsPowerEnergy";
-  push @attribs,"HomeSensorsPowerEnergyReadings";
+  push @attribs,"HomeSensorsPower";
+  push @attribs,"HomeSensorsPowerReading";
+  push @attribs,"HomeSensorsEnergy";
+  push @attribs,"HomeSensorsEnergyReading";
   push @attribs,"HomeSensorsSmoke";
   push @attribs,"HomeSensorsSmokeReading";
   push @attribs,"HomeSensorsSmokeValue";
@@ -1784,13 +1808,24 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value));
       HOMEMODE_updateInternals($hash,1) if ($attr_value ne $attr_value_old);
     }
-    elsif ($attr_name eq "HomeSensorsPowerEnergy" && $init_done)
+    elsif ($attr_name eq "HomeSensorsPower" && $init_done)
     {
-      my ($p,$e) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
+      my $p = AttrVal($name,"HomeSensorsPowerReading","power");
       $trans = $HOMEMODE_de?
-        "$attr_value muss ein gültiger Devspec mit $p und $e Readings sein!":
-        "$attr_value must be a valid devspec with $p and $e readings!";
-      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$p) || !HOMEMODE_CheckIfIsValidDevspec($attr_value,$e));
+        "$attr_value muss ein gültiger Devspec mit '$p' Reading sein!":
+        "$attr_value must be a valid devspec with '$p' reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$p));
+      # TODO add sensor attributes
+      HOMEMODE_updateInternals($hash);
+    }
+    elsif ($attr_name eq "HomeSensorsEnergy" && $init_done)
+    {
+      my $e = AttrVal($name,"HomeSensorsEnergyReading","energy");
+      $trans = $HOMEMODE_de?
+        "$attr_value muss ein gültiger Devspec mit '$e' Readings sein!":
+        "$attr_value must be a valid devspec with '$e' reading!";
+      return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$e));
+      # TODO add sensor attributes
       HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomeTwilightDevice" && $init_done)
@@ -1948,15 +1983,7 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec($attr_value,$read));
       HOMEMODE_updateInternals($hash);
     }
-    elsif ($attr_name eq "HomeSensorsPowerEnergyReadings" && $init_done)
-    {
-      $trans = $HOMEMODE_de?
-        "$attr_name müssen zwei gültige Readings für power und energy sein!":
-        "$attr_name must be two valid readings for power and energy!";
-      return $trans if ($attr_value !~ /^([\w\-\.]+)\s([\w\-\.]+)$/);
-      HOMEMODE_updateInternals($hash) if ($attr_value_old ne $attr_value);
-    }
-    elsif ($attr_name =~ /^HomeSensorsLuminanceReading|HomeSensorsBatteryReading$/ && $init_done)
+    elsif ($attr_name =~ /^HomeSensorsLuminanceReading|HomeSensorsBatteryReading|HomeSensorsPowerReading|HomeSensorsEnergyReading$/ && $init_done)
     {
       $trans = $HOMEMODE_de?
         "$attr_name muss ein einzelnes gültiges Reading sein!":
@@ -2037,9 +2064,14 @@ sub HOMEMODE_Attr(@)
       CommandDeleteReading(undef,"$name alarmSmoke");
       HOMEMODE_updateInternals($hash);
     }
-    elsif ($attr_name eq "HomeSensorsPowerEnergy")
+    elsif ($attr_name eq "HomeSensorsPower")
     {
-      CommandDeleteReading(undef,"$name energy|power");
+      CommandDeleteReading(undef,"$name power");
+      HOMEMODE_updateInternals($hash);
+    }
+    elsif ($attr_name eq "HomeSensorEnergy")
+    {
+      CommandDeleteReading(undef,"$name energy");
       HOMEMODE_updateInternals($hash);
     }
     elsif ($attr_name eq "HomePublicIpCheckInterval")
@@ -2070,7 +2102,7 @@ sub HOMEMODE_Attr(@)
     {
       HOMEMODE_userattr($hash);
     }
-    elsif ($attr_name =~ /^(HomeUWZ|HomeSensorsLuminance|HomeSensorsLuminanceReading|HomeSensorsPowerEnergyReadings)$/)
+    elsif ($attr_name =~ /^(HomeUWZ|HomeSensorsLuminance|HomeSensorsLuminanceReading|HomeSensorsPowerReading|HomeSensorsEnergyReading)$/)
     {
       CommandDeleteReading(undef,"$name uwz.*") if ($attr_name eq "HomeUWZ");
       CommandDeleteReading(undef,"$name .*luminance.*") if ($attr_name eq "HomeSensorsLuminance");
@@ -3166,13 +3198,13 @@ sub HOMEMODE_HomebridgeMapping($)
   return;
 }
 
-sub HOMEMODE_PowerEnergy($;$$$)
+sub HOMEMODE_Power($;$$$)
 {
   my ($hash,$trigger,$read,$val) = @_;
   my $name = $hash->{NAME};
   if ($trigger && $read && defined $val)
   {
-    foreach (split /,/,$hash->{SENSORSENERGY})
+    foreach (split /,/,InternalVal($name,"SENSORSPOWER",""))
     {
       next unless ($_ ne $trigger);
       my $v = ReadingsNum($_,$read,0);
@@ -3185,21 +3217,44 @@ sub HOMEMODE_PowerEnergy($;$$$)
   else
   {
     my $power = 0;
-    my $energy = 0;
-    my ($pr,$er) = split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy");
-    foreach (split /,/,$hash->{SENSORSENERGY})
+    my $pr = AttrVal($name,"HomeSensorsPowerReading","power");
+    foreach (split /,/,InternalVal($name,"SENSORSPOWER",""))
     {
       my $p = ReadingsNum($_,$pr,0);
-      my $e = ReadingsNum($_,$er,0);
       $power += $p if ($p && $p > 0);
-      $energy += $e if ($e && $e > 0);
     }
     $power = sprintf("%.2f",$power);
+    readingsSingleUpdate($hash,"power",$power,1) if ($power * 1 > 0);
+  }
+}
+
+sub HOMEMODE_Energy($;$$$)
+{
+  my ($hash,$trigger,$read,$val) = @_;
+  my $name = $hash->{NAME};
+  if ($trigger && $read && defined $val)
+  {
+    foreach (split /,/,InternalVal($name,"SENSORSENERGY",""))
+    {
+      next unless ($_ ne $trigger);
+      my $v = ReadingsNum($_,$read,0);
+      $val += $v if ($v && $v > 0);
+    }
+    return if ($val < 0);
+    $val = sprintf("%.2f",$val);
+    readingsSingleUpdate($hash,$read,$val,1);
+  }
+  else
+  {
+    my $energy = 0;
+    my $er = AttrVal($name,"HomeSensorsEnergyReading","energy");
+    foreach (split /,/,InternalVal($name,"SENSORSENERGY",""))
+    {
+      my $e = ReadingsNum($_,$er,0);
+      $energy += $e if ($e && $e > 0);
+    }
     $energy = sprintf("%.2f",$energy);
-    readingsBeginUpdate($hash);
-    readingsBulkUpdate($hash,"power",$power) if ($power * 1 > 0);
-    readingsBulkUpdate($hash,"energy",$energy) if ($energy * 1 > 0);
-    readingsEndUpdate($hash,1);
+    readingsSingleUpdate($hash,"energy",$energy,1) if ($energy * 1 > 0);
   }
 }
 
@@ -3470,7 +3525,7 @@ sub HOMEMODE_Details($$$)
     $html .= "<td class=\"dval\"><span informid=\"$name-pressure\">".ReadingsVal($name,"pressure","")."</span> hPa</td>";
     $html .= "</tr>";
   }
-  if (AttrVal($name,"HomeSensorsPowerEnergy","") && AttrVal($name,"HomeSensorsLuminance",""))
+  if (AttrVal($name,"HomeSensorsPower","") && AttrVal($name,"HomeSensorsEnergy","") && AttrVal($name,"HomeSensorsLuminance",""))
   {
     $html .= "<tr>";
     my $power = $HOMEMODE_de ? "Leistung" : "Power";
@@ -4385,13 +4440,23 @@ sub HOMEMODE_Details($$$)
       default: open|motion|on
     </li>
     <li>
-      <b><i>HomeSensorsPowerEnergy</i></b><br>
-      devspec of sensors with power and energy readings<br>
+      <b><i>HomeSensorsEnergy</i></b><br>
+      devspec of sensors with energy reading<br>
       these devices will be used for total calculations
     </li>
     <li>
-      <b><i>HomeSensorsPowerEnergyReadings</i></b><br>
-      2 space separated readings for power/energy sensors power and energy readings<br>
+      <b><i>HomeSensorsPower</i></b><br>
+      devspec of sensors with power reading<br>
+      these devices will be used for total calculations
+    </li>
+    <li>
+      <b><i>HomeSensorsEnergyReading</i></b><br>
+      reading for energy sensors energy reading<br>
+      default: power energy
+    </li>
+    <li>
+      <b><i>HomeSensorsPowerReading</i></b><br>
+      reading for power sensors power reading<br>
       default: power energy
     </li>
     <li>
