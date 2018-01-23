@@ -3514,7 +3514,6 @@ sub HOMEMODE_Details($$$)
       push @energies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSENERGY",""));
       push @lumies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSLUMINANCE",""));
     }
-    # contacts
     if (@contacts)
     {
       my @hct = ("doorinside","dooroutside","doormain","window");
@@ -3526,15 +3525,15 @@ sub HOMEMODE_Details($$$)
       my $sea = join " ",@seasons;
       $html .= "<div>";
       $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration contact sensors</button></div>";
-      $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
+      $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"alarm modes to trigger open/tilted as alarm\">ModeAlarmActive</abbr></th>";
       $html .= "<th><abbr title=\"1-3 space separated values in seconds to delay the alarm for the given alarm mode(s) (armaway armhome armnight)\">AlarmDelay</abbr></th>";
       $html .= "<th><abbr title=\"maximum number how often open warnings should be triggered\">OpenMaxTrigger</abbr></th>";
-      $html .= "<th><abbr title=\"space separated list of trigger time dividers for contact sensor open warnings depending on the season(s) ($sea)\">OpenTimeDividers</abbr></th>";
       $html .= "<th><abbr title=\"space separated list of minutes after open warning should be triggered\">OpenTimes</abbr></th>";
+      $html .= "<th><abbr title=\"space separated list of trigger time dividers for contact sensor open warnings depending on the season(s) ($sea)\">OpenTimeDividers</abbr></th>";
       $html .= "<th><abbr title=\"regex in which mode(s) of HOMEMODE the contact sensor should not trigger open warnings\">OpenDontTriggerModes</abbr></th>";
       $html .= "<th><abbr title=\"regex of residents whose state should be the reference for OpenDontTriggerModes instead of the mode of HOMEMODE\">OpenDontTriggerModesResidents</abbr></th>";
       $html .= "<th><abbr title=\"type of the contact sensor\">ContactType</abbr></th>";
@@ -3560,10 +3559,10 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0")))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10")))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers","")))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0"))).FW_hidden("HomeAlarmDelay-global",AttrVal($name,"HomeSensorsAlarmDelay","0"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",AttrVal($name,"HomeSensorsContactOpenTimes","10"))).FW_hidden("HomeOpenTimes-global",AttrVal($name,"HomeSensorsContactOpenTimes","10"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",AttrVal($name,"HomeSensorsContactOpenTimeDividers",""))).FW_hidden("HomeOpenTimeDividers-global",AttrVal($name,"HomeSensorsContactOpenTimeDividers","10"))."</td>";
         $html .= "<td>";
         foreach my $m (split /,/,$HOMEMODE_UserModesAll)
         {
@@ -3580,9 +3579,9 @@ sub HOMEMODE_Details($$$)
           $html .= ">".AttrVal($r,"alias",$r)."</label><br>";
         }
         $html .= "</td>";
-        $html .= "<td>".FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","")."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state")))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeContactValue",15,"",AttrVal($s,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on")))."</td>";
+        $html .= "<td>".FW_select("HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","")."</td>";
+        $html .= "<td>".FW_textfieldv("HomeContactReading",10,"",AttrVal($s,"HomeContactReading",AttrVal($name,"HomeSensorsContactReading","state"))).FW_hidden("HomeSensorsContactReading-global",AttrVal($name,"HomeSensorsContactReading","0"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeContactValue",15,"",AttrVal($s,"HomeContactValue",AttrVal($name,"HomeSensorsContactValue","open|tilted|on"))).FW_hidden("HomeSensorsContactValue-global",AttrVal($name,"HomeSensorsContactValue","0"))."</td>";
         $html .= "</tr>";
         $c++;
       }
@@ -3590,13 +3589,12 @@ sub HOMEMODE_Details($$$)
       $html .= "</form>";
       $html .= "</div>";
     }
-    # motions
     if (@motions)
     {
       my @hml = ("inside","outside");
       $html .= "<div>";
       $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration motion sensors</button></div>";
-      $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
+      $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
@@ -3625,10 +3623,10 @@ sub HOMEMODE_Details($$$)
         $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
         $html .= ">armnight</label>";
         $html .= "</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0")))."</td>";
-        $html .= "<td>".FW_select("$s","$s.HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","")."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state")))."</td>";
-        $html .= "<td>".FW_textfieldv("$s.HomeMotionValue",15,"",AttrVal($s,"HomeMotionValue",AttrVal($name,"HomeSensorsMotionValues","open|motion|on")))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",AttrVal($name,"HomeSensorsAlarmDelay","0"))).FW_hidden("HomeAlarmDelay-global",AttrVal($name,"HomeSensorsAlarmDelay","0"))."</td>";
+        $html .= "<td>".FW_select("$s","HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","")."</td>";
+        $html .= "<td>".FW_textfieldv("HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state"))).FW_hidden("HomeMotionReading-global",AttrVal($name,"HomeSensorsMotionReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeMotionValue",15,"",AttrVal($s,"HomeMotionValue",AttrVal($name,"HomeSensorsMotionValue","open|motion|on"))).FW_hidden("HomeMotionValue-global",AttrVal($name,"HomeSensorsMotionValue","open|motion|on"))."</td>";
         $html .= "</tr>";
         $c++;
       }

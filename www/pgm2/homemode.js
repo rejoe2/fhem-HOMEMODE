@@ -9,8 +9,8 @@ $(document).ready(function() {
       $.post(window.location.pathname+"?cmd=setreading%20$name%20lastInfo%20"+r+"&fwcsrf="+FW_csrfToken);
     };
   });
-  var cbs = ["HomeModeAlarmActive","HomeOpenDontTriggerModes","HomeOpenDontTriggerModesResidents"];
-  cbs.forEach(function(a) {
+  var checkboxes = ["HomeModeAlarmActive","HomeOpenDontTriggerModes","HomeOpenDontTriggerModesResidents"];
+  checkboxes.forEach(function(a) {
     $("input[name="+a+"]").unbind().change(function() {
       var name = $(this).parent().parent().parent().find("input[name=devname]").val();
       var attr = [];
@@ -34,9 +34,29 @@ $(document).ready(function() {
       kt.hide();
     }
   });
-  $("select[name=HomeContactType]").unbind().change(function() {
-    var v = $(this).val();
-    var name = $(this).parent().parent().parent().find("input[name=devname]").val();
-    $.post(window.location.pathname+"?cmd=attr%20"+name+"%20HomeContactType%20"+v+"&fwcsrf="+FW_csrfToken);
+  var dropdowns = ["HomeSensorLocation","HomeContactType"];
+  dropdowns.forEach(function(a) {
+    $("select[name="+a+"]").unbind().change(function() {
+      var name = $(this).parent().parent().parent().find("input[name=devname]").val();
+      var v = $(this).val();
+      $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+    });
+  });
+  var inputs = ["HomeAlarmDelay","HomeOpenMaxTrigger","HomeOpenTimeDividers","HomeOpenTimes","HomeContactReading","HomeContactValue","HomeMotionReading","HomeMotionValue"];
+  inputs.forEach(function(a) {
+    $("input[name="+a+"]").unbind().focusout(function() {
+      var name = $(this).parent().parent().parent().find("input[name=devname]").val();
+      var gv = $(this).parent().find("input[name="+a+"-global]").val();
+      var v = $(this).val();
+      if (v && v != gv) {
+        if (a == "HomeAlarmDelay" && !v.match(/^\d{1,3}((\s\d{1,3}){2})?$/)) {
+          alert("Wrong value '"+v+"' for '"+a+"'!\nMust be a single number (seconds) or three space separated numbers (seconds) for each alarm mode individually (armaway armhome armnight).");
+        } else {
+          $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+        }
+      } else {
+        $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+"&fwcsrf="+FW_csrfToken);
+      }
+    });
   });
 });
