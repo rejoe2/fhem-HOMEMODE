@@ -2591,10 +2591,11 @@ sub HOMEMODE_addSensorsuserattr($$;$)
     my $alias = AttrVal($sensor,"alias","");
     my @list;
     push @list,"HomeModeAlarmActive";
-    push @list,"HomeReadings";
-    push @list,"HomeValues";
+    push @list,"HomeAlarmDelay";
     if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
     {
+      push @list,"HomeContactReading";
+      push @list,"HomeContactValue";
       push @list,"HomeContactType:doorinside,dooroutside,doormain,window";
       push @list,"HomeOpenMaxTrigger";
       push @list,"HomeOpenDontTriggerModes";
@@ -2613,6 +2614,8 @@ sub HOMEMODE_addSensorsuserattr($$;$)
     }
     if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
     {
+      push @list,"HomeMotionReading";
+      push @list,"HomeMotionValue";
       push @list,"HomeSensorLocation:inside,outside";
       HOMEMODE_set_userattr($sensor,\@list);
       if (!$inolddevspec)
@@ -2970,7 +2973,6 @@ sub HOMEMODE_ContactOpenCheckAfterModeChange($$$;$)
     {
       my $m = AttrVal($_,"HomeOpenDontTriggerModes","");
       my $r = AttrVal($_,"HomeOpenDontTriggerModesResidents","");
-      $r = s/,/\|/g;
       if ($resident && $m && $r && $resident =~ /^($r)$/ && $state =~ /^($m)$/ && $pstate !~ /^($m)$/)
       {
         HOMEMODE_ContactOpenCheck($name,$_,"open");
@@ -3543,20 +3545,21 @@ sub HOMEMODE_Details($$$)
     }
     my $sea = join " ",@seasons;
     $html .= "<div>";
-    $html .= "<div><h4>Configuration contact sensors</h4></div>";
+    $html .= "<div><button>Configuration contact sensors</button></div>";
     $html .= "<form method=\"get\" action=\"".$FW_ME."/HOMEMODE\">";
     $html .= "<table class=\"block wide\">";
     $html .= "<tr>";
     $html .= "<th>Sensor name</th>";
-    $html .= "<th>HomeContactType</th>";
-    $html .= "<th>HomeModeAlarmActive</th>";
-    $html .= "<th>HomeReadings</th>";
-    $html .= "<th>HomeValues</th>";
-    $html .= "<th>HomeOpenMaxTrigger</th>";
-    $html .= "<th>HomeOpenTimeDividers<br>($sea)</th>";
-    $html .= "<th>HomeOpenTimes</th>";
-    $html .= "<th>HomeOpenDontTriggerModes</th>";
-    $html .= "<th>HomeOpenDontTriggerModesResidents</th>";
+    $html .= "<th><abbr title=\"type of the contact sensor\">HomeContactType</abbr></th>";
+    $html .= "<th><abbr title=\"alarm modes to trigger open/tilted as alarm\">HomeModeAlarmActive</abbr></th>";
+    $html .= "<th><abbr title=\"1-3 space separated values in seconds to delay the alarm for the given alarm mode(s) (armaway armhome armnight)\">HomeAlarmDelay</abbr></th>";
+    $html .= "<th><abbr title=\"reading of the contact sensor\">HomeContactReading</abbr></th>";
+    $html .= "<th><abbr title=\"regex of value of HomeContactReading to treat as open\">HomeContactValue</abbr></th>";
+    $html .= "<th><abbr title=\"maximum number how often open warnings should be triggered\">HomeOpenMaxTrigger</abbr></th>";
+    $html .= "<th><abbr title=\"space separated list of trigger time dividers for contact sensor open warnings depending on the season(s) ($sea)\">HomeOpenTimeDividers</abbr></th>";
+    $html .= "<th><abbr title=\"space separated list of minutes after open warning should be triggered\">HomeOpenTimes</abbr></th>";
+    $html .= "<th><abbr title=\"regex in which mode(s) of HOMEMODE the contact sensor should not trigger open warnings\">HomeOpenDontTriggerModes</abbr></th>";
+    $html .= "<th><abbr title=\"regex of residents whose state should be the reference for HomeOpenDontTriggerModes instead of the mode of HOMEMODE\">HomeOpenDontTriggerModesResidents</abbr></th>";
     $html .= "</tr>";
     my $c = 1;
     foreach my $s (@contacts)
@@ -3566,7 +3569,7 @@ sub HOMEMODE_Details($$$)
       $html .= (int($c/2) != $c/2) ? "odd" : "even";
       $html .= "\">";
       $html .= "<td><a href='/fhem?detail=$s'>".AttrVal($s,"alias",$s)."</a><td>";
-      $html .= FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","submit()");
+      $html .= FW_select("$s.HomeContactType","HomeContactType",\@hct,AttrVal($s,"HomeContactType",""),"dropdown","");
       $html .= "<td>";
       $html .= "<label><input type=\"checkbox\" name=\"HomeModeAlarmActive\" value=\"armaway\"";
       $html .= " checked=\"checked\"" if (grep /^armaway$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
@@ -3579,8 +3582,9 @@ sub HOMEMODE_Details($$$)
       $html .= ">armnight</label>";
       $html .= FW_hidden("devname",$s) . "\n";
       $html .= "</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeContactReading",10,"",AttrVal($s,"HomeContactReading",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeContactValue",10,"",AttrVal($s,"HomeContactValue",""))."</td>";
       $html .= "<td>".FW_textfieldv("$s.HomeOpenMaxTrigger",5,"",AttrVal($s,"HomeOpenMaxTrigger",""))."</td>";
       $html .= "<td>".FW_textfieldv("$s.HomeOpenTimeDividers",5,"",AttrVal($s,"HomeOpenTimeDividers",""))."</td>";
       $html .= "<td>".FW_textfieldv("$s.HomeOpenTimes",5,"",AttrVal($s,"HomeOpenTimes",""))."</td>";
@@ -3598,14 +3602,15 @@ sub HOMEMODE_Details($$$)
   {
     my @hml = ("inside","outside");
     $html .= "<div>";
-    $html .= "<div><h4>Configuration motion sensors</h4></div>";
+    $html .= "<div><button>Configuration motion sensors</button></div>";
     $html .= "<table class=\"block wide\">";
     $html .= "<tr>";
     $html .= "<th>Sensor name</th>";
     $html .= "<th>HomeSensorLocation</th>";
     $html .= "<th>HomeModeAlarmActive</th>";
-    $html .= "<th>HomeReadings</th>";
-    $html .= "<th>HomeValues</th>";
+    $html .= "<th>HomeAlarmDelay</th>";
+    $html .= "<th>HomeMotionReading</th>";
+    $html .= "<th>HomeMotionValue</th>";
     $html .= "</tr>";
     my $c = 1;
     foreach my $s (@motions)
@@ -3627,8 +3632,9 @@ sub HOMEMODE_Details($$$)
       $html .= " checked=\"checked\"" if (grep /^armnight$/,split /\|/,AttrVal($s,"HomeModeAlarmActive",""));
       $html .= ">armnight</label>";
       $html .= "</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeReadings",10,"",AttrVal($s,"HomeReadings",""))."</td>";
-      $html .= "<td>".FW_textfieldv("$s.HomeValues",10,"",AttrVal($s,"HomeValues",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeAlarmDelay",10,"",AttrVal($s,"HomeAlarmDelay",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",""))."</td>";
+      $html .= "<td>".FW_textfieldv("$s.HomeMotionValue",10,"",AttrVal($s,"HomeMotionValue",""))."</td>";
       $html .= "</tr>";
       $c++;
     }
@@ -4197,9 +4203,16 @@ sub HOMEMODE_Details($$$)
       each applied contact sensor will get the following attributes, attributes will be removed after removing the contact sensors from the HOMEMODE device.<br>
       <ul>
         <li>
+          <b><i>HomeAlarmDelay</i></b><br>
+          seconds to delay the alarm<br>
+          3 space separated values in seconds for armaway, armhome and armnight<br>
+          default:
+        </li>
+        <li>
           <b><i>HomeContactType</i></b><br>
           specify each contacts sensor's type, choose one of: doorinside, dooroutside, doormain, window<br>
-          while applying contact sensors to the HOMEMODE device, the value of this attribute will be guessed by device name or device alias
+          while applying contact sensors to the HOMEMODE device, the value of this attribute will be guessed by device name or device alias<br>
+          default:
         </li>
         <li>
           <b><i>HomeModeAlarmActive</i></b><br>
@@ -4217,13 +4230,13 @@ sub HOMEMODE_Details($$$)
         </li>
         <li>
           <b><i>HomeOpenDontTriggerModesResidents</i></b><br>
-          comma separated list of residents whose state should be the reference for HomeOpenDontTriggerModes instead of the mode of the HOMEMODE device<br>
+          regex of residents whose state should be the reference for HomeOpenDontTriggerModes instead of the mode of the HOMEMODE device<br>
           if one of the listed residents is in the state given by attribute HomeOpenDontTriggerModes, open warnings will not be triggered for this contact sensor<br>
           default:
         </li>
         <li>
           <b><i>HomeOpenMaxTrigger</i></b><br>
-          maximum number how often open warning should be triggered<br>
+          maximum number how often open warnings should be triggered<br>
           default: 0
         </li>
         <li>
@@ -4318,6 +4331,12 @@ sub HOMEMODE_Details($$$)
       devspec of motion sensors<br>
       each applied motion sensor will get the following attributes, attributes will be removed after removing the motion sensors from the HOMEMODE device.<br>
       <ul>
+        <li>
+          <b><i>HomeAlarmDelay</i></b><br>
+          seconds to delay the alarm<br>
+          3 space separated values in seconds for armaway, armhome and armnight<br>
+          default:
+        </li>
         <li>
           <b><i>HomeModeAlarmActive</i></b><br>
           specify the alarm mode(s) by regex in which the motion sensor should trigger motions as alerts<br>
