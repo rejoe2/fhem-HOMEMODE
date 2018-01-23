@@ -752,7 +752,8 @@ sub HOMEMODE_updateInternals($;$$)
     HOMEMODE_userattr($hash) if ($force);
     HOMEMODE_TriggerState($hash) if ($hash->{SENSORSCONTACT} || $hash->{SENSORSMOTION});
     HOMEMODE_Luminance($hash) if ($hash->{SENSORSLUMINANCE});
-    HOMEMODE_PowerEnergy($hash) if ($hash->{SENSORSENERGY});
+    HOMEMODE_Energy($hash) if ($hash->{SENSORSENERGY});
+    HOMEMODE_Power($hash) if ($hash->{SENSORSPOWER});
     HOMEMODE_Smoke($hash) if ($hash->{SENSORSSMOKE});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
