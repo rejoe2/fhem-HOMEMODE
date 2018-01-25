@@ -42,20 +42,24 @@ $(document).ready(function() {
       $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
     });
   });
-  var inputs = ["HomeAlarmDelay","HomeOpenMaxTrigger","HomeOpenTimeDividers","HomeOpenTimes","HomeContactReading","HomeContactValue","HomeMotionReading","HomeMotionValue"];
+  var inputs = ["HomeAlarmDelay","HomeOpenMaxTrigger","HomeOpenTimeDividers","HomeOpenTimes","HomeContactReading","HomeContactValue","HomeMotionReading","HomeMotionValue","HomeTamperReading","HomeTamperValue"];
   inputs.forEach(function(a) {
-    $("input[name="+a+"]").unbind().focusout(function() {
-      var name = $(this).parent().parent().parent().find("input[name=devname]").val();
-      var gv = $(this).parent().find("input[name="+a+"-global]").val();
-      var v = $(this).val();
-      if (v && v != gv) {
-        if (a == "HomeAlarmDelay" && !v.match(/^\d{1,3}((\s\d{1,3}){2})?$/)) {
-          alert("Wrong value '"+v+"' for '"+a+"'!\nMust be a single number (seconds) or three space separated numbers (seconds) for each alarm mode individually (armaway armhome armnight).");
+    $("input[name="+a+"]").unbind().on("keypress",function(e) {
+      if (e.which === 13) {
+        var name = $(this).parent().parent().parent().find("input[name=devname]").val();
+        var gv = $(this).parent().find("input[name="+a+"-global]").val();
+        var v = $(this).val();
+        if (v && v != gv) {
+          if (a === "HomeAlarmDelay" && !v.match(/^\d{1,3}((\s\d{1,3}){2})?$/)) {
+            FW_okDialog("<h5>Wrong value '"+v+"' for '"+a+"'!</h5><p>Must be a single number (seconds) or three space separated numbers (seconds)<br>for each alarm mode individually (armaway armhome armnight).</p>");
+          } else if (a === "HomeOpenMaxTrigger" && !v.match(/^\d{1,3}$/)) {
+            FW_okDialog("<h5>Wrong value '"+v+"' for '"+a+"'!</h5><p>Must be a single number for maximum numbers of open warnings.</p>");
+          } else {
+            $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+          }
         } else {
-          $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+          $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+"&fwcsrf="+FW_csrfToken);
         }
-      } else {
-        $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+"&fwcsrf="+FW_csrfToken);
       }
     });
   });

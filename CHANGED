@@ -1,6 +1,8 @@
     v2.0.0
     - new detailed configuration table of all associated devices (by category)
     - change from comma separated list to regex in attr HomeOpenDontTriggerModesResidents
+    - split up HomeSensorsPowerEnergy in HomeSensorsPower and HomeSensorsEnergy
+    - add HomeSensorsTamper, HomeSensorsTamperReading, HomeSensorsTamperValue and HomeCMDalarmTamper...
     v1.4.2
     - fix "Use of uninitialized value $summary/$sum"
     - fix time not assigned to variable for Calendar_GetEvents
