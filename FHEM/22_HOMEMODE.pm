@@ -3743,7 +3743,7 @@ sub HOMEMODE_Details($$$)
     }
   }
   $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js\"></script>\n";
-  return $html ? $html : undef if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
+  return $html if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
   my $info = ReadingsVal($name,$iid,"");
   $html .= "<div>";

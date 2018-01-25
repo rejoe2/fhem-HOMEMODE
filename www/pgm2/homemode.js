@@ -6,7 +6,7 @@ $(document).ready(function() {
     var r  = id.split("-")[1];
     $(".homeinfopanel").text(t).attr("informid",id);
     if(r) {
-      $.post(window.location.pathname+"?cmd=setreading%20$name%20lastInfo%20"+r+"&fwcsrf="+FW_csrfToken);
+      $.post(window.location.pathname+"?cmd=setreading%20$name%20lastInfo%20"+r+addcsrf(""));
     };
   });
   var checkboxes = ["HomeModeAlarmActive","HomeOpenDontTriggerModes","HomeOpenDontTriggerModesResidents"];
@@ -19,9 +19,9 @@ $(document).ready(function() {
       });
       var as = attr.join("|");
       if (as != "") {
-        $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+as+"&fwcsrf="+FW_csrfToken);
+        $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+as+addcsrf(""));
       } else {
-        $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+"&fwcsrf="+FW_csrfToken);
+        $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+addcsrf(""));
       }
     });
   });
@@ -39,7 +39,7 @@ $(document).ready(function() {
     $("select[name="+a+"]").unbind().change(function() {
       var name = $(this).parent().parent().parent().find("input[name=devname]").val();
       var v = $(this).val();
-      $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+      $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+addcsrf(""));
     });
   });
   var inputs = ["HomeAlarmDelay","HomeOpenMaxTrigger","HomeOpenTimeDividers","HomeOpenTimes","HomeContactReading","HomeContactValue","HomeMotionReading","HomeMotionValue","HomeTamperReading","HomeTamperValue"];
@@ -55,10 +55,10 @@ $(document).ready(function() {
           } else if (a === "HomeOpenMaxTrigger" && !v.match(/^\d{1,3}$/)) {
             FW_okDialog("<h5>Wrong value '"+v+"' for '"+a+"'!</h5><p>Must be a single number for maximum numbers of open warnings.</p>");
           } else {
-            $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+"&fwcsrf="+FW_csrfToken);
+            $.post(window.location.pathname+"?cmd=attr%20"+name+"%20"+a+"%20"+v+addcsrf(""));
           }
         } else {
-          $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+"&fwcsrf="+FW_csrfToken);
+          $.post(window.location.pathname+"?cmd=deleteattr%20"+name+"%20"+a+addcsrf(""));
         }
       }
     });
