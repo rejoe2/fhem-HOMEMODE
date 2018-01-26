@@ -392,9 +392,9 @@ sub HOMEMODE_Notify($$)
         my $residentregex;
         foreach (split /,/,$hash->{RESIDENTS})
         {
-          my $regex = lc($_);
+          my $regex = $_;
           $regex =~ s/^(rr_|rg_)//;
-          next unless (lc($devname) =~ /$regex/);
+          next unless ($devname =~ /$regex/i);
           $resident = $_;
           $residentregex = $regex;
           last;
@@ -408,7 +408,7 @@ sub HOMEMODE_Notify($$)
           my @presentdevicespresent;
           foreach my $device (devspec2array("TYPE=$prestype:FILTER=presence=^(maybe.)?(absent|present|appeared|disappeared)"))
           {
-            next unless (lc($device) =~ /$residentregex/);
+            next unless ($device =~ /$residentregex/i);
             push @presentdevicespresent,$device if (ReadingsVal($device,"presence","") =~ /^(present|appeared|maybe.absent)$/);
           }
           if (grep /^presence:\s(present|appeared)$/,@{$events})
@@ -560,7 +560,7 @@ sub HOMEMODE_updateInternals($;$$)
     foreach my $resident (split /,/,$hash->{RESIDENTS})
     {
       push @allMonitoredDevices,$resident;
-      my $short = lc($resident);
+      my $short = $resident;
       $short =~ s/^(rr_|rg_)//;
       push @residentsshort,$short;
       if ($autopresence)
@@ -568,7 +568,7 @@ sub HOMEMODE_updateInternals($;$$)
         my @residentspresdevs;
         foreach my $p (@presdevs)
         {
-          next unless (lc($p) =~ /$short/);
+          next unless ($p =~ /$short/i);
           push @residentspresdevs,$p;
           push @allMonitoredDevices,$p if (!grep /^$p$/,@allMonitoredDevices);
         }
@@ -580,7 +580,7 @@ sub HOMEMODE_updateInternals($;$$)
             "Gefunden wurden $c übereinstimmende(s) Anwesenheits Gerät(e) vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"! Übereinstimmende Geräte: \"$devlist\"":
             "Found $c matching presence devices of devspec \"TYPE=$presencetype\" for resident \"$resident\"! Matching devices: \"$devlist\"";
           push @logtexte,$trans;
-          CommandAttr(undef,"$name HomePresenceDeviceAbsentCount-$resident $c") if ($init_done && ((!defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1) || (defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c < AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1))));
+          CommandAttr(undef,"$name HomePresenceDeviceAbsentCount-$resident $c") if ($init_done && !defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1);
         }
         else
         {
