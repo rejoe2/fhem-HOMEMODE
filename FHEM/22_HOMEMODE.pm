@@ -3612,9 +3612,9 @@ sub HOMEMODE_Details($$$)
       my $trans;
       my $sea = join " ",@seasons;
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">contact sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">contact sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $trans = $HOMEMODE_de?
@@ -3711,9 +3711,9 @@ sub HOMEMODE_Details($$$)
     {
       my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">motion sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">motion sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"alarm modes to trigger open/motion/on as alarm\">ModeAlarmActive</abbr></th>";
@@ -3755,9 +3755,9 @@ sub HOMEMODE_Details($$$)
     if (@energies)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">energy sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">energy sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"reading of the energy sensor\">EnergyReading</abbr></th>";
@@ -3783,9 +3783,9 @@ sub HOMEMODE_Details($$$)
     if (@powers)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">power sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">power sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"reading of the power sensor\">PowerReading</abbr></th>";
@@ -3811,9 +3811,9 @@ sub HOMEMODE_Details($$$)
     if (@smokes)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">smoke sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">smoke sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"reading of the smoke sensor\">SmokeReading</abbr></th>";
@@ -3839,9 +3839,9 @@ sub HOMEMODE_Details($$$)
     if (@tampers)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">tamper sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\">tamper sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
-      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
       $html .= "<th>Sensor name</th>";
       $html .= "<th><abbr title=\"reading of the tamper sensor\">TamperReading</abbr></th>";
@@ -3865,12 +3865,12 @@ sub HOMEMODE_Details($$$)
       $html .= "</div>";
     }
   }
-  $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js\"></script>\n";
+  $html .= "<link href=\"/fhem/pgm2/homemode.css?v=".time()."\" rel=\"stylesheet\">";
+  $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js?v=".time()."\"></script>\n";
   return $html if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
   my $info = ReadingsVal($name,$iid,"");
   $html .= "<div>";
-  $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
   if (AttrVal($name,"HomeYahooWeatherDevice",""))
