@@ -1,0 +1,26 @@
+.homehover {
+	cursor: pointer;
+}
+
+.homeinfo {
+	display: none;
+}
+
+.tar {
+	text-align: right;
+}
+
+.homeinfopanel {
+	min-height: 30px;
+	max-width: 480px;
+	padding: 3px 10px;
+}
+
+.HOMEMODE_klapp {
+	cursor: pointer;
+	margin: 10px 0;
+}
+
+.HOMEMODE_klapptable {
+	display: none;
+}
