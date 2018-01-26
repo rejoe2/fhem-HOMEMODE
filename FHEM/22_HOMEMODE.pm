@@ -283,7 +283,7 @@ sub HOMEMODE_Notify($$)
         last;
       }
     }
-    elsif (InternalVal($name,"SENSORSSABOTAGE","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSSABOTAGE","")))
+    elsif (InternalVal($name,"SENSORSTAMPER","") && grep(/^$devname$/,split /,/,InternalVal($name,"SENSORSTAMPER","")))
     {
       my $read = AttrVal($name,"HomeSensorsTamperReading","sabotageError");
       foreach my $evt (@{$events})
@@ -765,7 +765,7 @@ sub HOMEMODE_updateInternals($;$$)
     HOMEMODE_Energy($hash) if ($hash->{SENSORSENERGY});
     HOMEMODE_Power($hash) if ($hash->{SENSORSPOWER});
     HOMEMODE_Smoke($hash) if ($hash->{SENSORSSMOKE});
-    HOMEMODE_Tamper($hash) if ($hash->{SENSORSSABOTAGE});
+    HOMEMODE_Tamper($hash) if ($hash->{SENSORSTAMPER});
     HOMEMODE_Weather($hash,$weather) if ($weather);
     HOMEMODE_Twilight($hash,$twilight,1) if ($twilight);
     HOMEMODE_ToggleDevice($hash,undef);
@@ -1604,19 +1604,20 @@ sub HOMEMODE_cleanUserattr($$;$)
   my @newdevspec = devspec2array($newdevs) if ($newdevs);
   foreach my $dev (@devspec)
   {
+    # next if ($dev eq "global");
     my $userattr = AttrVal($dev,"userattr","");
     if ($userattr)
     {
       my @stayattr;
-      foreach (split " ",$userattr)
+      foreach $a (split " ",$userattr)
       {
-        if ($_ =~ /^Home/)
+        if ($a =~ /^Home/)
         {
-          $_ =~ s/:.*//;
-          CommandDeleteAttr(undef,"$dev $_") if ((AttrVal($dev,$_,"") && !@newdevspec) || (AttrVal($dev,$_,"") && @newdevspec && !grep /^$dev$/,@newdevspec));
+          $a =~ s/:.*//;
+          CommandDeleteAttr(undef,"$dev $a") if ((AttrVal($dev,$a,"") && !@newdevspec) || (AttrVal($dev,$a,"") && @newdevspec && !grep /^$dev$/,@newdevspec));
           next;
         }
-        push @stayattr,$_ if (!grep /^$_$/,@stayattr);
+        push @stayattr,$a if (!grep /^$a$/,@stayattr);
       }
       if (@stayattr)
       {
@@ -2648,6 +2649,11 @@ sub HOMEMODE_addSensorsuserattr($$;$)
       push @list,"HomeMotionValue";
       push @list,"HomeSensorLocation:inside,outside";
     }
+    if (InternalVal($name,"SENSORSSMOKE","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSSMOKE","")))
+    {
+      push @list,"HomeSmokeReading";
+      push @list,"HomeSmokeValue";
+    }
     if (InternalVal($name,"SENSORSPOWER","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSPOWER","")))
     {
       push @list,"HomePowerReading";
@@ -2658,7 +2664,7 @@ sub HOMEMODE_addSensorsuserattr($$;$)
       push @list,"HomeEnergyReading";
       push @list,"HomeEnergyDivider";
     }
-    if (InternalVal($name,"SENSORSSABOTAGE","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSSABOTAGE","")))
+    if (InternalVal($name,"SENSORSTAMPER","") && grep(/^$sensor$/,split /,/,InternalVal($name,"SENSORSTAMPER","")))
     {
       push @list,"HomeTamperReading";
       push @list,"HomeTamperValue";
@@ -3334,7 +3340,7 @@ sub HOMEMODE_Tamper($;$$)
   my $name = $hash->{NAME};
   my $v = AttrVal($trigger,"HomeTamperValue",AttrVal($name,"HomeSensorsTamperValue","on"));
   my @sensors;
-  foreach (split /,/,InternalVal($name,"SENSORSSABOTAGE",""))
+  foreach (split /,/,InternalVal($name,"SENSORSTAMPER",""))
   {
     my $r = AttrVal($_,"HomeTamperReading",AttrVal($name,"HomeSensorsTamperReading","sabotageError"));
     my $v = AttrVal($_,"HomeTamperValue",AttrVal($name,"HomeSensorsTamperValue","on"));
@@ -3576,19 +3582,24 @@ sub HOMEMODE_Details($$$)
   my ($FW_name,$name,$room) = @_;
   my $hash = $defs{$name};
   my $html;
-  # new v2
   if ($FW_detail eq $name)
   {
     my @contacts;
     my @motions;
     my @energies;
+    my @powers;
     my @lumies;
+    my @tampers;
+    my @smokes;
     foreach my $s (split ",",InternalVal($name,"NOTIFYDEV",""))
     {
       push @contacts,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSCONTACT",""));
       push @motions,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSMOTION",""));
       push @energies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSENERGY",""));
+      push @powers,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSPOWER",""));
       push @lumies,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSLUMINANCE",""));
+      push @tampers,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSTAMPER",""));
+      push @smokes,$s if (grep /^$s$/,split ",",InternalVal($name,"SENSORSSMOKE",""));
     }
     if (@contacts)
     {
@@ -3734,6 +3745,93 @@ sub HOMEMODE_Details($$$)
         $html .= "<td>".FW_select("$s","HomeSensorLocation",\@hml,AttrVal($s,"HomeSensorLocation",""),"dropdown","")."</td>";
         $html .= "<td>".FW_textfieldv("HomeMotionReading",10,"",AttrVal($s,"HomeMotionReading",AttrVal($name,"HomeSensorsMotionReading","state"))).FW_hidden("HomeMotionReading-global",AttrVal($name,"HomeSensorsMotionReading","state"))."</td>";
         $html .= "<td>".FW_textfieldv("HomeMotionValue",15,"",AttrVal($s,"HomeMotionValue",AttrVal($name,"HomeSensorsMotionValue","open|motion|on"))).FW_hidden("HomeMotionValue-global",AttrVal($name,"HomeSensorsMotionValue","open|motion|on"))."</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
+    }
+    if (@energies)
+    {
+      my @hml = ("inside","outside");
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration energy sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th><abbr title=\"reading of the energy sensor\">EnergyReading</abbr></th>";
+      $html .= "<th><abbr title=\"divider of the energy value\">EnergyDivider</abbr></th>";
+      $html .= "</tr>";
+      my $c = 1;
+      foreach my $s (sort @energies)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
+        $html .= "<td>".FW_textfieldv("HomeEnergyReading",10,"",AttrVal($s,"HomeEnergyReading",AttrVal($name,"HomeSensorsEnergyReading","state"))).FW_hidden("HomeEnergyReading-global",AttrVal($name,"HomeSensorsEnergyReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeEnergyDivider",10,"",AttrVal($s,"HomeEnergyDivider",AttrVal($name,"HomeSensorsEnergyDivider",1))).FW_hidden("HomeEnergyDivider-global",AttrVal($name,"HomeSensorsEnergyDivider",1))."</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
+    }
+    if (@powers)
+    {
+      my @hml = ("inside","outside");
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration power sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th><abbr title=\"reading of the power sensor\">PowerReading</abbr></th>";
+      $html .= "<th><abbr title=\"divider of the power value\">PowerDivider</abbr></th>";
+      $html .= "</tr>";
+      my $c = 1;
+      foreach my $s (sort @powers)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
+        $html .= "<td>".FW_textfieldv("HomePowerReading",10,"",AttrVal($s,"HomePowerReading",AttrVal($name,"HomeSensorsPowerReading","state"))).FW_hidden("HomePowerReading-global",AttrVal($name,"HomeSensorsPowerReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomePowerDivider",10,"",AttrVal($s,"HomePowerDivider",AttrVal($name,"HomeSensorsPowerDivider",1))).FW_hidden("HomePowerDivider-global",AttrVal($name,"HomeSensorsPowerDivider",1))."</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
+    }
+    if (@smokes)
+    {
+      my @hml = ("inside","outside");
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration smoke sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th><abbr title=\"reading of the smoke sensor\">SmokeReading</abbr></th>";
+      $html .= "<th><abbr title=\"regex of value of SmokeReading to treat as smoke/on\">SmokeValue</abbr></th>";
+      $html .= "</tr>";
+      my $c = 1;
+      foreach my $s (sort @smokes)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
+        $html .= "<td>".FW_textfieldv("HomeSmokeReading",10,"",AttrVal($s,"HomeSmokeReading",AttrVal($name,"HomeSensorsSmokeReading","state"))).FW_hidden("HomeSmokeReading-global",AttrVal($name,"HomeSensorsSmokeReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeSmokeValue",15,"",AttrVal($s,"HomeSmokeValue",AttrVal($name,"HomeSensorsSmokeValue","smoke|on"))).FW_hidden("HomeSmokeValue-global",AttrVal($name,"HomeSensorsSmokeValue","smoke|on"))."</td>";
         $html .= "</tr>";
         $c++;
       }
