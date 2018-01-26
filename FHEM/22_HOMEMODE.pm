@@ -3612,7 +3612,7 @@ sub HOMEMODE_Details($$$)
       my $trans;
       my $sea = join " ",@seasons;
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration contact sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">contact sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
@@ -3711,7 +3711,7 @@ sub HOMEMODE_Details($$$)
     {
       my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration motion sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">motion sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
@@ -3754,9 +3754,8 @@ sub HOMEMODE_Details($$$)
     }
     if (@energies)
     {
-      my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration energy sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">energy sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
@@ -3783,9 +3782,8 @@ sub HOMEMODE_Details($$$)
     }
     if (@powers)
     {
-      my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration power sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">power sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
@@ -3812,9 +3810,8 @@ sub HOMEMODE_Details($$$)
     }
     if (@smokes)
     {
-      my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">Configuration smoke sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">smoke sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
       $html .= "<tr>";
@@ -3832,6 +3829,34 @@ sub HOMEMODE_Details($$$)
         $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
         $html .= "<td>".FW_textfieldv("HomeSmokeReading",10,"",AttrVal($s,"HomeSmokeReading",AttrVal($name,"HomeSensorsSmokeReading","state"))).FW_hidden("HomeSmokeReading-global",AttrVal($name,"HomeSensorsSmokeReading","state"))."</td>";
         $html .= "<td>".FW_textfieldv("HomeSmokeValue",15,"",AttrVal($s,"HomeSmokeValue",AttrVal($name,"HomeSensorsSmokeValue","smoke|on"))).FW_hidden("HomeSmokeValue-global",AttrVal($name,"HomeSensorsSmokeValue","smoke|on"))."</td>";
+        $html .= "</tr>";
+        $c++;
+      }
+      $html .= "</table>";
+      $html .= "</form>";
+      $html .= "</div>";
+    }
+    if (@tampers)
+    {
+      $html .= "<div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp\" style=\"cursor:pointer; margin: 10px 0\">tamper sensors</button></div>";
+      $html .= "<form method=\"get\" action=\"\">";
+      $html .= "<table class=\"block HOMEMODE_klapptable\" style=\"display:none\">";
+      $html .= "<tr>";
+      $html .= "<th>Sensor name</th>";
+      $html .= "<th><abbr title=\"reading of the tamper sensor\">TamperReading</abbr></th>";
+      $html .= "<th><abbr title=\"regex of value of TamperReading to treat as tamper/on\">TamperValue</abbr></th>";
+      $html .= "</tr>";
+      my $c = 1;
+      foreach my $s (sort @tampers)
+      {
+        $html .= "<tr";
+        $html .= " class=\"";
+        $html .= (int($c/2) != $c/2) ? "odd" : "even";
+        $html .= "\">";
+        $html .= "<td><a href='/fhem?detail=$s'>$s</a>".FW_hidden("devname",$s)."</td>";
+        $html .= "<td>".FW_textfieldv("HomeTamperReading",10,"",AttrVal($s,"HomeTamperReading",AttrVal($name,"HomeSensorsTamperReading","state"))).FW_hidden("HomeTamperReading-global",AttrVal($name,"HomeSensorsTamperReading","state"))."</td>";
+        $html .= "<td>".FW_textfieldv("HomeTamperValue",15,"",AttrVal($s,"HomeTamperValue",AttrVal($name,"HomeSensorsTamperValue","on"))).FW_hidden("HomeTamperValue-global",AttrVal($name,"HomeSensorsTamperValue","on"))."</td>";
         $html .= "</tr>";
         $c++;
       }
