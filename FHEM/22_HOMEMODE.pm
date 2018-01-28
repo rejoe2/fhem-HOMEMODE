@@ -3865,8 +3865,9 @@ sub HOMEMODE_Details($$$)
       $html .= "</div>";
     }
   }
-  $html .= "<link href=\"/fhem/pgm2/homemode.css?v=".time()."\" rel=\"stylesheet\">";
-  $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js?v=".time()."\"></script>\n";
+  my $t = time();
+  $html .= "<link href=\"/fhem/pgm2/homemode.css?v=$t\" rel=\"stylesheet\">";
+  $html .= "<script type=\"text/javascript\" src=\"$FW_ME/pgm2/homemode.js?v=$t\"></script>\n";
   return $html if (AttrVal($name,"HomeAdvancedDetails","none") eq "none" || (AttrVal($name,"HomeAdvancedDetails","") eq "room" && $FW_detail eq $name));
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
   my $info = ReadingsVal($name,$iid,"");
