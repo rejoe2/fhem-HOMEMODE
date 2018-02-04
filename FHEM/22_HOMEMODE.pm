@@ -3612,7 +3612,7 @@ sub HOMEMODE_Details($$$)
       my $trans;
       my $sea = join " ",@seasons;
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">contact sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">contact sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3711,7 +3711,7 @@ sub HOMEMODE_Details($$$)
     {
       my @hml = ("inside","outside");
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">motion sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">motion sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3755,7 +3755,7 @@ sub HOMEMODE_Details($$$)
     if (@energies)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">energy sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">energy sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3783,7 +3783,7 @@ sub HOMEMODE_Details($$$)
     if (@powers)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">power sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">power sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3811,7 +3811,7 @@ sub HOMEMODE_Details($$$)
     if (@smokes)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">smoke sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">smoke sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3839,7 +3839,7 @@ sub HOMEMODE_Details($$$)
     if (@tampers)
     {
       $html .= "<div>";
-      $html .= "<div><button class=\"HOMEMODE_klapp\">tamper sensors</button></div>";
+      $html .= "<div><button class=\"HOMEMODE_klapp HOMEMODE_pointer\">tamper sensors</button></div>";
       $html .= "<form method=\"get\" action=\"\">";
       $html .= "<table class=\"block HOMEMODE_klapptable\">";
       $html .= "<tr>";
@@ -3872,14 +3872,14 @@ sub HOMEMODE_Details($$$)
   my $iid = ReadingsVal($name,"lastInfo","") ? ReadingsVal($name,"lastInfo","") : "";
   my $info = ReadingsVal($name,$iid,"");
   $html .= "<div>";
-  $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
+  $html .= "<div class=\"HOMEMODE_infopanel\" informid=\"$name-$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
   if (AttrVal($name,"HomeYahooWeatherDevice",""))
   {
-    $html .= "<tr class=\"homehover\">";
+    $html .= "<tr class=\"HOMEMODE_pointer HOMEMODE_i\">";
     my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
     $html .= "<td class=\"tar\">$temp:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C<span class=\"homeinfo\" informid=\"\">".HOMEMODE_ForecastTXT($hash,1)."</span></td>";
+    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,"temperature","")."</span> °C<span class=\"HOMEMODE_info\" informid=\"\">".HOMEMODE_ForecastTXT($hash,1)."</span></td>";
     my $humi = $HOMEMODE_de ? "Luftfeuchte" : "Humidity";
     $html .= "<td class=\"tar\">$humi:";
     $html .= "<td class=\"dval\"><span informid=\"$name-humidity\">".ReadingsVal($name,"humidity","")."</span> %</td>";
@@ -3907,13 +3907,13 @@ sub HOMEMODE_Details($$$)
     $html .= "<tr>";
     my $open = $HOMEMODE_de ? "Offen" : "Open";
     $html .= "<td class=\"tar\">$open:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,"contactsOpen_ct","")."</span><span class=\"homeinfo\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,"contactsOpen_hr","")."</span></td>";
+    $html .= "<td class=\"dval HOMEMODE_pointer HOMEMODE_i\"><span informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,"contactsOpen_ct","")."</span><span class=\"HOMEMODE_info\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,"contactsOpen_hr","")."</span></td>";
     my $tamp = $HOMEMODE_de ? "Sabotiert" : "Tampered";
     $html .= "<td class=\"tar\">$tamp:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-sensorsTampered_hr\">".ReadingsVal($name,"sensorsTampered_hr","")."</span></td>";
+    $html .= "<td class=\"dval HOMEMODE_pointer HOMEMODE_i\"><span informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</span><span class=\"HOMEMODE_info\" informid=\"$name-sensorsTampered_hr\">".ReadingsVal($name,"sensorsTampered_hr","")."</span></td>";
     my $alarms = $HOMEMODE_de ? "Alarme" : "Alarms";
     $html .= "<td class=\"tar\">$alarms:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-alarmTriggered_hr\">".ReadingsVal($name,"alarmTriggered_hr","")."</span></td>";
+    $html .= "<td class=\"dval HOMEMODE_pointer HOMEMODE_i\"><span informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</span><span class=\"HOMEMODE_info\" informid=\"$name-alarmTriggered_hr\">".ReadingsVal($name,"alarmTriggered_hr","")."</span></td>";
     $html .= "</tr>";
   }
   $html .= "</table>";

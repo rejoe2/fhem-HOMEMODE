@@ -1,23 +1,22 @@
-.homehover {
+.HOMEMODE_pointer {
 	cursor: pointer;
 }
 
-.homeinfo {
+.HOMEMODE_info {
 	display: none;
 }
 
-.tar {
+.HOMEMODE_tar {
 	text-align: right;
 }
 
-.homeinfopanel {
+.HOMEMODE_infopanel {
 	min-height: 30px;
 	max-width: 480px;
 	padding: 3px 10px;
 }
 
 .HOMEMODE_klapp {
-	cursor: pointer;
 	margin: 10px 0;
 }
 
