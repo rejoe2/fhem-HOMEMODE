@@ -1174,6 +1174,7 @@ sub HOMEMODE_RESIDENTS($;$)
   my $name = $hash->{NAME};
   my $events = deviceEvents($defs{$dev},1);
   my $devtype = $defs{$dev}->{TYPE};
+  Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev type: $devtype";
   my $lad = ReadingsVal($name,"lastActivityByResident","");
   my $mode;
   if (grep /^state:\s/,@{$events})
@@ -1208,12 +1209,14 @@ sub HOMEMODE_RESIDENTS($;$)
     }
     if (grep /^presence:\sabsent$/,@{$events})
     {
+      Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - presence: absent";
       push @commands,AttrVal($name,"HomeCMDpresence-absent-resident","") if (AttrVal($name,"HomeCMDpresence-absent-resident",undef));
       push @commands,AttrVal($name,"HomeCMDpresence-absent-$dev","") if (AttrVal($name,"HomeCMDpresence-absent-$dev",undef));
       readingsSingleUpdate($hash,"lastAbsentByResident",$dev,1);
     }
     elsif (grep /^presence:\spresent$/,@{$events})
     {
+      Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - presence: present";
       push @commands,AttrVal($name,"HomeCMDpresence-present-resident","") if (AttrVal($name,"HomeCMDpresence-present-resident",undef));
       push @commands,AttrVal($name,"HomeCMDpresence-present-$dev","") if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
       readingsSingleUpdate($hash,"lastPresentByResident",$dev,1);
