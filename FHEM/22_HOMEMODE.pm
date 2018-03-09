@@ -3205,15 +3205,20 @@ sub HOMEMODE_PowerEnergy($;$$$)
   my $name = $hash->{NAME};
   if ($trigger && $read && defined $val)
   {
-    foreach (split /,/,$hash->{SENSORSENERGY})
+    my @spec = devspec2array($hash->{SENSORSENERGY});
+    if (@spec > 1)
     {
-      next unless ($_ ne $trigger);
-      my $v = ReadingsNum($_,$read,0);
-      $val += $v if ($v && $v > 0);
+      foreach (split /,/,$hash->{SENSORSENERGY})
+      {
+        next unless ($_ ne $trigger);
+        my $v = ReadingsNum($_,$read,0);
+        $val += $v if ($v && $v > 0);
+      }
     }
     return if ($val < 0);
     $val = sprintf("%.2f",$val);
-    readingsSingleUpdate($hash,$read,$val,1);
+    my $r = $read eq (split " ",AttrVal($name,"HomeSensorsPowerEnergyReadings","power energy"))[0] ? "power" : "energy";
+    readingsSingleUpdate($hash,$r,$val,1);
   }
   else
   {
