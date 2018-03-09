@@ -1,3 +1,5 @@
+    v1.4.3
+    - fix using eventMap for RESIDENTS/ROOMMATE/GUEST states
     v1.4.2
     - fix "Use of uninitialized value $summary/$sum"
     - fix time not assigned to variable for Calendar_GetEvents
