@@ -1,5 +1,5 @@
     v1.4.3
-    - fix using eventMap for RESIDENTS/ROOMMATE/GUEST states
+    - fix using eventMap for RESIDENTS/ROOMMATE/GUEST
     - fix power and energy readings if only one device for measuring is available
     v1.4.2
     - fix "Use of uninitialized value $summary/$sum"

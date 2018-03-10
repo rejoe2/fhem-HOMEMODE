@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 15909 2018-01-16 22:32:51Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 16378 2018-03-10 19:40:52Z DeeSPe $
 #
 # Usage
 #
@@ -1177,24 +1177,19 @@ sub HOMEMODE_RESIDENTS($;$)
   Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev type: $devtype";
   my $lad = ReadingsVal($name,"lastActivityByResident","");
   my $mode;
-  my $emh = ReplaceEventMap($dev,"home",1);
+  # my $emh = ReplaceEventMap($dev,"home",1);
   my $ema = ReplaceEventMap($dev,"absent",1);
-  my $emaw = ReplaceEventMap($dev,"awoken",1);
+  # my $emaw = ReplaceEventMap($dev,"awoken",1);
   my $emas = ReplaceEventMap($dev,"asleep",1);
   my $emp = ReplaceEventMap($dev,"present",1);
   my $emg = ReplaceEventMap($dev,"gone",1);
-  my $emgs = ReplaceEventMap($dev,"gotosleep",1);
+  # my $emgs = ReplaceEventMap($dev,"gotosleep",1);
   my $emn = ReplaceEventMap($dev,"none",1);
-  my @uma;
-  foreach my $em (split /,/,$HOMEMODE_UserModesAll)
-  {
-    push @uma,ReplaceEventMap($dev,$em,1);
-  }
   if (grep /^state:\s/,@{$events})
   {
     foreach (@{$events})
     {
-      next unless ($_ =~ /^state:.(.*)$/ && grep /^$1$/,@uma);
+      next unless ($_ =~ /^state:.(.*)$/ && grep /^$1$/,split /,/,$HOMEMODE_UserModesAll);
       $mode = $1;
       Log3 $name,5,"$name: HOMEMODE_RESIDENTS mode: $mode";
       last;
@@ -1202,7 +1197,7 @@ sub HOMEMODE_RESIDENTS($;$)
   }
   if ($mode && $devtype eq "RESIDENTS")
   {
-    $mode = $mode eq $emh && AttrNum($name,"HomeAutoDaytime",1) ? HOMEMODE_DayTime($hash) : $mode;
+    $mode = $mode eq "home" && AttrNum($name,"HomeAutoDaytime",1) ? HOMEMODE_DayTime($hash) : $mode;
     CommandSet(undef,"$name:FILTER=mode!=$mode mode $mode");
   }
   elsif ($devtype =~ /^ROOMMATE|GUEST$/)
@@ -1236,28 +1231,28 @@ sub HOMEMODE_RESIDENTS($;$)
     }
     if ($mode)
     {
-      if ($mode =~ /^($emh|$emaw)$/ && AttrNum($name,"HomeAutoAwoken",0))
+      if ($mode =~ /^(home|awoken)$/ && AttrNum($name,"HomeAutoAwoken",0))
       {
-        if ($mode eq $emh && ReadingsVal($dev,"lastState","") eq $emas)
+        if ($mode eq "home" && ReadingsVal($dev,"lastState","") eq $emas)
         {
           AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=state!=awoken state awoken");
           return;
         }
-        elsif ($mode eq $emaw)
+        elsif ($mode eq "awoken")
         {
           my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAwoken",0));
           CommandDelete(undef,"atTmp_awoken_".$dev."_$name") if (HOMEMODE_ID("atTmp_awoken_".$dev."_$name","at"));
           CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
         }
       }
-      if ($mode eq $emh && ReadingsVal($dev,"lastState","") =~ /^($ema|$emn|$emg)$/ && AttrNum($name,"HomeAutoArrival",0))
+      if ($mode eq "home" && ReadingsVal($dev,"lastState","") =~ /^($ema|$emn|$emg)$/ && AttrNum($name,"HomeAutoArrival",0))
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
         CommandDelete(undef,"atTmp_location_home_".$dev."_$name") if (HOMEMODE_ID("atTmp_location_home_".$dev."_$name","at"));
         CommandDefine(undef,"atTmp_location_home_".$dev."_$name at +$hours set $dev:FILTER=location=arrival location home");
       }
-      if ($mode eq $emgs && AttrNum($name,"HomeAutoAsleep",0))
+      if ($mode eq "gotosleep" && AttrNum($name,"HomeAutoAsleep",0))
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoAsleep",0));
         CommandDelete(undef,"atTmp_asleep_".$dev."_$name") if (HOMEMODE_ID("atTmp_asleep_".$dev."_$name","at"));
@@ -1267,10 +1262,10 @@ sub HOMEMODE_RESIDENTS($;$)
       push @commands,AttrVal($name,"HomeCMDmode-$mode-$dev","") if (AttrVal($name,"HomeCMDmode-$mode-$dev",undef));
       readingsBeginUpdate($hash);
       readingsBulkUpdate($hash,"lastActivityByResident",$dev);
-      readingsBulkUpdate($hash,"lastAsleepByResident",$dev) if ($mode eq $emas);
-      readingsBulkUpdate($hash,"lastAwokenByResident",$dev) if ($mode eq $emaw);
-      readingsBulkUpdate($hash,"lastGoneByResident",$dev) if ($mode =~ /^($emg|$emn)$/);
-      readingsBulkUpdate($hash,"lastGotosleepByResident",$dev) if ($mode eq $emgs);
+      readingsBulkUpdate($hash,"lastAsleepByResident",$dev) if ($mode eq "asleep");
+      readingsBulkUpdate($hash,"lastAwokenByResident",$dev) if ($mode eq "awoken");
+      readingsBulkUpdate($hash,"lastGoneByResident",$dev) if ($mode =~ /^[gn]one$/);
+      readingsBulkUpdate($hash,"lastGotosleepByResident",$dev) if ($mode eq "gotosleep");
       readingsBulkUpdate($hash,"prevActivityByResident",$lad);
       readingsEndUpdate($hash,1);
       HOMEMODE_ContactOpenCheckAfterModeChange($hash,undef,undef,$dev);
