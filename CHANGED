@@ -1,3 +1,5 @@
+    v1.4.4
+    - fix crash caused by wrong usage of updated function Calendar_GetEvents
     v1.4.3
     - fix using eventMap for RESIDENTS/ROOMMATE/GUEST
     - fix power and energy readings if only one device for measuring is available
