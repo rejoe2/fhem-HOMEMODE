@@ -1,5 +1,5 @@
     v1.4.5
-    - HOMEMODE_RESIDENTS Fn: change some if to elsif
+    - fix eventMap usage in HOMEMODE_RESIDENTS Fn
     v1.4.4
     - fix crash caused by wrong usage of updated function Calendar_GetEvents
     v1.4.3

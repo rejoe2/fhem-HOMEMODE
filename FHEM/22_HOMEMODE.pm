@@ -1177,14 +1177,8 @@ sub HOMEMODE_RESIDENTS($;$)
   Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev type: $devtype";
   my $lad = ReadingsVal($name,"lastActivityByResident","");
   my $mode;
-  # my $emh = ReplaceEventMap($dev,"home",1);
   my $ema = ReplaceEventMap($dev,"absent",1);
-  # my $emaw = ReplaceEventMap($dev,"awoken",1);
-  my $emas = ReplaceEventMap($dev,"asleep",1);
   my $emp = ReplaceEventMap($dev,"present",1);
-  my $emg = ReplaceEventMap($dev,"gone",1);
-  # my $emgs = ReplaceEventMap($dev,"gotosleep",1);
-  my $emn = ReplaceEventMap($dev,"none",1);
   if (grep /^state:\s/,@{$events})
   {
     foreach (@{$events})
@@ -1202,6 +1196,7 @@ sub HOMEMODE_RESIDENTS($;$)
   }
   elsif ($devtype =~ /^ROOMMATE|GUEST$/)
   {
+    my $ls = ReadingsVal($dev,"lastState","");
     my @commands;
     if (grep /^wayhome:\s1$/,@{$events})
     {
@@ -1233,7 +1228,7 @@ sub HOMEMODE_RESIDENTS($;$)
     {
       if ($mode =~ /^(home|awoken)$/ && AttrNum($name,"HomeAutoAwoken",0))
       {
-        if ($mode eq "home" && ReadingsVal($dev,"lastState","") eq $emas)
+        if ($mode eq "home" && $ls eq "asleep")
         {
           AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=state!=awoken state awoken");
           return;
@@ -1245,7 +1240,7 @@ sub HOMEMODE_RESIDENTS($;$)
           CommandDefine(undef,"atTmp_awoken_".$dev."_$name at +$hours set $dev:FILTER=state=awoken state home");
         }
       }
-      elsif ($mode eq "home" && ReadingsVal($dev,"lastState","") =~ /^($ema|$emn|$emg)$/ && AttrNum($name,"HomeAutoArrival",0))
+      if ($mode eq "home" && $ls =~ /^(absent|[gn]one)$/ && AttrNum($name,"HomeAutoArrival",0))
       {
         my $hours = HOMEMODE_hourMaker(AttrNum($name,"HomeAutoArrival",0));
         AnalyzeCommandChain(undef,"sleep 0.1; set $dev:FILTER=location!=arrival location arrival");
