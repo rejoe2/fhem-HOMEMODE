@@ -1095,12 +1095,13 @@ sub HOMEMODE_alarmTriggered($@)
 {
   my ($hash,@triggers) = @_;
   my $name = $hash->{NAME};
+  my $arm = ReadingsVal($name,"modeAlarm","disarm");
   my @commands;
   my $text = HOMEMODE_makeHR($hash,0,@triggers);
   push @commands,AttrVal($name,"HomeCMDalarmTriggered","") if (AttrVal($name,"HomeCMDalarmTriggered",undef));
   readingsBeginUpdate($hash);
-  readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers);
-  if ($text)
+  readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers) if ($arm ne "disarm" || scalar @triggers == 0);
+  if ($text && $arm ne "disarm")
   {
     push @commands,AttrVal($name,"HomeCMDalarmTriggered-on","") if (AttrVal($name,"HomeCMDalarmTriggered-on",undef));
     readingsBulkUpdateIfChanged($hash,"alarmTriggered",join ",",@triggers);

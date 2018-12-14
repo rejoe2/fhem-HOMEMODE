@@ -1,3 +1,5 @@
+    v1.4.6
+    - set contact alarms only if modeAlarm is not disarm
     v1.4.5
     - fix eventMap usage in HOMEMODE_RESIDENTS Fn
     v1.4.4
