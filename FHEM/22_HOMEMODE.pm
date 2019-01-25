@@ -1107,7 +1107,7 @@ sub HOMEMODE_alarmTriggered($@)
     readingsBulkUpdateIfChanged($hash,"alarmTriggered_hr",$text);
     readingsBulkUpdateIfChanged($hash,"alarmState","alarm");
   }
-  elsif (!$text)
+  else
   {
     push @commands,AttrVal($name,"HomeCMDalarmTriggered-off","") if (AttrVal($name,"HomeCMDalarmTriggered-off",undef) && ReadingsVal($name,"alarmTriggered",""));
     readingsBulkUpdateIfChanged($hash,"alarmTriggered","");
