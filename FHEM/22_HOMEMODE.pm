@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.5";
+my $HOMEMODE_version = "1.4.6";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -1095,20 +1095,19 @@ sub HOMEMODE_alarmTriggered($@)
 {
   my ($hash,@triggers) = @_;
   my $name = $hash->{NAME};
-  my $arm = ReadingsVal($name,"modeAlarm","disarm");
   my @commands;
   my $text = HOMEMODE_makeHR($hash,0,@triggers);
   push @commands,AttrVal($name,"HomeCMDalarmTriggered","") if (AttrVal($name,"HomeCMDalarmTriggered",undef));
   readingsBeginUpdate($hash);
-  readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers) if ($arm ne "disarm" || scalar @triggers == 0);
-  if ($text && $arm ne "disarm")
+  readingsBulkUpdateIfChanged($hash,"alarmTriggered_ct",scalar @triggers);
+  if ($text)
   {
     push @commands,AttrVal($name,"HomeCMDalarmTriggered-on","") if (AttrVal($name,"HomeCMDalarmTriggered-on",undef));
     readingsBulkUpdateIfChanged($hash,"alarmTriggered",join ",",@triggers);
     readingsBulkUpdateIfChanged($hash,"alarmTriggered_hr",$text);
     readingsBulkUpdateIfChanged($hash,"alarmState","alarm");
   }
-  else
+  elsif (!$text)
   {
     push @commands,AttrVal($name,"HomeCMDalarmTriggered-off","") if (AttrVal($name,"HomeCMDalarmTriggered-off",undef) && ReadingsVal($name,"alarmTriggered",""));
     readingsBulkUpdateIfChanged($hash,"alarmTriggered","");
@@ -2678,6 +2677,7 @@ sub HOMEMODE_TriggerState($;$$$)
   my $contacts = $hash->{SENSORSCONTACT};
   my $motions = $hash->{SENSORSMOTION};
   my $tampered = ReadingsVal($name,"sensorsTampered","");
+  my $alarm = ReadingsVal($name,"alarmTriggered","");
   my @contactsOpen;
   my @sensorsTampered;
   my @doorsOOpen;
@@ -2791,7 +2791,7 @@ sub HOMEMODE_TriggerState($;$$$)
       }
     }
   }
-  HOMEMODE_alarmTriggered($hash,@alarmSensors);
+  HOMEMODE_alarmTriggered($hash,@alarmSensors) if (join(",",@alarmSensors) ne $alarm);
   my $open    = @contactsOpen ? join(",",@contactsOpen) : "";
   my $opendo  = @doorsOOpen ? join(",",@doorsOOpen) : "";
   my $opendm  = @doorsMOpen ? join(",",@doorsMOpen) : "";
@@ -2920,6 +2920,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
         $divider = $divs[$count] if ($season eq $text);
         $count++;
       }
+      return if ($divider == 0);
       if ($divider)
       {
         $waittime = $waittime / $divider;
