@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 16642 2018-04-21 21:12:48Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 18413 2019-01-25 17:59:24Z DeeSPe $
 #
 # Usage
 #
@@ -2921,11 +2921,8 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
         $count++;
       }
       return if ($divider == 0);
-      if ($divider)
-      {
-        $waittime = $waittime / $divider;
-        $waittime = sprintf("%.2f",$waittime) * 1;
-      }
+      $waittime = $waittime / $divider;
+      $waittime = sprintf("%.2f",$waittime) * 1;
     }
     $waittime = $mintime if ($mintime && $waittime < $mintime);
     $retrigger++;
