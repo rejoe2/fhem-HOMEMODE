@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.6";
+my $HOMEMODE_version = "1.4.7";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -3486,7 +3486,8 @@ sub HOMEMODE_Details($$$)
   $html .= "<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>";
   $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
-  if (AttrVal($name,"HomeYahooWeatherDevice",""))
+  if (AttrVal($name,"HomeYahooWeatherDevice","") ||
+     (AttrVal($name,"HomeSensorAirpressure","") && (AttrVal($name,"HomeSensorHumidityOutside","") && AttrVal($name,"HomeSensorTemperatureOutside","")) || (AttrVal($name,"HomeSensorTemperatureOutside","") && HOMEMODE_ID(AttrVal($name,"HomeSensorTemperatureOutside",""),undef,"humidity"))))
   {
     $html .= "<tr class=\"homehover\">";
     my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
@@ -3523,8 +3524,7 @@ sub HOMEMODE_Details($$$)
     my $tamp = $HOMEMODE_de ? "Sabotiert" : "Tampered";
     $html .= "<td class=\"tar\">$tamp:</td>";
     $html .= "<td class=\"dval homehover\"><span informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,"sensorsTampered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-sensorsTampered_hr\">".ReadingsVal($name,"sensorsTampered_hr","")."</span></td>";
-    my $alarms = $HOMEMODE_de ? "Alarme" : "Alarms";
-    $html .= "<td class=\"tar\">$alarms:</td>";
+    $html .= "<td class=\"tar\">Alarm:</td>";
     $html .= "<td class=\"dval homehover\"><span informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,"alarmTriggered_ct","")."</span><span class=\"homeinfo\" informid=\"$name-alarmTriggered_hr\">".ReadingsVal($name,"alarmTriggered_hr","")."</span></td>";
     $html .= "</tr>";
   }
