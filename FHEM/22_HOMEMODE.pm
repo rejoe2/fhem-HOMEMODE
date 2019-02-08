@@ -3488,7 +3488,8 @@ sub HOMEMODE_Details($$$)
   $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
   $html .= "<table class=\"wide\">";
   if (AttrVal($name,"HomeWeatherDevice","") ||
-     (AttrVal($name,"HomeSensorAirpressure","") && (AttrVal($name,"HomeSensorHumidityOutside","") && AttrVal($name,"HomeSensorTemperatureOutside","")) || (AttrVal($name,"HomeSensorTemperatureOutside","") && HOMEMODE_ID(AttrVal($name,"HomeSensorTemperatureOutside",""),undef,"humidity"))))
+     (AttrVal($name,"HomeSensorAirpressure","") && AttrVal($name,"HomeSensorHumidityOutside","") && AttrVal($name,"HomeSensorTemperatureOutside","")) ||
+     (AttrVal($name,"HomeSensorAirpressure","") && AttrVal($name,"HomeSensorTemperatureOutside","") && HOMEMODE_ID(AttrVal($name,"HomeSensorTemperatureOutside",""),undef,"humidity")))
   {
     $html .= "<tr class=\"homehover\">";
     my $temp = $HOMEMODE_de ? "Temperatur" : "Temperature";
