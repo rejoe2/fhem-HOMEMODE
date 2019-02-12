@@ -1,6 +1,7 @@
     v1.4.7
     - use also devices from attributes HomeSensorTemperatureOutside, HomeSensorAirpressure and HomeSensorHumidityOutside instead of HomeYahooWeatherDevice to display the first row of the details (HomeAdvancedDetails)
     - change attribute name HomeYahooWeatherDevice to HomeWeatherDevice
+    - change homebridgeMapping characteristic UUID E863F10F-079E-48FF-8F27-9C2605A29F52 to name AirPressure
     v1.4.6
     - fix zero devider in HOMEMODE_ContactOpenCheck
     - fix trigger alarm only if alarm triggers have changed
