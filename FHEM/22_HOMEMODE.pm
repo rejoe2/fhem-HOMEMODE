@@ -3183,7 +3183,7 @@ sub HOMEMODE_HomebridgeMapping($)
   $mapping .= "\nMotionDetected=motionsInside_ct,values=0:0;/.*/:1" if (HOMEMODE_ID($name,undef,"motionsInside_ct"));
   $mapping .= "\nStatusLowBattery=batteryLow_ct,values=0:0;/.*/:1" if (HOMEMODE_ID($name,undef,"batteryLow_ct"));
   $mapping .= "\nSmokeDetected=alarmSmoke_ct,values=0:0;/.*/:1" if (HOMEMODE_ID($name,undef,"alarmSmoke_ct"));
-  $mapping .= "\nAirPressure=pressure,name=AirPressure,format=UINT16" if (HOMEMODE_ID($name,undef,"pressure"));
+  $mapping .= "\nAirPressure=pressure" if (HOMEMODE_ID($name,undef,"pressure"));
   addToDevAttrList($name,"genericDeviceType") if (!grep /^genericDeviceType/,split(" ",AttrVal("global","userattr","")));
   addToDevAttrList($name,"homebridgeMapping:textField-long") if (!grep /^homebridgeMapping/,split(" ",AttrVal("global","userattr","")));
   CommandAttr(undef,"$name genericDeviceType security");
