@@ -2659,7 +2659,7 @@ sub HOMEMODE_Luminance($;$$)
     next unless ($val > 0);
     $lum += $val if (!$dev || $dev ne $_);
   }
-  return if (scalar @sensorsa == 0);
+  return if (!scalar @sensorsa);
   my $lumval = defined $lum ? int ($lum / scalar @sensorsa) : undef;
   if (defined $lumval && $lumval >= 0)
   {
