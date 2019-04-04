@@ -1,3 +1,5 @@
+    v1.4.8
+    - fix attr validation for HomeSensorsSmokeReading
     v1.4.7
     - use also devices from attributes HomeSensorTemperatureOutside, HomeSensorAirpressure and HomeSensorHumidityOutside instead of HomeYahooWeatherDevice to display the first row of the details (HomeAdvancedDetails)
     - change attribute name HomeYahooWeatherDevice to HomeWeatherDevice
