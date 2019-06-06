@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.8";
+my $HOMEMODE_version = "1.4.9";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -1825,7 +1825,6 @@ sub HOMEMODE_Attr(@)
       return $trans if (!HOMEMODE_CheckIfIsValidDevspec("$attr_value:FILTER=TYPE=Weather"));
       if ($attr_value_old ne $attr_value)
       {
-        CommandDeleteReading(undef,"$name condition|wind_chill");
         CommandDeleteReading(undef,"$name pressure") if (!AttrVal($name,"HomeSensorAirpressure",undef));
         CommandDeleteReading(undef,"$name wind") if (!AttrVal($name,"HomeSensorWindspeed",undef));
         CommandDeleteReading(undef,"$name temperature") if (!AttrVal($name,"HomeSensorTemperatureOutside",undef));
@@ -2062,7 +2061,7 @@ sub HOMEMODE_Attr(@)
     {
       if ($attr_name eq "HomeWeatherDevice")
       {
-        CommandDeleteReading(undef,"$name pressure|condition|wind");
+        CommandDeleteReading(undef,"$name pressure|wind");
         CommandDeleteReading(undef,"$name temperature") if (!AttrVal($name,"HomeSensorTemperatureOutside",undef));
         CommandDeleteReading(undef,"$name humidity") if (!AttrVal($name,"HomeSensorHumidityOutside",undef));
       }
@@ -2157,7 +2156,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $temp = ReadingsVal($name,"temperature",0);
   my $temptrend = ReadingsVal($name,"temperatureTrend","constant");
   my $wind = ReadingsVal($name,"wind",0);
-  my $windchill = ReadingsVal($sensor,"wind_chill",0);
+  my $windchill = ReadingsNum($sensor,"apparentTemperature",0);
   my $motion = ReadingsVal($name,"lastMotion","");
   my $pmotion = ReadingsVal($name,"prevMotion","");
   my $contact = ReadingsVal($name,"lastContact","");
@@ -2362,7 +2361,7 @@ sub HOMEMODE_WeatherTXT($$)
   my $pressuretrend = ReadingsVal($weather,"pressureTrend","");
   my $humi = ReadingsVal($name,"humidity",0);
   my $temp = ReadingsVal($name,"temperature",0);
-  my $windchill = ReadingsVal($weather,"wind_chill",0);
+  my $windchill = ReadingsNum($weather,"apparentTemperature",0);
   my $wind = ReadingsVal($name,"wind",0);
   $text =~ s/%CONDITION%/$condition/gm;
   $text =~ s/%TOBE%/$conditionart/gm;
@@ -2386,7 +2385,7 @@ sub HOMEMODE_ForecastTXT($;$)
   my $high = ReadingsVal($weather,"fc".$day."_high_c","");
   my $temp = ReadingsVal($name,"temperature","");
   my $hum = ReadingsVal($name,"humidity","");
-  my $chill = ReadingsVal($weather,"wind_chill","");
+  my $chill = ReadingsNum($weather,"apparentTemperature",0);
   my $wind = ReadingsVal($name,"wind","");
   my $text;
   if (defined $cond && defined $low && defined $high)
@@ -3573,7 +3572,7 @@ sub HOMEMODE_Details($$$)
   A lot of placeholders are available for usage within the HomeCMD or HomeText attributes (see Placeholders).<br>
   All your energy and power measuring sensors can be added and calculated total readings for energy and power will be created.<br>
   You can also add your local outside temperature and humidity sensors and you'll get ice warning e.g.<br>
-  If you also add your Yahoo weather device you'll also get short and long weather informations and weather forecast.<br>
+  If you also add your Weather device you'll also get short and long weather informations and weather forecast.<br>
   You can monitor added contact and motion sensors and execute CMDs depending on their state.<br>
   A simple alarm system is included, so your contact and motion sensors can trigger alarms depending on the current alarm mode.<br>
   A lot of customizations are possible, e.g. special event (holiday) calendars and locations.<br>
@@ -4388,7 +4387,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>HomeWeatherDevice</i></b><br>
-      your local weather device<br>
+      your local Weather device<br>
       default:
     </li>
     <li>
@@ -4545,7 +4544,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>humidty</i></b><br>
-      current humidty of the Yahoo weather device or of your own sensor (if available)
+      current humidty of the Weather device or of your own sensor (if available)
     </li>
     <li>
       <b><i>humidtyTrend</i></b><br>
@@ -4700,7 +4699,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>pressure</i></b><br>
-      current air pressure of the Yahoo weather device
+      current air pressure of the Weather device
     </li>
     <li>
       <b><i>prevActivityByResident</i></b><br>
@@ -4760,7 +4759,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>temperature</i></b><br>
-      current temperature of the Yahoo weather device or of your own sensor (if available)
+      current temperature of the Weather device or of your own sensor (if available)
     </li>
     <li>
       <b><i>temperatureTrend</i></b><br>
@@ -4781,7 +4780,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>wind</i></b><br>
-      current wind speed of the Yahoo weather
+      current wind speed of the Weather device
     </li>
   </ul>
   <a name="HOMEMODE_placeholders"></a>
@@ -4833,7 +4832,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%BE%</i></b><br>
-      is or are of condition reading of monitored Yahoo weather device<br>
+      is or are of condition reading of monitored Weather device<br>
       can be used for weather (forecast) output
     </li>
     <li>
@@ -4850,7 +4849,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%CONDITION%</i></b><br>
-      value of the condition reading of monitored Yahoo weather device<br>
+      value of the condition reading of monitored Weather device<br>
       can be used for weather (forecast) output
     </li>
     <li>
@@ -5030,7 +5029,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%PRESSURETREND%</i></b><br>
-      value of the pressureTrend reading of the Yahoo weather device<br>
+      value of the pressureTrend reading of the Weather device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
@@ -5161,7 +5160,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       <b><i>%WINDCHILL%</i></b><br>
-      value of the wind_chill reading of the Yahoo weather device<br>
+      value of the apparentTemperature reading of the Weather device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
   </ul>
