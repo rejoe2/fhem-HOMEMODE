@@ -3591,7 +3591,7 @@ sub HOMEMODE_Details($$$)
     </li>
     <li>
       There's a special function, which you may use, which is converting given minutes (up to 5999.99) to a timestamp that can be used for creating at devices.<br>
-      This function is called HOMEMODE_hourMaker and the only value you need to pass is the number in minutes with max. 2 digits after the dot.
+      This function is called HOMEMODE_hourMaker and the only value you need to pass is the number in minutes with max. two decimal places.
     </li>
     <li>
       Each set command and each updated reading of the HOMEMODE device will create an event within FHEM, so you're able to create additional notify or DOIF devices if needed.
