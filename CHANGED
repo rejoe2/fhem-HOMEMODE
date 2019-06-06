@@ -1,3 +1,6 @@
+    v1.4.9
+    - change reading wind_chill to apparentTemperature
+    - remove all Yahoo strings
     v1.4.8
     - fix attr validation for HomeSensorsSmokeReading
     v1.4.7
