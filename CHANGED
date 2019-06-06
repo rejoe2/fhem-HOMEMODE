@@ -1,6 +1,7 @@
     v1.4.9
-    - change reading wind_chill to apparentTemperature
+    - change reading wind_chill to apparentTemperature because change in Weather device
     - remove all Yahoo strings
+    - remove pressureTrend because it's not longer available in Weather device
     v1.4.8
     - fix attr validation for HomeSensorsSmokeReading
     v1.4.7

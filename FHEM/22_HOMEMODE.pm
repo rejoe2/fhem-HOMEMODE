@@ -2144,7 +2144,6 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $ppdevice = ReadingsVal($name,"lastPresentByPresenceDevice","");
   my $paddress = InternalVal($pdevice,"ADDRESS","");
   my $pressure = ReadingsVal($name,"pressure","");
-  my $pressuretrend = ReadingsVal($sensor,"pressureTrend","");
   my $weatherlong = HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherLong",""));
   my $weathershort = HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeatherShort",""));
   my $forecast = HOMEMODE_ForecastTXT($hash);
@@ -2268,7 +2267,6 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%PRESENT%/$pres/g;
   $cmd =~ s/%PRESENTR%/$rpres/g;
   $cmd =~ s/%PRESSURE%/$pressure/g;
-  $cmd =~ s/%PRESSURETREND%/$pressuretrend/g;
   $cmd =~ s/%PREVAMODE%/$pamode/g;
   $cmd =~ s/%PREVCONTACT%/$pcontact/g;
   $cmd =~ s/%PREVMODE%/$pmode/g;
@@ -2358,7 +2356,6 @@ sub HOMEMODE_WeatherTXT($$)
   my $condition = ReadingsVal($weather,"condition","");
   my $conditionart = ReadingsVal($name,".be","");
   my $pressure = ReadingsVal($name,"pressure","");
-  my $pressuretrend = ReadingsVal($weather,"pressureTrend","");
   my $humi = ReadingsVal($name,"humidity",0);
   my $temp = ReadingsVal($name,"temperature",0);
   my $windchill = ReadingsNum($weather,"apparentTemperature",0);
@@ -2367,7 +2364,6 @@ sub HOMEMODE_WeatherTXT($$)
   $text =~ s/%TOBE%/$conditionart/gm;
   $text =~ s/%HUMIDITY%/$humi/gm;
   $text =~ s/%PRESSURE%/$pressure/gm;
-  $text =~ s/%PRESSURETREND%/$pressuretrend/gm;
   $text =~ s/%TEMPERATURE%/$temp/gm;
   $text =~ s/%WINDCHILL%/$windchill/gm;
   $text =~ s/%WIND%/$wind/gm;
@@ -5025,11 +5021,6 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>%PRESSURE%</i></b><br>
       value of the pressure reading of the HOMEMODE device<br>
-      can be used for weather info in HomeTextWeather attributes e.g.
-    </li>
-    <li>
-      <b><i>%PRESSURETREND%</i></b><br>
-      value of the pressureTrend reading of the Weather device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
