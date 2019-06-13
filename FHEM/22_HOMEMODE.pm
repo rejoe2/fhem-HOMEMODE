@@ -824,7 +824,7 @@ sub HOMEMODE_Get($@)
   }
   elsif ($cmd eq "publicIP")
   {
-    return HOMEMODE_checkIP($hash,1);
+    return HOMEMODE_checkIP($hash);
   }
   else
   {
@@ -3397,31 +3397,51 @@ sub HOMEMODE_CalendarEvents($$)
   return \@events;
 }
 
-sub HOMEMODE_checkIP($;$)
+sub HOMEMODE_checkIP($)
 {
-  my ($hash,$r) = @_;
+  my ($hash) = @_;
   my $name = $hash->{NAME};
-  my $url = "http://icanhazip.com/";
-  my $ip = GetFileFromURL($url);
-  if (!$ip || $ip =~ /[<>]/)
+  my $param = {
+    url        => "http://icanhazip.com/",
+    timeout    => 5,
+    hash       => $hash,
+    callback   => \&HOMEMODE_setIP
+  };
+  return HttpUtils_NonblockingGet($param);
+}
+
+sub HOMEMODE_setIP($)
+{
+  my ($param,$err,$data) = @_;
+  my $hash = $param->{hash};
+  my $name = $hash->{NAME};
+  if ($err ne "")
   {
-    return $r ? "publicIP service check ($url) is temporary not available" : undef;
+    Log3 $name,3,"$name: Error while requesting ".$param->{url}." - $err";
   }
-  $ip =~ s/\s+//g;
-  chomp $ip;
-  if (ReadingsVal($name,"publicIP","") ne $ip)
+  if (!$data || $data =~ /[<>]/)
   {
-    my @commands;
-    readingsSingleUpdate($hash,"publicIP",$ip,1);
-    push @commands,AttrVal($name,"HomeCMDpublic-ip-change","") if (AttrVal($name,"HomeCMDpublic-ip-change",undef));
-    HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
+    $err = "Error - publicIP service check is temporary not available";
+    readingsSingleUpdate($hash,"publicIP",$err,1);
+    Log3 $name,3,"$name: $err";
   }
-  if (AttrNum($name,"HomePublicIpCheckInterval",0))
+  elsif ($data ne "")
   {
-    my $timer = gettimeofday() + 60 * AttrNum($name,"HomePublicIpCheckInterval",0);
-    $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
+    $data =~ s/\s+//g;
+    chomp $data;
+    if (ReadingsVal($name,"publicIP","") ne $data)
+    {
+      my @commands;
+      readingsSingleUpdate($hash,"publicIP",$data,1);
+      push @commands,AttrVal($name,"HomeCMDpublic-ip-change","") if (AttrVal($name,"HomeCMDpublic-ip-change",undef));
+      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
+    }
+    if (AttrNum($name,"HomePublicIpCheckInterval",0))
+    {
+      my $timer = gettimeofday() + 60 * AttrNum($name,"HomePublicIpCheckInterval",0);
+      $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
+    }
   }
-  return $r ? $ip : undef;
 }
 
 sub HOMEMODE_ToggleDevice($$)
