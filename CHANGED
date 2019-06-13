@@ -1,4 +1,5 @@
     v1.4.9
+    - NonblockingGet for publicIP check
     - change reading wind_chill to apparentTemperature because change in Weather device
     - remove all Yahoo strings
     - remove pressureTrend because it's not longer available in Weather device
