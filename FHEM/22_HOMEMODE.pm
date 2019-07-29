@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 19186 2019-04-14 18:41:30Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 19836 2019-07-15 20:02:58Z DeeSPe $
 #
 # Usage
 #
@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.9";
+my $HOMEMODE_version = "1.4.10";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -517,6 +517,7 @@ sub HOMEMODE_updateInternals($;$$)
     my @residents;
     push @residents,$defs{$resdev}->{ROOMMATES} if ($defs{$resdev}->{ROOMMATES});
     push @residents,$defs{$resdev}->{GUESTS} if ($defs{$resdev}->{GUESTS});
+    push @residents,$defs{$resdev}->{PETS} if ($defs{$resdev}->{PETS});
     if (@residents < 1)
     {
       $trans = $HOMEMODE_de?
@@ -542,7 +543,7 @@ sub HOMEMODE_updateInternals($;$$)
     {
       push @allMonitoredDevices,$resident;
       my $short = lc($resident);
-      $short =~ s/^(rr_|rg_)//;
+      $short =~ s/^(rr_|rg_|rp_)//;
       push @residentsshort,$short;
       if ($autopresence)
       {

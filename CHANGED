@@ -1,3 +1,5 @@
+    v1.4.10
+    - add new PET to RESIDENTS device
     v1.4.9
     - NonblockingGet for publicIP check
     - change reading wind_chill to apparentTemperature because change in Weather device
