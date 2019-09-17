@@ -1,5 +1,6 @@
     v1.4.11
     - add HomeCMDlocation support for ROOMMATE/GUEST/PET
+    - change some regex from .* to .+
     v1.4.10
     - add new PET to RESIDENTS device
     v1.4.9
