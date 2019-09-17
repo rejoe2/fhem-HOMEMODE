@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.10";
+my $HOMEMODE_version = "1.4.11";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -182,7 +182,7 @@ sub HOMEMODE_Notify($$)
   }
   else
   {
-    if ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST|PET)$/ && grep /^(state|wayhome|presence):\s/,@{$events})
+    if ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST|PET)$/ && grep /^(state|wayhome|presence|location):\s/,@{$events})
     {
       HOMEMODE_RESIDENTS($hash,$devname);
     }
@@ -1228,6 +1228,14 @@ sub HOMEMODE_RESIDENTS($;$)
       push @commands,AttrVal($name,"HomeCMDpresence-present-resident","") if (AttrVal($name,"HomeCMDpresence-present-resident",undef));
       push @commands,AttrVal($name,"HomeCMDpresence-present-$dev","") if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
     }
+    if (grep /^location:\s(.*)$/,@{$events})
+    {
+      Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - location: $1";
+      readingsSingleUpdate($hash,"lastLocationByResident","$dev - $1",1);
+      push @commands,AttrVal($name,"HomeCMDlocation-resident","") if (AttrVal($name,"HomeCMDlocation-resident",undef));
+      push @commands,AttrVal($name,"HomeCMDlocation-$1-resident","") if (AttrVal($name,"HomeCMDlocation-$1-resident",undef));
+      push @commands,AttrVal($name,"HomeCMDlocation-$1-$dev","") if (AttrVal($name,"HomeCMDlocation-$1-$dev",undef));
+    }
     if ($mode)
     {
       my $ls = ReadingsVal($dev,"lastState","");
@@ -1335,6 +1343,7 @@ sub HOMEMODE_Attributes($)
   {
     push @attribs,"HomeCMDlocation-$_:textField-long";
   }
+  push @attribs,"HomeCMDlocation-resident:textField-long";
   push @attribs,"HomeCMDmode:textField-long";
   push @attribs,"HomeCMDmode-absent-belated:textField-long";
   foreach (split /,/,$HOMEMODE_UserModesAll)
@@ -1506,6 +1515,12 @@ sub HOMEMODE_userattr($)
       }
       push @userattrAll,"HomeCMDpresence-absent-$resident";
       push @userattrAll,"HomeCMDpresence-present-$resident";
+      my $locs = $devtype eq "ROOMMATE" ? AttrVal($resident,"rr_locations","") : $devtype eq "GUEST" ? AttrVal($resident,"rg_locations","") : AttrVal($resident,"rp_locations","");
+      foreach (split/,/,$locs)
+      {
+        push @userattrAll,"HomeCMDlocation-$_-$resident";
+        push @userattrAll,"HomeCMDlocation-$_-resident" if (!grep(/^HomeCMDlocation-$_-resident$/,@userattrAll));
+      }
     }
     my @presdevs = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
     if (@presdevs)
@@ -3941,6 +3956,18 @@ sub HOMEMODE_Details($$$)
     <li>
       <b><i>HomeCMDlocation-&lt;%LOCATION%&gt;</i></b><br>
       cmds to execute on specific location change of the HOMEMODE device
+    </li>
+    <li>
+      <b><i>HomeCMDlocation-resident</i></b><br>
+      cmds to execute on any location change of any RESIDENT/GUEST/PET device
+    </li>
+    <li>
+      <b><i>HomeCMDlocation-&lt;%LOCATIONR%&gt;-resident</i></b><br>
+      cmds to execute on specific location change of any RESIDENT/GUEST/PET device
+    </li>
+    <li>
+      <b><i>HomeCMDlocation-&lt;%LOCATIONR%&gt;-&lt;%RESIDENT%&gt;</i></b><br>
+      cmds to execute on specific location change of a specific RESIDENT/GUEST/PET device
     </li>
     <li>
       <b><i>HomeCMDmode</i></b><br>
