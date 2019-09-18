@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.4.11";
+my $HOMEMODE_version = "1.5.0";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -1228,13 +1228,23 @@ sub HOMEMODE_RESIDENTS($;$)
       push @commands,AttrVal($name,"HomeCMDpresence-present-resident","") if (AttrVal($name,"HomeCMDpresence-present-resident",undef));
       push @commands,AttrVal($name,"HomeCMDpresence-present-$dev","") if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
     }
-    if (grep /^location:\s(.+)$/,@{$events})
+    if (grep /^location:\s/,@{$events})
     {
-      Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - location: $1";
-      readingsSingleUpdate($hash,"lastLocationByResident","$dev - $1",1);
-      push @commands,AttrVal($name,"HomeCMDlocation-resident","") if (AttrVal($name,"HomeCMDlocation-resident",undef));
-      push @commands,AttrVal($name,"HomeCMDlocation-$1-resident","") if (AttrVal($name,"HomeCMDlocation-$1-resident",undef));
-      push @commands,AttrVal($name,"HomeCMDlocation-$1-$dev","") if (AttrVal($name,"HomeCMDlocation-$1-$dev",undef));
+      my $loc;
+      foreach (@{$events})
+      {
+        next unless ($_ =~ /^location:\s(.+)$/);
+        $loc = $1;
+        last;
+      }
+      if ($loc)
+      {
+        Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - location: $loc";
+        readingsSingleUpdate($hash,"lastLocationByResident","$dev - $loc",1);
+        push @commands,AttrVal($name,"HomeCMDlocation-resident","") if (AttrVal($name,"HomeCMDlocation-resident",undef));
+        push @commands,AttrVal($name,"HomeCMDlocation-$loc-resident","") if (AttrVal($name,"HomeCMDlocation-$loc-resident",undef));
+        push @commands,AttrVal($name,"HomeCMDlocation-$loc-$dev","") if (AttrVal($name,"HomeCMDlocation-$loc-$dev",undef));
+      }
     }
     if ($mode)
     {
