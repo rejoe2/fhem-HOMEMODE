@@ -657,8 +657,11 @@ sub HOMEMODE_updateInternals($;$$)
         push @sensors,$s;
         push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
         $hash->{SENSORSBATTERY} = join(",",sort @sensors) if (@sensors);
-        DoTrigger($s,"$read: ok");
-        DoTrigger($s,"$read: $val");
+        if (!grep(/^$s$/,split(/,/,ReadingsVal($name,"batteryLow",""))))
+        {
+          DoTrigger($s,"$read: ok");
+          DoTrigger($s,"$read: $val");
+        }
       }
     }
     my $weather = HOMEMODE_AttrCheck($hash,"HomeWeatherDevice");
