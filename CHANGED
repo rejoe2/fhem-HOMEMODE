@@ -1,5 +1,8 @@
     v1.5.1
     - fix batteryLow readings creation while adding sensors to HomeSensorsBattery
+    - add attributes HomeCMDbattery and HomeCMDbatteryNormal
+    - add new reading lastBatteryNormal
+    - add new placeholder %BATTERYNORMAL%
     v1.5.0
     - add HomeCMDlocation support for ROOMMATE/GUEST/PET
     - change some regex's from .* to .+
