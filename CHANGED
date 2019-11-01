@@ -1,3 +1,6 @@
+    v1.5.2
+    - prevent to execute empty HomeCMDs
+    - add missing name for logging 'executed CMDs'
     v1.5.1
     - fix batteryLow readings creation while adding sensors to HomeSensorsBattery
     - add attributes HomeCMDbattery and HomeCMDbatteryNormal
