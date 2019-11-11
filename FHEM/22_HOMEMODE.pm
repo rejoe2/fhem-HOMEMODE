@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 20333 2019-10-08 18:57:55Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 20495 2019-11-11 20:04:13Z DeeSPe $
 #
 # Usage
 #
@@ -2355,7 +2355,7 @@ sub HOMEMODE_serializeCMD($@)
     }
     $cmd = join(" ",@newcmd);
     Log3 $name,5,"$name: cmdnew: $cmd";
-    push @newcmds,SemicolonEscape($cmd) if ($cmd !~ /^\s*$/);
+    push @newcmds,SemicolonEscape($cmd) if ($cmd !~ /^[\t\s]*$/);
   }
   my $cmd = join(";",@newcmds);
   $cmd =~ s/\}\s{0,1};\s{0,1}\{/\};;\{/g;
