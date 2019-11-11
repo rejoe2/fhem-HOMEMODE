@@ -3474,11 +3474,11 @@ sub HOMEMODE_setIP($)
       push @commands,AttrVal($name,"HomeCMDpublic-ip-change","") if (AttrVal($name,"HomeCMDpublic-ip-change",undef));
       HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
     }
-    if (AttrNum($name,"HomePublicIpCheckInterval",0))
-    {
-      my $timer = gettimeofday() + 60 * AttrNum($name,"HomePublicIpCheckInterval",0);
-      $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
-    }
+  }
+  if (AttrNum($name,"HomePublicIpCheckInterval",0))
+  {
+    my $timer = gettimeofday() + 60 * AttrNum($name,"HomePublicIpCheckInterval",0);
+    $hash->{".IP_TRIGGERTIME_NEXT"} = $timer;
   }
 }
 
