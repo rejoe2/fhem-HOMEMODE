@@ -1,3 +1,5 @@
+    v1.5.3
+    - fix blocking IP check (again and finally)
     v1.5.2
     - prevent to execute empty HomeCMDs
     - fix blocking IP check if no internet connection is available
