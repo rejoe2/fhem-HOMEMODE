@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = "1.5.3";
+my $HOMEMODE_version = "1.5.4";
 my $HOMEMODE_Daytimes = "05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night";
 my $HOMEMODE_Seasons = "03.01|spring 06.01|summer 09.01|autumn 12.01|winter";
 my $HOMEMODE_UserModes = "gotosleep,awoken,asleep";
@@ -662,7 +662,10 @@ sub HOMEMODE_updateInternals($;$$)
         $hash->{SENSORSBATTERY} = join(",",sort @sensors) if (@sensors);
         if (!grep(/^$s$/,split(/,/,ReadingsVal($name,"batteryLow",""))))
         {
-          CommandTrigger(undef,"$s $read: ok");
+          CommandTrigger(undef,"$s $read: ok") if ($val =~ /^(low|nok)$/);
+          CommandTrigger(undef,"$s $read: 100") if ($val =~ /^\d{1,3}$/);
+          CommandTrigger(undef,"$s $read: 100%") if ($val =~ /^\d{1,3}%$/);
+          CommandTrigger(undef,"$s $read: 100 %") if ($val =~ /^\d{1,3}\s%$/);
           CommandTrigger(undef,"$s $read: $val");
         }
       }
@@ -2911,9 +2914,10 @@ sub HOMEMODE_name2alias($;$)
   my ($name,$witharticle) = @_;
   my $alias = AttrVal($name,"alias",$name);
   my $art;
-  $art = "der" if ($alias =~ /sensor|dete[ck]tor|melder/i);
   $art = "die" if ($alias =~ /t(ü|ue)r/i);
   $art = "das" if ($alias =~ /fenster/i);
+  $art = "der" if ($alias =~ /(sensor|dete[ck]tor|melder|kontakt)$/i);
+  $art = "der" if ($alias =~ /^(sensor|dete[ck]tor|melder|kontakt)\s.+/i);
   my $ret = $witharticle && $art ? "$art $alias" : $alias;
   return $ret;
 }
