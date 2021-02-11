@@ -822,8 +822,7 @@ sub HOMEMODE_Get($@)
       "$cmd benötigt ein Argument, entweder long oder short!":
       "$cmd needs one argument of long or short!";
     return $trans if (!$value || $value !~ /^(long|short)$/);
-    my $m = "Long";
-    $m = "Short" if ($value eq "short");
+    my $m = $value eq "short"?"Short":"Long";
     HOMEMODE_WeatherTXT($hash,AttrVal($name,"HomeTextWeather$m",""));
   }
   elsif ($cmd eq "weatherForecast")
@@ -2554,8 +2553,7 @@ sub HOMEMODE_DayTime($)
   my $daytime = $texts[scalar @texts - 1];
   for (my $x = 0; $x < scalar @times; $x++)
   {
-    my $y = $x + 1;
-    $y = 0 if ($x == scalar @times - 1);
+    my $y = $x==scalar(@times)-1?0:$x+1;
     $daytime = $texts[$x] if ($y > $x && $loctime >= $times[$x] && $loctime < $times[$y]);
   }
   return $daytime;
@@ -2593,11 +2591,10 @@ sub HOMEMODE_SetSeason($)
     push @dates,$days;
     push @texts,$text;
   }
-  my $season = $texts[scalar @texts - 1];
+  my $season = $texts[scalar(@texts)-1];
   for (my $x = 0; $x < scalar @dates; $x++)
   {
-    my $y = $x + 1;
-    $y = 0 if ($x == scalar @dates - 1);
+    my $y = $x==scalar(@dates)-1?0:$x+1;
     $season = $texts[$x] if ($y > $x && $locdays >= $dates[$x] && $locdays < $dates[$y]);
   }
   if (ReadingsVal($name,"season","") ne $season)
@@ -3513,8 +3510,7 @@ sub HOMEMODE_ToggleDevice($$)
       push @cmds,AttrVal($name,"HomeCMDdeviceDisable","") if (AttrVal($name,"HomeCMDdeviceDisable",""));
       push @disabled,$devname;
     }
-    my $dis = "";
-    $dis = join(",",@disabled) if (@disabled);
+    my $dis = @disabled?join(",",@disabled):"";
     readingsSingleUpdate($hash,"devicesDisabled",$dis,1);
     if (@cmds)
     {
