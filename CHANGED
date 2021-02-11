@@ -1,6 +1,7 @@
     v1.5.4
     - improved empty battery handling while adding to HOMEMODE
     - improved function HOMEMODE_name2alias for better alias handling
+    - other minor improvements
     v1.5.3
     - fix blocking IP check (again and finally)
     v1.5.2
