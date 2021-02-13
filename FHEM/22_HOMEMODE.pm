@@ -2235,7 +2235,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%DEVICEP%/$ppdevice/g;
   $cmd =~ s/%DISABLED%/$disabled/g;
   $cmd =~ s/%DND%/$dnd/g;
-  if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsHolidayDevices",undef))
+  if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsCalendarDevices",undef))
   {
     my @cals;
     if (AttrVal($name,"HomeEventsHolidayDevices",""))

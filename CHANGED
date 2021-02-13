@@ -1,4 +1,5 @@
     v1.5.4
+    - fix calendar placeholders not being replaced
     - improved empty battery handling while adding to HOMEMODE
     - improved function HOMEMODE_name2alias for better alias handling
     - other minor improvements
