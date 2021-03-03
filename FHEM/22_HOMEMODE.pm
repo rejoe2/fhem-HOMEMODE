@@ -4263,7 +4263,7 @@ sub HOMEMODE_Details($$$)
       space separated list of trigger time dividers for contact sensor open warnings depending on the season of the HOMEMODE device.<br>
       dividers in same order and same number as seasons in attribute HomeSeasons<br>
       dividers are not used for contact sensors of type doormain and doorinside!<br>
-      this is the global setting, you can also set these dividers in each contact sensor individually in attribute HomeOpenTimesDividers once they are added to the HOMEMODE device<br>
+      this is the global setting, you can also set these dividers in each contact sensor individually in attribute HomeOpenTimeDividers once they are added to the HOMEMODE device<br>
       values from 0.001 to 99.999<br>
       default:
     </li>
