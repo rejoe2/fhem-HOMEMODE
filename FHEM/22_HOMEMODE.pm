@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 20562 2019-11-22 21:11:54Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 23732 2021-02-13 13:14:19Z DeeSPe $
 #
 # Usage
 #
@@ -2235,7 +2235,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   $cmd =~ s/%DEVICEP%/$ppdevice/g;
   $cmd =~ s/%DISABLED%/$disabled/g;
   $cmd =~ s/%DND%/$dnd/g;
-  if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsHolidayDevices",undef))
+  if (AttrVal($name,"HomeEventsHolidayDevices",undef) || AttrVal($name,"HomeEventsCalendarDevices",undef))
   {
     my @cals;
     if (AttrVal($name,"HomeEventsHolidayDevices",""))
