@@ -4883,377 +4883,377 @@ sub HOMEMODE_Details($$$)
   <p>These placeholders can be used in all HomeCMD attributes</p>
   <ul>
     <li>
-      <a id="HOMEMODE-placeholders-ADDRESS">%ADDRESS%</a><br>
+      <a id="HOMEMODE-placeholders-%ADDRESS%">%ADDRESS%</a><br>
       mac address of the last triggered presence device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ALIAS">%ALIAS%</a><br>
+      <a id="HOMEMODE-placeholders-%ALIAS%">%ALIAS%</a><br>
       alias of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ALARM">%ALARM%</a><br>
+      <a id="HOMEMODE-placeholders-%ALARM%">%ALARM%</a><br>
       value of the alarmTriggered reading of the HOMEMODE device<br>
       will return 0 if no alarm is triggered or a list of triggered sensors if alarm is triggered
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ALARMCT">%ALARMCT%</a><br>
+      <a id="HOMEMODE-placeholders-%ALARMCT%">%ALARMCT%</a><br>
       value of the alarmTriggered_ct reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ALARMHR">%ALARMHR%</a><br>
+      <a id="HOMEMODE-placeholders-%ALARMHR%">%ALARMHR%</a><br>
       value of the alarmTriggered_hr reading of the HOMEMODE device<br>
       will return 0 if no alarm is triggered or a (human readable) list of triggered sensors if alarm is triggered<br>
       can be used for sending msg e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-AMODE">%AMODE%</a><br>
+      <a id="HOMEMODE-placeholders-%AMODE%">%AMODE%</a><br>
       current alarm mode
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-AEAH">%AEAH%</a><br>
+      <a id="HOMEMODE-placeholders-%AEAH%">%AEAH%</a><br>
       state of anyoneElseAtHome, will return 1 if on and 0 if off
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ARRIVERS">%ARRIVERS%</a><br>
+      <a id="HOMEMODE-placeholders-%ARRIVERS%">%ARRIVERS%</a><br>
       will return a list of aliases of all registered residents/guests with location arrival<br>
       this can be used to welcome residents after main door open/close<br>
       e.g. Peter, Paul and Marry
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-AUDIO">%AUDIO%</a><br>
+      <a id="HOMEMODE-placeholders-%AUDIO%">%AUDIO%</a><br>
       audio device of the last triggered resident (attribute msgContactAudio)<br>
       if attribute msgContactAudio of the resident has no value the value is trying to be taken from device globalMsg (if available)<br>
       can be used to address resident specific msg(s) of type audio, e.g. night/morning wishes
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-BE">%BE%</a><br>
+      <a id="HOMEMODE-placeholders-%BE%">%BE%</a><br>
       is or are of condition reading of monitored Weather device<br>
       can be used for weather (forecast) output
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-BATTERYLOW">%BATTERYLOW%</a><br>
+      <a id="HOMEMODE-placeholders-%BATTERYLOW%">%BATTERYLOW%</a><br>
       alias (or name if alias is not set) of the last battery sensor which reported low battery
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-BATTERYLOWALL">%BATTERYLOWALL%</a><br>
+      <a id="HOMEMODE-placeholders-%BATTERYLOWALL%">%BATTERYLOWALL%</a><br>
       list of aliases (or names if alias is not set) of all battery sensor which reported low battery currently
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-BATTERYLOWCT">%BATTERYLOWCT%</a><br>
+      <a id="HOMEMODE-placeholders-%BATTERYLOWCT%">%BATTERYLOWCT%</a><br>
       number of battery sensors which reported low battery currently
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-BATTERYNORMAL">%BATTERYNORMAL%</a><br>
+      <a id="HOMEMODE-placeholders-%BATTERYNORMAL%">%BATTERYNORMAL%</a><br>
       alias (or name if alias is not set) of the last battery sensor which reported normal battery
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-CONDITION">%CONDITION%</a><br>
+      <a id="HOMEMODE-placeholders-%CONDITION%">%CONDITION%</a><br>
       value of the condition reading of monitored Weather device<br>
       can be used for weather (forecast) output
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-CONTACT">%CONTACT%</a><br>
+      <a id="HOMEMODE-placeholders-%CONTACT%">%CONTACT%</a><br>
       value of the lastContact reading (last opened sensor)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DEFINED">%DEFINED%</a><br>
+      <a id="HOMEMODE-placeholders-%DEFINED%">%DEFINED%</a><br>
       name of the previously defined device<br>
       can be used to trigger actions based on the name of the defined device<br>
       only available within HomeCMDfhemDEFINED
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DAYTIME">%DAYTIME%</a><br>
+      <a id="HOMEMODE-placeholders-%DAYTIME%">%DAYTIME%</a><br>
       value of the daytime reading of the HOMEMODE device<br>
       can be used to trigger day time specific actions
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DEVICE">%DEVICE%</a><br>
+      <a id="HOMEMODE-placeholders-%DEVICE%">%DEVICE%</a><br>
       name of the last triggered presence device<br>
       can be used to trigger actions depending on the last present/absent presence device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DEVICEA">%DEVICEA%</a><br>
+      <a id="HOMEMODE-placeholders-%DEVICEA%">%DEVICEA%</a><br>
       name of the last triggered absent presence device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DEVICEP">%DEVICEP%</a><br>
+      <a id="HOMEMODE-placeholders-%DEVICEP%">%DEVICEP%</a><br>
       name of the last triggered present presence device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DISABLED">%DISABLED%</a><br>
+      <a id="HOMEMODE-placeholders-%DISABLED%">%DISABLED%</a><br>
       comma separated list of disabled devices
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DND">%DND%</a><br>
+      <a id="HOMEMODE-placeholders-%DND%">%DND%</a><br>
       state of dnd, will return 1 if on and 0 if off
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURABSENCE">%DURABSENCE%</a><br>
+      <a id="HOMEMODE-placeholders-%DURABSENCE%">%DURABSENCE%</a><br>
       value of the durTimerAbsence_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURABSENCELAST">%DURABSENCELAST%</a><br>
+      <a id="HOMEMODE-placeholders-%DURABSENCELAST%">%DURABSENCELAST%</a><br>
       value of the lastDurAbsence_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURPRESENCE">%DURPRESENCE%</a><br>
+      <a id="HOMEMODE-placeholders-%DURPRESENCE%">%DURPRESENCE%</a><br>
       value of the durTimerPresence_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURPRESENCELAST">%DURPRESENCELAST%</a><br>
+      <a id="HOMEMODE-placeholders-%DURPRESENCELAST%">%DURPRESENCELAST%</a><br>
       value of the lastDurPresence_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURSLEEP">%DURSLEEP%</a><br>
+      <a id="HOMEMODE-placeholders-%DURSLEEP%">%DURSLEEP%</a><br>
       value of the durTimerSleep_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DURSLEEPLAST">%DURSLEEPLAST%</a><br>
+      <a id="HOMEMODE-placeholders-%DURSLEEPLAST%">%DURSLEEPLAST%</a><br>
       value of the lastDurSleep_cr reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-CALENDARNAME">%CALENDARNAME%</a><br>
+      <a id="HOMEMODE-placeholders-%CALENDARNAME%">%CALENDARNAME%</a><br>
       will return the current event of the given calendar name, will return 0 if event is none<br>
       can be used to trigger actions on any event of the given calendar
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-CALENDARNAME-EVENTNAME">%CALENDARNAME-EVENTNAME%</a><br>
+      <a id="HOMEMODE-placeholders-%CALENDARNAME-EVENTNAME%">%CALENDARNAME-EVENTNAME%</a><br>
       will return 1 if given event of given calendar is current, will return 0 if event is not current<br>
       can be used to trigger actions during specific events only (Christmas?)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-FORECAST">%FORECAST%</a><br>
+      <a id="HOMEMODE-placeholders-%FORECAST%">%FORECAST%</a><br>
       will return the weather forecast for tomorrow<br>
       can be used in msg or tts
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-FORECASTTODAY">%FORECASTTODAY%</a><br>
+      <a id="HOMEMODE-placeholders-%FORECASTTODAY%">%FORECASTTODAY%</a><br>
       will return the weather forecast for today<br>
       can be used in msg or tts
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-HUMIDITY">%HUMIDITY%</a><br>
+      <a id="HOMEMODE-placeholders-%HUMIDITY%">%HUMIDITY%</a><br>
       value of the humidity reading of the HOMEMODE device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-HUMIDITYTREND">%HUMIDITYTREND%</a><br>
+      <a id="HOMEMODE-placeholders-%HUMIDITYTREND%">%HUMIDITYTREND%</a><br>
       value of the humidityTrend reading of the HOMEMODE device<br>
       possible values: constant, rising, falling
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ICE">%ICE%</a><br>
+      <a id="HOMEMODE-placeholders-%ICE%">%ICE%</a><br>
       will return 1 if ice warning is on, will return 0 if ice warning is off<br>
       can be used to send ice warning specific msg(s) in specific situations, e.g. to warn leaving residents
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-IP">%IP%</a><br>
+      <a id="HOMEMODE-placeholders-%IP%">%IP%</a><br>
       value of reading publicIP<br>
       can be used to send msg(s) with (new) IP address
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LIGHT">%LIGHT%</a><br>
+      <a id="HOMEMODE-placeholders-%LIGHT%">%LIGHT%</a><br>
       value of the light reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LOCATION">%LOCATION%</a><br>
+      <a id="HOMEMODE-placeholders-%LOCATION%">%LOCATION%</a><br>
       value of the location reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LOCATIONR">%LOCATIONR%</a><br>
+      <a id="HOMEMODE-placeholders-%LOCATIONR%">%LOCATIONR%</a><br>
       value of the location reading of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LUMINANCE">%LUMINANCE%</a><br>
+      <a id="HOMEMODE-placeholders-%LUMINANCE%">%LUMINANCE%</a><br>
       average luminance of motion sensors (if available)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LUMINANCETREND">%LUMINANCETREND%</a><br>
+      <a id="HOMEMODE-placeholders-%LUMINANCETREND%">%LUMINANCETREND%</a><br>
       value of the luminanceTrend reading of the HOMEMODE device<br>
       possible values: constant, rising, falling
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-MODE">%MODE%</a><br>
+      <a id="HOMEMODE-placeholders-%MODE%">%MODE%</a><br>
       current mode of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-MODEALARM">%MODEALARM%</a><br>
+      <a id="HOMEMODE-placeholders-%MODEALARM%">%MODEALARM%</a><br>
       current alarm mode
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-MOTION">%MOTION%</a><br>
+      <a id="HOMEMODE-placeholders-%MOTION%">%MOTION%</a><br>
       value of the lastMotion reading (last opened sensor)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-NAME">%NAME%</a><br>
+      <a id="HOMEMODE-placeholders-%NAME%">%NAME%</a><br>
       name of the HOMEMODE device itself (same as %SELF%)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-OPEN">%OPEN%</a><br>
+      <a id="HOMEMODE-placeholders-%OPEN%">%OPEN%</a><br>
       value of the contactsOutsideOpen reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations, e.g. to warn leaving residents of open contact sensors
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-OPENCT">%OPENCT%</a><br>
+      <a id="HOMEMODE-placeholders-%OPENCT%">%OPENCT%</a><br>
       value of the contactsOutsideOpen_ct reading of the HOMEMODE device<br>
       can be used to send msg(s) in specific situations depending on the number of open contact sensors, maybe in combination with placeholder %OPEN%
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-OPENHR">%OPENHR%</a><br>
+      <a id="HOMEMODE-placeholders-%OPENHR%">%OPENHR%</a><br>
       value of the contactsOutsideOpen_hr reading of the HOMEMODE device<br>
       can be used to send msg(s)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PANIC">%PANIC%</a><br>
+      <a id="HOMEMODE-placeholders-%PANIC%">%PANIC%</a><br>
       state of panic, will return 1 if on and 0 if off
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-RESIDENT">%RESIDENT%</a><br>
+      <a id="HOMEMODE-placeholders-%RESIDENT%">%RESIDENT%</a><br>
       name of the last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PRESENT">%PRESENT%</a><br>
+      <a id="HOMEMODE-placeholders-%PRESENT%">%PRESENT%</a><br>
       presence of the HOMEMODE device<br>
       will return 1 if present or 0 if absent
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PRESENTR">%PRESENTR%</a><br>
+      <a id="HOMEMODE-placeholders-%PRESENTR%">%PRESENTR%</a><br>
       presence of last triggered resident<br>
       will return 1 if present or 0 if absent
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PRESSURE">%PRESSURE%</a><br>
+      <a id="HOMEMODE-placeholders-%PRESSURE%">%PRESSURE%</a><br>
       value of the pressure reading of the HOMEMODE device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVAMODE">%PREVAMODE%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVAMODE%">%PREVAMODE%</a><br>
       previous alarm mode of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVCONTACT">%PREVCONTACT%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVCONTACT%">%PREVCONTACT%</a><br>
       previous open contact sensor
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVMODE">%PREVMODE%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVMODE%">%PREVMODE%</a><br>
       previous mode of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVMODER">%PREVMODER%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVMODER%">%PREVMODER%</a><br>
       previous state of last triggered resident
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVMOTION">%PREVMOTION%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVMOTION%">%PREVMOTION%</a><br>
       previous open motion sensor
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SEASON">%SEASON%</a><br>
+      <a id="HOMEMODE-placeholders-%SEASON%">%SEASON%</a><br>
       value of the season reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SELF">%SELF%</a><br>
+      <a id="HOMEMODE-placeholders-%SELF%">%SELF%</a><br>
       name of the HOMEMODE device itself (same as %NAME%)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSORSBATTERY">%SENSORSBATTERY%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSORSBATTERY%">%SENSORSBATTERY%</a><br>
       all battery sensors from internal SENSORSBATTERY
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSORSCONTACT">%SENSORSCONTACT%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSORSCONTACT%">%SENSORSCONTACT%</a><br>
       all contact sensors from internal SENSORSCONTACT
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSORSENERGY">%SENSORSENERGY%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSORSENERGY%">%SENSORSENERGY%</a><br>
       all energy sensors from internal SENSORSENERGY
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSORSMOTION">%SENSORSMOTION%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSORSMOTION%">%SENSORSMOTION%</a><br>
       all motion sensors from internal SENSORSMOTION
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSORSSMOKE">%SENSORSSMOKE%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSORSSMOKE%">%SENSORSSMOKE%</a><br>
       all smoke sensors from internal SENSORSSMOKE
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SMOKE">%SMOKE%</a><br>
+      <a id="HOMEMODE-placeholders-%SMOKE%">%SMOKE%</a><br>
       value of the alarmSmoke reading of the HOMEMODE device<br>
       will return 0 if no smoke alarm is triggered or a list of triggered sensors if smoke alarm is triggered
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SMOKECT">%SMOKECT%</a><br>
+      <a id="HOMEMODE-placeholders-%SMOKECT%">%SMOKECT%</a><br>
       value of the alarmSmoke_ct reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SMOKEHR">%SMOKEHR%</a><br>
+      <a id="HOMEMODE-placeholders-%SMOKEHR%">%SMOKEHR%</a><br>
       value of the alarmSmoke_hr reading of the HOMEMODE device<br>
       will return 0 if no smoke  alarm is triggered or a (human readable) list of triggered sensors if smoke alarm is triggered<br>
       can be used for sending msg e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TAMPERED">%TAMPERED%</a><br>
+      <a id="HOMEMODE-placeholders-%TAMPERED%">%TAMPERED%</a><br>
       value of the sensorsTampered reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TAMPEREDCT">%TAMPEREDCT%</a><br>
+      <a id="HOMEMODE-placeholders-%TAMPEREDCT%">%TAMPEREDCT%</a><br>
       value of the sensorsTampered_ct reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TAMPEREDHR">%TAMPEREDHR%</a><br>
+      <a id="HOMEMODE-placeholders-%TAMPEREDHR%">%TAMPEREDHR%</a><br>
       value of the sensorsTampered_hr reading of the HOMEMODE device<br>
       can be used for sending msg e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TEMPERATURE">%TEMPERATURE%</a><br>
+      <a id="HOMEMODE-placeholders-%TEMPERATURE%">%TEMPERATURE%</a><br>
       value of the temperature reading of the HOMEMODE device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TEMPERATURETREND">%TEMPERATURETREND%</a><br>
+      <a id="HOMEMODE-placeholders-%TEMPERATURETREND%">%TEMPERATURETREND%</a><br>
       value of the temperatureTrend reading of the HOMEMODE device<br>
       possible values: constant, rising, falling
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TWILIGHT">%TWILIGHT%</a><br>
+      <a id="HOMEMODE-placeholders-%TWILIGHT%">%TWILIGHT%</a><br>
       value of the twilight reading of the HOMEMODE device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TWILIGHTEVENT">%TWILIGHTEVENT%</a><br>
+      <a id="HOMEMODE-placeholders-%TWILIGHTEVENT%">%TWILIGHTEVENT%</a><br>
       current twilight event
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-TOBE">%TOBE%</a><br>
+      <a id="HOMEMODE-placeholders-%TOBE%">%TOBE%</a><br>
       are or is of the weather condition<br>
       useful for phrasing sentences
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-UWZ">%UWZ%</a><br>
+      <a id="HOMEMODE-placeholders-%UWZ%">%UWZ%</a><br>
       UWZ warnings count
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-UWZLONG">%UWZLONG%</a><br>
+      <a id="HOMEMODE-placeholders-%UWZLONG%">%UWZLONG%</a><br>
       all current UWZ warnings as long text
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-UWZSHORT">%UWZSHORT%</a><br>
+      <a id="HOMEMODE-placeholders-%UWZSHORT%">%UWZSHORT%</a><br>
       all current UWZ warnings as short text
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-WEATHER">%WEATHER%</a><br>
+      <a id="HOMEMODE-placeholders-%WEATHER%">%WEATHER%</a><br>
       value of "get &lt;HOMEMODE&gt; weather short"<br>
       can be used for for msg weather info e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-WEATHERLONG">%WEATHERLONG%</a><br>
+      <a id="HOMEMODE-placeholders-%WEATHERLONG%">%WEATHERLONG%</a><br>
       value of "get &lt;HOMEMODE&gt; weather long"<br>
       can be used for for msg weather info e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-WIND">%WIND%</a><br>
+      <a id="HOMEMODE-placeholders-%WIND%">%WIND%</a><br>
       value of the wind reading of the HOMEMODE device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-WINDCHILL">%WINDCHILL%</a><br>
+      <a id="HOMEMODE-placeholders-%WINDCHILL%">%WINDCHILL%</a><br>
       value of the apparentTemperature reading of the Weather device<br>
       can be used for weather info in HomeTextWeather attributes e.g.
     </li>
@@ -5261,64 +5261,64 @@ sub HOMEMODE_Details($$$)
   <p>These placeholders can only be used within HomeTextWeatherForecast attributes</p>
   <ul>
     <li>
-      <a id="HOMEMODE-placeholders-CONDITION">%CONDITION%</a><br>
+      <a id="HOMEMODE-placeholders-%CONDITION%">%CONDITION%</a><br>
       value of weather forecast condition
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DAY">%DAY%</a><br>
+      <a id="HOMEMODE-placeholders-%DAY%">%DAY%</a><br>
       day number of weather forecast
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-HIGH">%HIGH%</a><br>
+      <a id="HOMEMODE-placeholders-%HIGH%">%HIGH%</a><br>
       value of maximum weather forecast temperature
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-LOW">%LOW%</a><br>
+      <a id="HOMEMODE-placeholders-%LOW%">%LOW%</a><br>
       value of minimum weather forecast temperature
     </li>
   </ul>
   <p>These placeholders can only be used within HomeCMDcontact, HomeCMDmotion and HomeCMDalarm attributes</p>
   <ul>
     <li>
-      <a id="HOMEMODE-placeholders-ALIAS">%ALIAS%</a><br>
+      <a id="HOMEMODE-placeholders-%ALIAS%">%ALIAS%</a><br>
       alias of the last triggered contact/motion/smoke sensor
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-SENSOR">%SENSOR%</a><br>
+      <a id="HOMEMODE-placeholders-%SENSOR%">%SENSOR%</a><br>
       name of the last triggered contact/motion/smoke sensor
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-STATE">%STATE%</a><br>
+      <a id="HOMEMODE-placeholders-%STATE%">%STATE%</a><br>
       state of the last triggered contact/motion/smoke sensor
     </li>
   </ul>
   <p>These placeholders can only be used within calendar event related HomeCMDevent attributes</p>
   <ul>
     <li>
-      <a id="HOMEMODE-placeholders-CALENDAR">%CALENDAR%</a><br>
+      <a id="HOMEMODE-placeholders-%CALENDAR%">%CALENDAR%</a><br>
       name of the calendar
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-DESCRIPTION">%DESCRIPTION%</a><br>
+      <a id="HOMEMODE-placeholders-%DESCRIPTION%">%DESCRIPTION%</a><br>
       description of current event of the calendar (not applicable for holiday devices)
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-EVENT">%EVENT%</a><br>
+      <a id="HOMEMODE-placeholders-%EVENT%">%EVENT%</a><br>
       summary of current event of the calendar
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-PREVEVENT">%PREVEVENT%</a><br>
+      <a id="HOMEMODE-placeholders-%PREVEVENT%">%PREVEVENT%</a><br>
       summary of previous event of the calendar
     </li>
   </ul>
   <p>These placeholders can only be used within HomeCMDdeviceDisable and HomeCMDdeviceEnable attributes</p>
   <ul>
     <li>
-      <a id="HOMEMODE-placeholders-DEVICE">%DEVICE%</a><br>
+      <a id="HOMEMODE-placeholders-%DEVICE%">%DEVICE%</a><br>
       name of the disabled/enabled device
     </li>
     <li>
-      <a id="HOMEMODE-placeholders-ALIAS">%ALIAS%</a><br>
+      <a id="HOMEMODE-placeholders-%ALIAS%">%ALIAS%</a><br>
       alias of the disabled/enabled device
     </li>
   </ul>
