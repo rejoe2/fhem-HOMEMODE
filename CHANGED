@@ -1,218 +1,220 @@
-    v1.5.4
-    - fix calendar placeholders not being replaced
-    - improved empty battery handling while adding to HOMEMODE
-    - improved function HOMEMODE_name2alias for better alias handling
-    - other minor improvements
-    v1.5.3
-    - fix blocking IP check (again and finally)
-    v1.5.2
-    - prevent to execute empty HomeCMDs
-    - fix blocking IP check if no internet connection is available
-    - add missing name for logging 'executed CMDs'
-    v1.5.1
-    - fix batteryLow readings creation while adding sensors to HomeSensorsBattery
-    - add attributes HomeCMDbattery and HomeCMDbatteryNormal
-    - add new reading lastBatteryNormal
-    - add new placeholder %BATTERYNORMAL%
-    v1.5.0
-    - add HomeCMDlocation support for ROOMMATE/GUEST/PET
-    - change some regex's from .* to .+
-    v1.4.10
-    - add new PET to RESIDENTS device
-    v1.4.9
-    - NonblockingGet for publicIP check
-    - change reading wind_chill to apparentTemperature because change in Weather device
-    - remove all Yahoo strings
-    - remove pressureTrend because it's not longer available in Weather device
-    v1.4.8
-    - fix attr validation for HomeSensorsSmokeReading
-    v1.4.7
-    - use also devices from attributes HomeSensorTemperatureOutside, HomeSensorAirpressure and HomeSensorHumidityOutside instead of HomeYahooWeatherDevice to display the first row of the details (HomeAdvancedDetails)
-    - change attribute name HomeYahooWeatherDevice to HomeWeatherDevice
-    - change homebridgeMapping characteristic AirPressure UUID to name
-    - fix illegal division by zero in HOMEMODE_Luminance
-    v1.4.6
-    - fix zero devider in HOMEMODE_ContactOpenCheck
-    - fix trigger alarm only if alarm triggers have changed
-    v1.4.5
-    - fix eventMap usage in HOMEMODE_RESIDENTS Fn
-    v1.4.4
-    - fix crash caused by wrong usage of updated function Calendar_GetEvents
-    v1.4.3
-    - fix using eventMap for RESIDENTS/ROOMMATE/GUEST
-    - fix power and energy readings if only one device for measuring is available
-    v1.4.2
-    - fix "Use of uninitialized value $summary/$sum"
-    - fix time not assigned to variable for Calendar_GetEvents
-    - add placeholder %DESCRIPTION% for Calendar events
-    - add attr HomeAutoPresenceSuppressState
-    - other minor improvements
-    v1.4.1
-    - fix for not checking RESIDENTS events for state before applying state
-    v1.4.0
-    - add set deviceDisable/deviceEnable
-    - add get mode/modeAlarm/devicesDisabled
-    - add attributes HomeCMDdeviceDisable and HomeCMDdeviceEnable
-    - add placeholders %DISABLED% and %MODEALARM% (same as %AMODE%) for all HomeCMD attributes
-    - add placeholders %DEVICE% and %ALIAS% for HomeCMDdevice attributes
-    - don't filter disabled devices for creating NOTIFYDEV
-    v1.3.0
-    - add attr HomeEventCalendarDevices
-    - minor changes in sub HOMEMODE_uwzTXT
-    - add readings alarmSmoke to commandref
-    - get checkIP return "Service not available" if no IP available
-    - logtexte only on set updateInternalsForce
-    - fix name for atTmp for modeAlarm-for-minutes and dnd-for-minutes
-    v1.2.2
-    - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
-    - fix placeholder %OPEN% and %PRESSURETREND%
-    - use regex for HomeSensorsSmokeValue
-    - minor commandref additions and changes
-    - add Wiki page to commandref
-    v1.2.1
-    - rename readings alarm_smoke to alarmSmoke
-    - add placeholders %SENSORSSMOKE%, %SMOKE%, %SMOKECT% and %SMOKEHR%
-    v1.2.0
-    - set location wayhome automatically if a ROOMMATE/GUEST sets its location to wayhome (reading wayhome 1)
-    - add SmokeSensors
-    - add attr HomeTextNosmokeSmoke
-    - add attr HomeCMDalarmSmoke, HomeCMDalarmSmoke-on and HomeCMDalarmSmoke-off
-    - add 'set modeAlarm confirm' and its HomeCMD attr
-    - add 'set panic on/off' and their HomeCMD attr
-    - add attr HomeTriggerPanic
-    - add attr HomeTriggerAnyoneElseAtHome
-    - add attr HomeAtTmpRoom
-    - add attr HomeCMDfhemSAVE, HomeCMDfhemUPDATE and HomeCMDfhemDEFINED
-    - add placeholder %DEFINED%
-    - fix overwrite some Home attributes on HomeSensorsContact and HomeSensorsMotion while re-adding userattr
-    - allow more regexps in HomeSensorsContactValues and HomeSensorsMotionValues
-    - more robust RESIDENTS Fn
-    - more robust NotifyFn
-    - more robust handling of disabled devices
-    - more robust userattr handling
-    - indicate savable changes after updateInternalsForce or updateHomebridgeMapping
-    - add missing (non-state-specific) attributes HomeCMDalarmTriggered, HomeCMDalarmTampered, HomeCMDicewarning and HomeCMDuwz-warn
-    v1.1.11
-    - suppress 'Deleted reading...' in lastCMDerror
-    v1.1.10
-    - fix notifydev for HomeEventsHolidayDevices
-    v1.1.9
-    - fix PERL WARNING: Use of uninitialized value $motions in concatenation (.) or string at ./FHEM/22_HOMEMODE.pm line 2373
-    - fix devspec for attribute HomeEventsHolidayDevices
-    v1.1.8
-    - fix homebridgeMapping for anyoneElseAtHome
-    - ignore disabled presence devices for safety reasons - updateInternalsForce needed after dis-/enabling the presence device
-    - ignore more disabled devices
-    v1.1.7
-    - fix HomeModeAlarmArmDelay
-    - adjust summary slightly
-    v1.1.6
-    - fix longpoll for details view
-    v1.1.5
-    - change from $attr to AttrVal
-    - change some AttrVal to AttrNum
-    - add FW_CSRF to global variables
-    v1.1.4
-    - new reading alarmState
-    - add homebridgeMapping for current alarms
-    v1.1.3
-    - add userattr to sensors with same devspec
-    - new reading lastInfo - will be set when clicking on an info item to remember the last state of the infopanel
-    - removed some clutter
-    v1.1.2
-    - fixed showing details in detail view although if not set to do so
-    - added missing substitution for placeholder %SENSORSBATTERY%
-    - added max-width to homeinfopanel
-    v1.1.1
-    - changed hover to click in DetailFn
-    - added energy, power and luminance to DetailFn
-    - added weather forecast for today to click on weather data in DetailFn (no longpoll)
-    - added StatusLowBattery to homebridgeMapping
-    - fixed setting RESIDENT to absent if all PRESENCE devices' states of one RESIDENT are "maybe absent" und then one of them is turning to absent
-    v1.1.0
-    - changed placeholder %ALARM% to %ALARMHR%, please make sure to adjust this if you used %ALARM% before
-    - changed reading alarmTriggered to list of names
-    - added new attribute HomeLanguage to overwrite language from global device
-    - added new reading alarmTriggered_hr which was alarmTriggered formerly
-    - added detailFn (experimental)
-    - added attribute HomeAdvancedDetails to configure details
-    - added attributes (HomeSensorsBattery, HomeSensorsBatteryReading, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
-    - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCT%, %SENSORSBATTERY%)
-    - added new attributes for local weather devices (HomeSensorAirpressure, HomeSensorWindspeed)
-    - added new localization attribute HomeTextRisingConstantFalling
-    - added dedicated uwzTEXT Fn - now the UWZ placeholders can be used in any HomeCMD attribute
-    - removed some force from updateInternals
-    - updated commandref
-    v1.0.7
-    - fixed GUEST not set location to arrival after none
-    - fixed UWZ text counter
-    v1.0.6
-    - fixed "PERL WARNING: Use of uninitialized value $power in sprintf at ./FHEM/22_HOMEMODE.pm line 2615."
-    - fixed "PERL WARNING: Use of uninitialized value in split at ./FHEM/22_HOMEMODE.pm line 1137."
-    v1.0.5
-    - fix using old lastActivityResident on arrival
-    v1.0.4
-    - fixed UWZ Fn
-    - fixed HomeAutoPresence
-    v1.0.3
-    - fixed UWZ texts
-    - fixed resetting location to home on daytime change
-    v1.0.2
-    - fixed userattr for HomeSpecialLocations
-    - fixed holiday calendar end event
-    - fixed repeated resetting count of presence devices
-    - removed space-replacing dashes in event readings and their placeholders
-    - added attribute HomeCMDfhemINITIALIZED
-    - added attribute disabledForIntervals
-    - created at(s) are persistent now on "shutdown restart"
-    - userattr of HOMEMODE device will now be recreated on updateInternalForce
-    - placeholders can now be used without quote marks (if needed for numbers)
-    - sort set locations alphabetically
-    - sort set modes alphabetically
-    - lots of simplifications in NotifyFN
-    - added missing dependencies
-    - removed Dumper
-    - removed some verbose 5 logs
-    v1.0.1
-    - fixed "Use of uninitialized value $d in hash element at fhem.pl"
-    - fixed commandref view
-    - add missing -temporary to atTmp_absent_belated_<name>
-    v1.0.0
-    - initial SVN release
-    - discard negative values in power, energy and luminance calculations
-    - improved removal of Home userattr on released devices
-    - remove all Home userattr in UndefFn
-    - fixed waittime warnings
+v1.5.5
+  - adapt new help anchors
+v1.5.4
+  - fix calendar placeholders not being replaced
+  - improved empty battery handling while adding to HOMEMODE
+  - improved function HOMEMODE_name2alias for better alias handling
+  - other minor improvements
+v1.5.3
+  - fix blocking IP check (again and finally)
+v1.5.2
+  - prevent to execute empty HomeCMDs
+  - fix blocking IP check if no internet connection is available
+  - add missing name for logging 'executed CMDs'
+v1.5.1
+  - fix batteryLow readings creation while adding sensors to HomeSensorsBattery
+  - add attributes HomeCMDbattery and HomeCMDbatteryNormal
+  - add new reading lastBatteryNormal
+  - add new placeholder %BATTERYNORMAL%
+v1.5.0
+  - add HomeCMDlocation support for ROOMMATE/GUEST/PET
+  - change some regex's from .* to .+
+v1.4.10
+  - add new PET to RESIDENTS device
+v1.4.9
+  - NonblockingGet for publicIP check
+  - change reading wind_chill to apparentTemperature because change in Weather device
+  - remove all Yahoo strings
+  - remove pressureTrend because it's not longer available in Weather device
+v1.4.8
+  - fix attr validation for HomeSensorsSmokeReading
+v1.4.7
+  - use also devices from attributes HomeSensorTemperatureOutside, HomeSensorAirpressure and HomeSensorHumidityOutside instead of HomeYahooWeatherDevice to display the first row of the details (HomeAdvancedDetails)
+  - change attribute name HomeYahooWeatherDevice to HomeWeatherDevice
+  - change homebridgeMapping characteristic AirPressure UUID to name
+  - fix illegal division by zero in HOMEMODE_Luminance
+v1.4.6
+  - fix zero devider in HOMEMODE_ContactOpenCheck
+  - fix trigger alarm only if alarm triggers have changed
+v1.4.5
+  - fix eventMap usage in HOMEMODE_RESIDENTS Fn
+v1.4.4
+  - fix crash caused by wrong usage of updated function Calendar_GetEvents
+v1.4.3
+  - fix using eventMap for RESIDENTS/ROOMMATE/GUEST
+  - fix power and energy readings if only one device for measuring is available
+v1.4.2
+  - fix "Use of uninitialized value $summary/$sum"
+  - fix time not assigned to variable for Calendar_GetEvents
+  - add placeholder %DESCRIPTION% for Calendar events
+  - add attr HomeAutoPresenceSuppressState
+  - other minor improvements
+v1.4.1
+  - fix for not checking RESIDENTS events for state before applying state
+v1.4.0
+  - add set deviceDisable/deviceEnable
+  - add get mode/modeAlarm/devicesDisabled
+  - add attributes HomeCMDdeviceDisable and HomeCMDdeviceEnable
+  - add placeholders %DISABLED% and %MODEALARM% (same as %AMODE%) for all HomeCMD attributes
+  - add placeholders %DEVICE% and %ALIAS% for HomeCMDdevice attributes
+  - don't filter disabled devices for creating NOTIFYDEV
+v1.3.0
+  - add attr HomeEventCalendarDevices
+  - minor changes in sub HOMEMODE_uwzTXT
+  - add readings alarmSmoke to commandref
+  - get checkIP return "Service not available" if no IP available
+  - logtexte only on set updateInternalsForce
+  - fix name for atTmp for modeAlarm-for-minutes and dnd-for-minutes
+v1.2.2
+  - add missing placeholders %NAME%, %TAMPEREDCT%, %TAMPEREDHR% and %OPENHR%
+  - fix placeholder %OPEN% and %PRESSURETREND%
+  - use regex for HomeSensorsSmokeValue
+  - minor commandref additions and changes
+  - add Wiki page to commandref
+v1.2.1
+  - rename readings alarm_smoke to alarmSmoke
+  - add placeholders %SENSORSSMOKE%, %SMOKE%, %SMOKECT% and %SMOKEHR%
+v1.2.0
+  - set location wayhome automatically if a ROOMMATE/GUEST sets its location to wayhome (reading wayhome 1)
+  - add SmokeSensors
+  - add attr HomeTextNosmokeSmoke
+  - add attr HomeCMDalarmSmoke, HomeCMDalarmSmoke-on and HomeCMDalarmSmoke-off
+  - add 'set modeAlarm confirm' and its HomeCMD attr
+  - add 'set panic on/off' and their HomeCMD attr
+  - add attr HomeTriggerPanic
+  - add attr HomeTriggerAnyoneElseAtHome
+  - add attr HomeAtTmpRoom
+  - add attr HomeCMDfhemSAVE, HomeCMDfhemUPDATE and HomeCMDfhemDEFINED
+  - add placeholder %DEFINED%
+  - fix overwrite some Home attributes on HomeSensorsContact and HomeSensorsMotion while re-adding userattr
+  - allow more regexps in HomeSensorsContactValues and HomeSensorsMotionValues
+  - more robust RESIDENTS Fn
+  - more robust NotifyFn
+  - more robust handling of disabled devices
+  - more robust userattr handling
+  - indicate savable changes after updateInternalsForce or updateHomebridgeMapping
+  - add missing (non-state-specific) attributes HomeCMDalarmTriggered, HomeCMDalarmTampered, HomeCMDicewarning and HomeCMDuwz-warn
+v1.1.11
+  - suppress 'Deleted reading...' in lastCMDerror
+v1.1.10
+  - fix notifydev for HomeEventsHolidayDevices
+v1.1.9
+  - fix PERL WARNING: Use of uninitialized value $motions in concatenation (.) or string at ./FHEM/22_HOMEMODE.pm line 2373
+  - fix devspec for attribute HomeEventsHolidayDevices
+v1.1.8
+  - fix homebridgeMapping for anyoneElseAtHome
+  - ignore disabled presence devices for safety reasons - updateInternalsForce needed after dis-/enabling the presence device
+  - ignore more disabled devices
+v1.1.7
+  - fix HomeModeAlarmArmDelay
+  - adjust summary slightly
+v1.1.6
+  - fix longpoll for details view
+v1.1.5
+  - change from $attr to AttrVal
+  - change some AttrVal to AttrNum
+  - add FW_CSRF to global variables
+v1.1.4
+  - new reading alarmState
+  - add homebridgeMapping for current alarms
+v1.1.3
+  - add userattr to sensors with same devspec
+  - new reading lastInfo - will be set when clicking on an info item to remember the last state of the infopanel
+  - removed some clutter
+v1.1.2
+  - fixed showing details in detail view although if not set to do so
+  - added missing substitution for placeholder %SENSORSBATTERY%
+  - added max-width to homeinfopanel
+v1.1.1
+  - changed hover to click in DetailFn
+  - added energy, power and luminance to DetailFn
+  - added weather forecast for today to click on weather data in DetailFn (no longpoll)
+  - added StatusLowBattery to homebridgeMapping
+  - fixed setting RESIDENT to absent if all PRESENCE devices' states of one RESIDENT are "maybe absent" und then one of them is turning to absent
+v1.1.0
+  - changed placeholder %ALARM% to %ALARMHR%, please make sure to adjust this if you used %ALARM% before
+  - changed reading alarmTriggered to list of names
+  - added new attribute HomeLanguage to overwrite language from global device
+  - added new reading alarmTriggered_hr which was alarmTriggered formerly
+  - added detailFn (experimental)
+  - added attribute HomeAdvancedDetails to configure details
+  - added attributes (HomeSensorsBattery, HomeSensorsBatteryReading, HomeSensorsBatteryLowPercentage, HomeCMDbatteryLow) and readings (batteryLow, batteryLow_ct, batteryLow_hr, lastBatteryLow) for alerting low batteries
+  - added new placeholders (%BATTERYLOW%, %BATTERYLOWALL%, %BATTERYLOWCT%, %SENSORSBATTERY%)
+  - added new attributes for local weather devices (HomeSensorAirpressure, HomeSensorWindspeed)
+  - added new localization attribute HomeTextRisingConstantFalling
+  - added dedicated uwzTEXT Fn - now the UWZ placeholders can be used in any HomeCMD attribute
+  - removed some force from updateInternals
+  - updated commandref
+v1.0.7
+  - fixed GUEST not set location to arrival after none
+  - fixed UWZ text counter
+v1.0.6
+  - fixed "PERL WARNING: Use of uninitialized value $power in sprintf at ./FHEM/22_HOMEMODE.pm line 2615."
+  - fixed "PERL WARNING: Use of uninitialized value in split at ./FHEM/22_HOMEMODE.pm line 1137."
+v1.0.5
+  - fix using old lastActivityResident on arrival
+v1.0.4
+  - fixed UWZ Fn
+  - fixed HomeAutoPresence
+v1.0.3
+  - fixed UWZ texts
+  - fixed resetting location to home on daytime change
+v1.0.2
+  - fixed userattr for HomeSpecialLocations
+  - fixed holiday calendar end event
+  - fixed repeated resetting count of presence devices
+  - removed space-replacing dashes in event readings and their placeholders
+  - added attribute HomeCMDfhemINITIALIZED
+  - added attribute disabledForIntervals
+  - created at(s) are persistent now on "shutdown restart"
+  - userattr of HOMEMODE device will now be recreated on updateInternalForce
+  - placeholders can now be used without quote marks (if needed for numbers)
+  - sort set locations alphabetically
+  - sort set modes alphabetically
+  - lots of simplifications in NotifyFN
+  - added missing dependencies
+  - removed Dumper
+  - removed some verbose 5 logs
+v1.0.1
+  - fixed "Use of uninitialized value $d in hash element at fhem.pl"
+  - fixed commandref view
+  - add missing -temporary to atTmp_absent_belated_<name>
+v1.0.0
+  - initial SVN release
+  - discard negative values in power, energy and luminance calculations
+  - improved removal of Home userattr on released devices
+  - remove all Home userattr in UndefFn
+  - fixed waittime warnings
 
-    v0.266
-    - changed initial STATE to reading state
-    - changed NOTIFYDEV
-    - changed NTFY_ORDER
-    v0.265
-    - added missing german error message translations to AttrFn
-    - added validation of readings of HomeSensorsPowerEnergy
-    - minor changes in translations handling
-    - changed some ReadingsVal to ReadingsNum
-    - removed function for devStateIcon
-    v0.264
-    - fixed restart windows open triggers after mode change
-    - return IP address while "get <name> publicIP"
-    - less restrictive regex for validation of HomeDaytimes and HomeSeasons
-    v0.263
-    - added attribute HomeSensorsLuminance and separated luminance calculation
-      from HomeSensorsMotion
-    - added attribute HomeSensorsPowerEnergyReadings
-    - enhanced presence capabilities with appeared/disappeared
-    - fixed repeated alarm triggers
+v0.266
+  - changed initial STATE to reading state
+  - changed NOTIFYDEV
+  - changed NTFY_ORDER
+v0.265
+  - added missing german error message translations to AttrFn
+  - added validation of readings of HomeSensorsPowerEnergy
+  - minor changes in translations handling
+  - changed some ReadingsVal to ReadingsNum
+  - removed function for devStateIcon
+v0.264
+  - fixed restart windows open triggers after mode change
+  - return IP address while "get <name> publicIP"
+  - less restrictive regex for validation of HomeDaytimes and HomeSeasons
+v0.263
+  - added attribute HomeSensorsLuminance and separated luminance calculation
+    from HomeSensorsMotion
+  - added attribute HomeSensorsPowerEnergyReadings
+  - enhanced presence capabilities with appeared/disappeared
+  - fixed repeated alarm triggers
 
-    v0.262
-    - added UWZ integration (experimental)
-    - fix HomeSensorsContactOpenTimeDividers
-    v0.261
-    - added attribute HomeSeasons
-    - changed translation attributes HomeText !!! YOU HAVE TO CHANGE YOUR
-      TRANSLATIONS TO THE NEW ATTRIBUTES !!!
-    v0.259
-    - added attribute HomeModeAlarmArmDelay
-    - added attribute HomeDaytimes for custom daytimes
-    - added more general informations to commandref
+v0.262
+  - added UWZ integration (experimental)
+  - fix HomeSensorsContactOpenTimeDividers
+v0.261
+  - added attribute HomeSeasons
+  - changed translation attributes HomeText !!! YOU HAVE TO CHANGE YOUR
+    TRANSLATIONS TO THE NEW ATTRIBUTES !!!
+v0.259
+  - added attribute HomeModeAlarmArmDelay
+  - added attribute HomeDaytimes for custom daytimes
+  - added more general informations to commandref
