@@ -375,7 +375,7 @@ sub HOMEMODE_Notify($$)
         for (split /,/,$hash->{RESIDENTS})
         {
           my $regex = lc($_);
-          $regex =~ s/^(rr_|rg_|rp_)//;
+          $regex =~ s/^r(r|g|p)_//;
           next unless (lc($devname) =~ /$regex/);
           $resident = $_;
           $residentregex = $regex;
