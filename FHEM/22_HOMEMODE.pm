@@ -375,7 +375,7 @@ sub HOMEMODE_Notify($$)
         for (split /,/,$hash->{RESIDENTS})
         {
           my $regex = lc($_);
-          $regex =~ s/^r(r|g|p)_//;
+          $regex =~ s/^(rr_|rg_|rp_)//;
           next unless (lc($devname) =~ /$regex/);
           $resident = $_;
           $residentregex = $regex;
@@ -3096,7 +3096,7 @@ sub HOMEMODE_EventCommands($$$$)
   {
     if ($event ne $prevevent)
     {
-      $event =~ s/[,;]//g;
+      $event =~ s/[,;\?\!\|\\\/\^\$]/-/g;
       my $evt = $event;
       $evt =~ s/[\s ]+/-/g;
       my $pevt = $prevevent;
@@ -3130,7 +3130,7 @@ sub HOMEMODE_EventCommands($$$$)
         last;
       }
       next unless $summary;
-      $summary =~ s/[,;]//g;
+      $summary =~ s/[,;\?\!\|\\\/\^\$]/-/g;
       Log3 $name,5,"Calendar_GetEvents event: $summary";
       my $sum = $summary;
       $sum =~ s/[\s ]+/-/g;
@@ -3430,7 +3430,7 @@ sub HOMEMODE_CalendarEvents($$)
     {
       my $evt = $_->{summary};
       Log3 $name,5,"Calendar_GetEvents event: $evt";
-      $evt =~ s/[,;]//g;
+      $evt =~ s/[,;\?\!\|\\\/\^\$]/-/g;
       $evt =~ s/[\s ]+/-/g;
       push @events,$evt if (!grep /^$evt$/,@events);
     }

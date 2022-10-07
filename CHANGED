@@ -1,5 +1,6 @@
 v1.5.6
   - changed from double quotes to single quotes where possible
+  - substitute problematic characters for regex matching within events with dashes
 v1.5.5
   - adapt new help anchors
 v1.5.4
