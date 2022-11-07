@@ -393,6 +393,8 @@ sub HOMEMODE_Notify($$)
             next unless (lc($device) =~ /$residentregex/);
             push @presentdevicespresent,$device if (ReadingsVal($device,'presence','') =~ /^(present|appeared|maybe.absent)$/);
           }
+          my $presdevspresent = scalar @presentdevicespresent;
+          Log3 $name,5,"$name: var presdevspresent=$presdevspresent";
           if (grep /^presence:\s(present|appeared)$/,@{$events})
           {
             readingsBeginUpdate($hash);
@@ -402,9 +404,11 @@ sub HOMEMODE_Notify($$)
             push @commands,AttrVal($name,'HomeCMDpresence-present-device','') if (AttrVal($name,'HomeCMDpresence-present-device',undef));
             push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-device",'') if (AttrVal($name,"HomeCMDpresence-present-$resident-device",undef));
             push @commands,AttrVal($name,"HomeCMDpresence-present-$resident-$devname",'') if (AttrVal($name,"HomeCMDpresence-present-$resident-$devname",undef));
-            if (@presentdevicespresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
+            Log3 $name,5,"$name: attr HomePresenceDevicePresentCount-$resident=".AttrVal($name,"HomePresenceDevicePresentCount-$resident",'unset');
+            if ($presdevspresent >= AttrNum($name,"HomePresenceDevicePresentCount-$resident",1)
                 && $residentstate =~ /^($suppressstate)$/)
             {
+              Log3 $name,5,"$name: set $resident:FILTER=state!=home state home";
               CommandSet(undef,"$resident:FILTER=state!=home state home");
             }
           }
@@ -418,12 +422,15 @@ sub HOMEMODE_Notify($$)
             push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-device",'') if (AttrVal($name,"HomeCMDpresence-absent-$resident-device",undef));
             push @commands,AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",'') if (AttrVal($name,"HomeCMDpresence-absent-$resident-$devname",undef));
             my $devcount = 1;
-            $devcount = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
-            my $presdevsabsent = $devcount - scalar @presentdevicespresent;
+            $devcount = scalar @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
+            my $presdevsabsent = $devcount - $presdevspresent;
+            Log3 $name,5,"$name: var presdevsabsent=$presdevsabsent";
             $suppressstate .= '|'.AttrVal($name,'HomeAutoPresenceSuppressState','') if (AttrVal($name,'HomeAutoPresenceSuppressState',''));
+            Log3 $name,5,"$name: attr HomePresenceDeviceAbsentCount-$resident=".AttrVal($name,"HomePresenceDeviceAbsentCount-$resident",'unset');
             if ($presdevsabsent >= AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1)
                 && $residentstate !~ /^($suppressstate)$/)
             {
+              Log3 $name,5,"$name: set $resident:FILTER=state!=absent state absent";
               CommandSet(undef,"$resident:FILTER=state!=absent state absent");
             }
           }
@@ -1397,11 +1404,13 @@ sub HOMEMODE_Attributes($)
   push @attribs,'HomeCMDtwilight-sr_astro:textField-long';
   push @attribs,'HomeCMDtwilight-sr_civil:textField-long';
   push @attribs,'HomeCMDtwilight-sr_indoor:textField-long';
+  push @attribs,'HomeCMDtwilight-sr_naut:textField-long';
   push @attribs,'HomeCMDtwilight-sr_weather:textField-long';
   push @attribs,'HomeCMDtwilight-ss:textField-long';
   push @attribs,'HomeCMDtwilight-ss_astro:textField-long';
   push @attribs,'HomeCMDtwilight-ss_civil:textField-long';
   push @attribs,'HomeCMDtwilight-ss_indoor:textField-long';
+  push @attribs,'HomeCMDtwilight-ss_naut:textField-long';
   push @attribs,'HomeCMDtwilight-ss_weather:textField-long';
   push @attribs,'HomeCMDuwz-warn:textField-long';
   push @attribs,'HomeCMDuwz-warn-begin:textField-long';
@@ -2957,7 +2966,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
     if ($dividers && AttrVal($contact,'HomeContactType','window') !~ /^door(inside|main)$/)
     {
       my @divs = split ' ',$dividers;
-      my $divider;
+      my $divider = 0;
       my $count = 0;
       for (split ' ',$seasons)
       {

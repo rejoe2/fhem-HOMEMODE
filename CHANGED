@@ -1,6 +1,8 @@
 v1.5.6
   - changed from double quotes to single quotes where possible
   - substitute problematic characters for regex matching within events with dashes
+  - added more logging for PRESENCE devices
+  - added attributes HomeCMDtwilight-sr_naut and HomeCMDtwilight-ss_naut
 v1.5.5
   - adapt new help anchors
 v1.5.4
