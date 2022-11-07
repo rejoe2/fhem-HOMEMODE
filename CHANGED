@@ -3,6 +3,7 @@ v1.5.6
   - substitute problematic characters for regex matching within events with dashes
   - added more logging for PRESENCE devices
   - added attributes HomeCMDtwilight-sr_naut and HomeCMDtwilight-ss_naut
+  - fixed unassigned variable
 v1.5.5
   - adapt new help anchors
 v1.5.4
