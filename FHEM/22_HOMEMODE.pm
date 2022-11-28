@@ -302,7 +302,6 @@ sub HOMEMODE_Notify($$)
       }
       if (AttrVal($name,'HomeSensorTemperatureOutside',undef) && $devname eq AttrVal($name,'HomeSensorTemperatureOutside','') && grep /^(temperature|humidity):\s/,@{$events})
       {
-        delete $hash->{helper}{externalHumidity} if ($hash->{helper}{externalHumidity} && !AttrVal($name,'HomeSensorHumidityOutside',undef));
         my $temp;
         my $humi;
         for my $evt (@{$events})
@@ -324,7 +323,6 @@ sub HOMEMODE_Notify($$)
       }
       if (AttrVal($name,'HomeSensorHumidityOutside',undef) && $devname eq AttrVal($name,'HomeSensorHumidityOutside','') && grep /^humidity:\s/,@{$events})
       {
-        $hash->{helper}{externalHumidity} = 1;
         for my $evt (@{$events})
         {
           next unless ($evt =~ /^humidity:\s(.+)$/);
@@ -3334,13 +3332,13 @@ sub HOMEMODE_Weather($$)
   my ($and,$are,$is) = split /\|/,AttrVal($name,'HomeTextAndAreIs','and|are|is');
   my $be = $cond =~ /(und|and|[Gg]ewitter|[Tt]hunderstorm|[Ss]chauer|[Ss]hower)/ ? $are : $is;
   readingsBeginUpdate($hash);
-  readingsBulkUpdate($hash,'humidity',ReadingsNum($dev,'humidity',5)) if (!$hash->{helper}{externalHumidity});
+  readingsBulkUpdate($hash,'humidity',ReadingsNum($dev,'humidity',5)) if (!AttrVal($name,'HomeSensorHumidityOutside',undef));
   readingsBulkUpdate($hash,'temperature',ReadingsNum($dev,'temperature',5)) if (!AttrVal($name,'HomeSensorTemperatureOutside',undef));
   readingsBulkUpdate($hash,'wind',ReadingsNum($dev,'wind',0)) if (!AttrVal($name,'HomeSensorWindspeed',undef));
   readingsBulkUpdate($hash,'pressure',ReadingsNum($dev,'pressure',5)) if (!AttrVal($name,'HomeSensorAirpressure',undef));
   readingsBulkUpdate($hash,'.be',$be);
   readingsEndUpdate($hash,1);
-  HOMEMODE_ReadingTrend($hash,'humidity') if (!$hash->{helper}{externalHumidity});
+  HOMEMODE_ReadingTrend($hash,'humidity') if (!AttrVal($name,'HomeSensorHumidityOutside',undef));
   HOMEMODE_ReadingTrend($hash,'temperature') if (!AttrVal($name,'HomeSensorTemperatureOutside',undef));
   HOMEMODE_Icewarning($hash);
 }

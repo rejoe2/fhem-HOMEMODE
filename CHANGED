@@ -5,6 +5,7 @@ v1.5.6
   - add attributes HomeCMDtwilight-sr_naut and HomeCMDtwilight-ss_naut
   - fix unassigned variable
   - fix humidity reading not updated properly
+  - remove helper for external humidity sensor
 v1.5.5
   - adapt new help anchors
 v1.5.4
