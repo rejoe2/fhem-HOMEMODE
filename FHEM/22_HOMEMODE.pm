@@ -302,6 +302,7 @@ sub HOMEMODE_Notify($$)
       }
       if (AttrVal($name,'HomeSensorTemperatureOutside',undef) && $devname eq AttrVal($name,'HomeSensorTemperatureOutside','') && grep /^(temperature|humidity):\s/,@{$events})
       {
+        delete $hash->{helper}{externalHumidity} if ($hash->{helper}{externalHumidity} && !AttrVal($name,'HomeSensorHumidityOutside',undef));
         my $temp;
         my $humi;
         for my $evt (@{$events})
@@ -315,14 +316,9 @@ sub HOMEMODE_Notify($$)
         if (defined $humi && !AttrVal($name,'HomeSensorHumidityOutside',undef))
         {
           readingsBulkUpdate($hash,'humidity',$humi);
-          $hash->{helper}{externalHumidity} = 1;
-        }
-        elsif (!AttrVal($name,'HomeSensorHumidityOutside',undef))
-        {
-          delete $hash->{helper}{externalHumidity};
+          HOMEMODE_ReadingTrend($hash,'humidity',$humi);
         }
         readingsEndUpdate($hash,1);
-        HOMEMODE_ReadingTrend($hash,'humidity',$humi) if (defined $humi);
         HOMEMODE_ReadingTrend($hash,'temperature',$temp);
         HOMEMODE_Icewarning($hash);
       }
