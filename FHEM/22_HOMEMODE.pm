@@ -1,5 +1,5 @@
 #####################################################################################
-# $Id: 22_HOMEMODE.pm 25308 2021-12-06 18:43:23Z DeeSPe $
+# $Id: 22_HOMEMODE.pm 26813 2022-12-07 21:19:57Z DeeSPe $
 #
 # Usage
 #
@@ -3621,7 +3621,7 @@ sub HOMEMODE_Details($$$)
 =item summary_DE Zuhause Ger&auml;t mit ROOMMATE/GUEST/PET Integration
 =begin html
 
-<a id='HOMEMODE'></a>
+<a id="HOMEMODE"></a>
 <h3>HOMEMODE</h3>
 <ul>
   <i>HOMEMODE</i> is designed to represent the overall home state(s) in one device.<br>
