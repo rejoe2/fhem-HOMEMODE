@@ -310,16 +310,17 @@ sub HOMEMODE_Notify($$)
           $temp = (split ' ',$2)[0] if ($1 eq 'temperature');
           $humi = (split ' ',$2)[0] if ($1 eq 'humidity');
         }
-        readingsBeginUpdate($hash);
-        readingsBulkUpdate($hash,'temperature',$temp);
+        if (defined $temp)
+        {
+          readingsSingleUpdate($hash,'temperature',$temp,1);
+          HOMEMODE_ReadingTrend($hash,'temperature',$temp);
+          HOMEMODE_Icewarning($hash);
+        }
         if (defined $humi && !AttrVal($name,'HomeSensorHumidityOutside',undef))
         {
-          readingsBulkUpdate($hash,'humidity',$humi);
+          readingsSingleUpdate($hash,'humidity',$humi,1);
           HOMEMODE_ReadingTrend($hash,'humidity',$humi);
         }
-        readingsEndUpdate($hash,1);
-        HOMEMODE_ReadingTrend($hash,'temperature',$temp);
-        HOMEMODE_Icewarning($hash);
       }
       if (AttrVal($name,'HomeSensorHumidityOutside',undef) && $devname eq AttrVal($name,'HomeSensorHumidityOutside','') && grep /^humidity:\s/,@{$events})
       {
@@ -3332,7 +3333,7 @@ sub HOMEMODE_Weather($$)
   my ($and,$are,$is) = split /\|/,AttrVal($name,'HomeTextAndAreIs','and|are|is');
   my $be = $cond =~ /(und|and|[Gg]ewitter|[Tt]hunderstorm|[Ss]chauer|[Ss]hower)/ ? $are : $is;
   readingsBeginUpdate($hash);
-  readingsBulkUpdate($hash,'humidity',ReadingsNum($dev,'humidity',5)) if (!AttrVal($name,'HomeSensorHumidityOutside',undef));
+  readingsBulkUpdate($hash,'humidity',ReadingsNum($dev,'humidity',5)) if ((!AttrVal($name,'HomeSensorTemperatureOutside',undef) || (AttrVal($name,'HomeSensorTemperatureOutside',undef) && !HOMEMODE_ID(AttrVal($name,'HomeSensorTemperatureOutside',undef),'.*','humidity'))) && !AttrVal($name,'HomeSensorHumidityOutside',undef));
   readingsBulkUpdate($hash,'temperature',ReadingsNum($dev,'temperature',5)) if (!AttrVal($name,'HomeSensorTemperatureOutside',undef));
   readingsBulkUpdate($hash,'wind',ReadingsNum($dev,'wind',0)) if (!AttrVal($name,'HomeSensorWindspeed',undef));
   readingsBulkUpdate($hash,'pressure',ReadingsNum($dev,'pressure',5)) if (!AttrVal($name,'HomeSensorAirpressure',undef));
@@ -3607,7 +3608,7 @@ sub HOMEMODE_Details($$$)
   $html .= 'var id=$(this).find(".homeinfo").attr("informid");';
   $html .= 'var r=id.split("-")[1];';
   $html .= '$(".homeinfopanel").text(t).attr("informid",id);';
-  $html .= 'if(r){$.post(window.location.pathname+"?cmd=setreading%20$name%20lastInfo%20"+r+"$FW_CSRF")};';
+  $html .= 'if(r){$.post(window.location.pathname+"?cmd=setreading%20'.$name.'%20lastInfo%20"+r+"'.$FW_CSRF.'")};';
   $html .= '});</script>';
   return $html;
 }
