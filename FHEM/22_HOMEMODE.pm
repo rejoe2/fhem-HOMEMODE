@@ -2966,7 +2966,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
       for (split ' ',$seasons)
       {
         my ($date,$text) = split /\|/;
-        $divider = $divs[$count] if ($season eq $text);
+        $divider = $divs[$count] if ($divs[$count] && $season eq $text);
         $count++;
       }
       return if ($divider == 0);
