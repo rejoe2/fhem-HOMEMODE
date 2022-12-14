@@ -2928,84 +2928,88 @@ sub HOMEMODE_name2alias($;$)
 sub HOMEMODE_ContactOpenCheck($$;$$)
 {
   my ($name,$contact,$state,$retrigger) = @_;
-  $retrigger = 0 if (!$retrigger);
+  $retrigger = 0 if (!defined $retrigger);
   my $maxtrigger = AttrNum($contact,'HomeOpenMaxTrigger',0);
-  if ($maxtrigger)
+  return undef if (!$maxtrigger);
+  my $mode = ReadingsVal($name,'state','');
+  my $dtmode = AttrVal($contact,'HomeOpenDontTriggerModes',undef);
+  my $dtres = AttrVal($contact,'HomeOpenDontTriggerModesResidents',undef);
+  my $donttrigger;
+  $donttrigger = 1 if ($dtmode && $mode =~ /^($dtmode)$/);
+  if (!$donttrigger && $dtmode && $dtres)
   {
-    my $mode = ReadingsVal($name,'state','');
-    my $dtmode = AttrVal($contact,'HomeOpenDontTriggerModes',undef);
-    my $dtres = AttrVal($contact,'HomeOpenDontTriggerModesResidents',undef);
-    my $donttrigger;
-    $donttrigger = 1 if ($dtmode && $mode =~ /^($dtmode)$/);
-    if (!$donttrigger && $dtmode && $dtres)
+    for (devspec2array($dtres))
     {
-      for (devspec2array($dtres))
-      {
-        next if (HOMEMODE_IsDisabled(undef,$_));
-        $donttrigger = 1 if (ReadingsVal($_,'state','') =~ /^($dtmode)$/);
-      }
-    }
-    my $timer = 'atTmp_HomeOpenTimer_'.$contact."_$name";
-    CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,'at') && ($retrigger || $donttrigger));
-    return if ((!$retrigger && $donttrigger) || $donttrigger);
-    my $season = ReadingsVal($name,'season','');
-    my $seasons = AttrVal($name,'HomeSeasons',$HOMEMODE_Seasons);
-    my $dividers = AttrVal($contact,'HomeOpenTimeDividers',AttrVal($name,'HomeSensorsContactOpenTimeDividers',''));
-    my $mintime = AttrNum($name,'HomeSensorsContactOpenTimeMin',0);
-    my @wt = split ' ',AttrVal($contact,'HomeOpenTimes',AttrVal($name,'HomeSensorsContactOpenTimes','10'));
-    my $waittime;
-    Log3 $name,5,"$name: retrigger: $retrigger";
-    $waittime = $wt[$retrigger] if ($wt[$retrigger]);
-    $waittime = $wt[scalar @wt - 1] if (!defined $waittime);
-    Log3 $name,5,"$name: waittime real: $waittime";
-    if ($dividers && AttrVal($contact,'HomeContactType','window') !~ /^door(inside|main)$/)
-    {
-      my @divs = split ' ',$dividers;
-      my $divider = 0;
-      my $count = 0;
-      for (split ' ',$seasons)
-      {
-        my ($date,$text) = split /\|/;
-        $divider = $divs[$count] if ($divs[$count] && $season eq $text);
-        $count++;
-      }
-      return if ($divider == 0);
-      $waittime = $waittime / $divider;
-      $waittime = sprintf('%.2f',$waittime) * 1;
-    }
-    $waittime = $mintime if ($mintime && $waittime < $mintime);
-    $retrigger++;
-    Log3 $name,5,"$name: waittime divided: $waittime";
-    $waittime = HOMEMODE_hourMaker($waittime);
-    my $at = "{HOMEMODE_ContactOpenCheck(\"$name\",\"$contact\",undef,$retrigger)}" if ($retrigger <= $maxtrigger);
-    my $contactname = HOMEMODE_name2alias($contact,1);
-    my $contactread = (split ' ',AttrVal($contact,'HomeReadings',AttrVal($name,'HomeSensorsContactReadings','state sabotageError')))[0];
-    $state = $state ? $state : ReadingsVal($contact,$contactread,'');
-    my $opencmds = AttrVal($contact,'HomeValues',AttrVal($name,'HomeSensorsContactValues','open|tilted|on'));
-    if ($state =~ /^($opencmds|open)$/)
-    {
-      CommandDefine(undef,"$timer at +$waittime $at") if ($at && !HOMEMODE_ID($timer));
-      if ($retrigger > 1)
-      {
-        my @commands;
-        my $hash = $defs{$name};
-        Log3 $name,5,"$name: maxtrigger: $maxtrigger";
-        my $cmd = AttrVal($name,'HomeCMDcontactOpenWarning1','');
-        $cmd = AttrVal($name,'HomeCMDcontactOpenWarning2','') if (AttrVal($name,'HomeCMDcontactOpenWarning2',undef) && $retrigger > 2);
-        $cmd = AttrVal($name,'HomeCMDcontactOpenWarningLast','') if (AttrVal($name,'HomeCMDcontactOpenWarningLast',undef) && $retrigger == $maxtrigger + 1);
-        if ($cmd)
-        {
-          my ($c,$o) = split /\|/,AttrVal($name,'HomeTextClosedOpen','closed|open');
-          $state = $state =~ /^($opencmds)$/ ? $o : $c;
-          $cmd =~ s/%ALIAS%/$contactname/gm;
-          $cmd =~ s/%SENSOR%/$contact/gm;
-          $cmd =~ s/%STATE%/$state/gm;
-          push @commands,$cmd;
-        }
-        HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
-      }
+      next if (HOMEMODE_IsDisabled(undef,$_));
+      $donttrigger = 1 if (ReadingsVal($_,'state','') =~ /^($dtmode)$/);
     }
   }
+  my $timer = 'atTmp_HomeOpenTimer_'.$contact.'_'.$name;
+  CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,'at') && ($retrigger || $donttrigger));
+  return undef if (!$retrigger || $donttrigger);
+  my $season = ReadingsVal($name,'season','');
+  my $seasons = AttrVal($name,'HomeSeasons',$HOMEMODE_Seasons);
+  my $dividers = AttrVal($contact,'HomeOpenTimeDividers',AttrVal($name,'HomeSensorsContactOpenTimeDividers',''));
+  my $mintime = AttrNum($name,'HomeSensorsContactOpenTimeMin',0);
+  my @wt = split ' ',AttrVal($contact,'HomeOpenTimes',AttrVal($name,'HomeSensorsContactOpenTimes',10));
+  my $waittime;
+  Log3 $name,5,"$name: retrigger: $retrigger";
+  $waittime = $wt[$retrigger] if ($wt[$retrigger]);
+  $waittime = $wt[scalar @wt - 1] if (!defined $waittime);
+  Log3 $name,5,"$name: waittime real: $waittime";
+  if ($dividers && AttrVal($contact,'HomeContactType','window') !~ /^door(inside|main)$/)
+  {
+    my @divs = split ' ',$dividers;
+    my $divider = 0;
+    my $count = 0;
+    for (split ' ',$seasons)
+    {
+      my (undef,$text) = split /\|/;
+      if ($season eq $text)
+      {
+        my $div = $divs[$count];
+        $divider = $div if ($div && $div =~ /^\d\d?(\.\d)?$/);
+        last;
+      }
+      $count++;
+    }
+    return undef if ($divider == 0);
+    $waittime = $waittime / $divider;
+    $waittime = sprintf('%.2f',$waittime) * 1;
+  }
+  $waittime = $mintime if ($mintime && $waittime < $mintime);
+  $retrigger++;
+  Log3 $name,5,"$name: waittime divided: $waittime";
+  $waittime = HOMEMODE_hourMaker($waittime);
+  my $at = "{HOMEMODE_ContactOpenCheck('$name','$contact',undef,$retrigger)}" if ($retrigger <= $maxtrigger);
+  my $contactname = HOMEMODE_name2alias($contact,1);
+  my $contactread = (split ' ',AttrVal($contact,'HomeReadings',AttrVal($name,'HomeSensorsContactReadings','state sabotageError')))[0];
+  $state = $state ? $state : ReadingsVal($contact,$contactread,'');
+  my $opencmds = AttrVal($contact,'HomeValues',AttrVal($name,'HomeSensorsContactValues','open|tilted|on'));
+  if ($state =~ /^($opencmds|open)$/)
+  {
+    CommandDefine(undef,"$timer at +$waittime $at") if ($at && !HOMEMODE_ID($timer));
+    if ($retrigger > 1)
+    {
+      my @commands;
+      my $hash = $defs{$name};
+      Log3 $name,5,"$name: maxtrigger: $maxtrigger";
+      my $cmd = AttrVal($name,'HomeCMDcontactOpenWarning1','');
+      $cmd = AttrVal($name,'HomeCMDcontactOpenWarning2','') if (AttrVal($name,'HomeCMDcontactOpenWarning2',undef) && $retrigger > 2);
+      $cmd = AttrVal($name,'HomeCMDcontactOpenWarningLast','') if (AttrVal($name,'HomeCMDcontactOpenWarningLast',undef) && $retrigger == $maxtrigger + 1);
+      if ($cmd)
+      {
+        my ($c,$o) = split /\|/,AttrVal($name,'HomeTextClosedOpen','closed|open');
+        $state = $state =~ /^($opencmds)$/ ? $o : $c;
+        $cmd =~ s/%ALIAS%/$contactname/gm;
+        $cmd =~ s/%SENSOR%/$contact/gm;
+        $cmd =~ s/%STATE%/$state/gm;
+        push @commands,$cmd;
+      }
+      HOMEMODE_execCMDs($hash,HOMEMODE_serializeCMD($hash,@commands)) if (@commands);
+    }
+  }
+  return undef;
 }
 
 sub HOMEMODE_ContactOpenCheckAfterModeChange($$$;$)
@@ -3034,6 +3038,7 @@ sub HOMEMODE_ContactOpenCheckAfterModeChange($$$;$)
       }
     }
   }
+  return undef;
 }
 
 sub HOMEMODE_ContactCommands($$$$)
