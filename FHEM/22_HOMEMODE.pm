@@ -16,7 +16,7 @@ use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
 
-my $HOMEMODE_version = '1.5.6';
+my $HOMEMODE_version = '1.5.7';
 my $HOMEMODE_Daytimes = '05:00|morning 10:00|day 14:00|afternoon 18:00|evening 23:00|night';
 my $HOMEMODE_Seasons = '03.01|spring 06.01|summer 09.01|autumn 12.01|winter';
 my $HOMEMODE_UserModes = 'gotosleep,awoken,asleep';
@@ -2934,7 +2934,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
   my $mode = ReadingsVal($name,'state','');
   my $dtmode = AttrVal($contact,'HomeOpenDontTriggerModes',undef);
   my $dtres = AttrVal($contact,'HomeOpenDontTriggerModesResidents',undef);
-  my $donttrigger;
+  my $donttrigger = 0;
   $donttrigger = 1 if ($dtmode && $mode =~ /^($dtmode)$/);
   if (!$donttrigger && $dtmode && $dtres)
   {
@@ -2946,7 +2946,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
   }
   my $timer = 'atTmp_HomeOpenTimer_'.$contact.'_'.$name;
   CommandDelete(undef,$timer) if (HOMEMODE_ID($timer,'at') && ($retrigger || $donttrigger));
-  return undef if (!$retrigger || $donttrigger);
+  return undef if ($donttrigger);
   my $season = ReadingsVal($name,'season','');
   my $seasons = AttrVal($name,'HomeSeasons',$HOMEMODE_Seasons);
   my $dividers = AttrVal($contact,'HomeOpenTimeDividers',AttrVal($name,'HomeSensorsContactOpenTimeDividers',''));
@@ -2968,7 +2968,7 @@ sub HOMEMODE_ContactOpenCheck($$;$$)
       if ($season eq $text)
       {
         my $div = $divs[$count];
-        $divider = $div if ($div && $div =~ /^\d\d?(\.\d)?$/);
+        $divider = $div if ($div && $div =~ /^\d{1,2}(\.\d{1,3})?$/);
         last;
       }
       $count++;
@@ -3346,6 +3346,7 @@ sub HOMEMODE_Weather($$)
   readingsEndUpdate($hash,1);
   HOMEMODE_ReadingTrend($hash,'humidity') if (!AttrVal($name,'HomeSensorHumidityOutside',undef));
   HOMEMODE_ReadingTrend($hash,'temperature') if (!AttrVal($name,'HomeSensorTemperatureOutside',undef));
+  HOMEMODE_ReadingTrend($hash,'pressure') if (!AttrVal($name,'HomeSensorAirpressure',undef));
   HOMEMODE_Icewarning($hash);
 }
 
@@ -3560,7 +3561,7 @@ sub HOMEMODE_Details($$$)
   my $info = ReadingsVal($name,$iid,'');
   my $html = '<div>';
   $html .= '<style>.homehover{cursor:pointer}.homeinfo{display:none}.tar{text-align:right}.homeinfopanel{min-height:30px;max-width:480px;padding:3px 10px}</style>';
-  $html .= "<div class=\"homeinfopanel\" informid=\"$name-$iid\">$info</div>";
+  $html .= '<div class="homeinfopanel" informid="'.$name.'-'.$iid.'">'.$info.'</div>';
   $html .= '<table class="wide">';
   if (AttrVal($name,'HomeWeatherDevice','') ||
      (AttrVal($name,'HomeSensorAirpressure','') && AttrVal($name,'HomeSensorHumidityOutside','') && AttrVal($name,'HomeSensorTemperatureOutside','')) ||
@@ -3568,41 +3569,55 @@ sub HOMEMODE_Details($$$)
   {
     $html .= '<tr class="homehover">';
     my $temp = $HOMEMODE_de ? 'Temperatur' : 'Temperature';
-    $html .= "<td class=\"tar\">$temp:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-temperature\">".ReadingsVal($name,'temperature','')."</span> °C<span class=\"homeinfo\" informid=\"\">".HOMEMODE_ForecastTXT($hash,1)."</span></td>";
+    $html .= '<td class="tar">'.$temp.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-temperature">'.ReadingsNum($name,'temperature','').'</span> °C<span class="homeinfo" informid="">'.HOMEMODE_ForecastTXT($hash,1).'</span></td>';
     my $humi = $HOMEMODE_de ? 'Luftfeuchte' : 'Humidity';
-    $html .= "<td class=\"tar\">$humi:";
-    $html .= "<td class=\"dval\"><span informid=\"$name-humidity\">".ReadingsVal($name,'humidity','').'</span> %</td>';
+    $html .= '<td class="tar">'.$humi.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-humidity">'.ReadingsNum($name,'humidity','').'</span> %</td>';
     my $pres = $HOMEMODE_de ? 'Luftdruck' : 'Air pressure';
-    $html .= "<td class=\"tar\">$pres:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-pressure\">".ReadingsVal($name,'pressure','').'</span> hPa</td>';
+    $html .= '<td class="tar">'.$pres.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-pressure">'.ReadingsNum($name,'pressure','').'</span> hPa</td>';
     $html .= '</tr>';
   }
   if (AttrVal($name,'HomeSensorsPowerEnergy','') && AttrVal($name,'HomeSensorsLuminance',''))
   {
     $html .= '<tr>';
     my $power = $HOMEMODE_de ? 'Leistung' : 'Power';
-    $html .= "<td class=\"tar\">$power:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-power\">".ReadingsVal($name,'power','').'</span> W</td>';
+    $html .= '<td class="tar">'.$power.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-power">"'.ReadingsNum($name,'power','').'</span> W</td>';
     my $energy = $HOMEMODE_de ? 'Energie' : 'Energy';
-    $html .= "<td class=\"tar\">$energy:";
-    $html .= "<td class=\"dval\"><span informid=\"$name-energy\">".ReadingsVal($name,'energy','').'</span> kWh</td>';
+    $html .= '<td class="tar">'.$energy.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-energy">'.ReadingsNum($name,'energy','').'</span> kWh</td>';
     my $lum = $HOMEMODE_de ? 'Licht' : 'Luminance';
-    $html .= "<td class=\"tar\">$lum:</td>";
-    $html .= "<td class=\"dval\"><span informid=\"$name-luminance\">".ReadingsVal($name,'luminance','').'</span> lux</td>';
+    $html .= '<td class="tar">'.$lum.':</td>';
+    $html .= '<td class="dval"><span informid="'.$name.'-luminance">'.ReadingsNum($name,'luminance','').'</span> lux</td>';
     $html .= '</tr>';
   }
   if (AttrVal($name,'HomeSensorsContact',''))
   {
     $html .= '<tr>';
     my $open = $HOMEMODE_de ? 'Offen' : 'Open';
-    $html .= "<td class=\"tar\">$open:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-contactsOpen_ct\">".ReadingsVal($name,'contactsOpen_ct','')."</span><span class=\"homeinfo\" informid=\"$name-contactsOpen_hr\">".ReadingsVal($name,'contactsOpen_hr','').'</span></td>';
+    $html .= '<td class="tar">'.$open.':</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-contactsOpen_ct">'.ReadingsNum($name,'contactsOpen_ct','').'</span><span class="homeinfo" informid="'.$name.'-contactsOpen_hr">'.ReadingsVal($name,'contactsOpen_hr','').'</span></td>';
     my $tamp = $HOMEMODE_de ? 'Sabotiert' : 'Tampered';
-    $html .= "<td class=\"tar\">$tamp:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-sensorsTampered_ct\">".ReadingsVal($name,'sensorsTampered_ct','')."</span><span class=\"homeinfo\" informid=\"$name-sensorsTampered_hr\">".ReadingsVal($name,'sensorsTampered_hr','').'</span></td>';
-    $html .= "<td class=\"tar\">Alarm:</td>";
-    $html .= "<td class=\"dval homehover\"><span informid=\"$name-alarmTriggered_ct\">".ReadingsVal($name,'alarmTriggered_ct','')."</span><span class=\"homeinfo\" informid=\"$name-alarmTriggered_hr\">".ReadingsVal($name,'alarmTriggered_hr','').'</span></td>';
+    $html .= '<td class="tar">'.$tamp.':</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-sensorsTampered_ct">'.ReadingsNum($name,'sensorsTampered_ct','').'</span><span class="homeinfo" informid="'.$name.'-sensorsTampered_hr">'.ReadingsVal($name,'sensorsTampered_hr','').'</span></td>';
+    $html .= '<td class="tar">Alarm:</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-alarmTriggered_ct">'.ReadingsNum($name,'alarmTriggered_ct','').'</span><span class="homeinfo" informid="'.$name.'-alarmTriggered_hr">'.ReadingsVal($name,'alarmTriggered_hr','').'</span></td>';
+    $html .= '</tr>';
+  }
+  if (AttrVal($name,'HomeSensorsBattery','') && AttrVal($name,'HomeSensorsSmoke','') && AttrVal($name,'HomeSensorsMotion',''))
+  {
+    $html .= '<tr>';
+    my $empty = $HOMEMODE_de ? ReadingsNum($name,'batteryLow_ct','') == 1 ? 'Batterie leer' : 'Batterien leer' : ReadingsNum($name,'batteryLow_ct','') == 1 ? 'Battery empty' : 'Batteries empty';
+    $html .= '<td class="tar">'.$empty.':</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-batteryLow_ct">'.ReadingsNum($name,'batteryLow_ct','').'</span><span class="homeinfo" informid="'.$name.'-batteryLow_hr">'.ReadingsVal($name,'batteryLow_hr','').'</span></td>';
+    my $smoke = $HOMEMODE_de ? 'Rauch' : 'Smoke';
+    $html .= '<td class="tar">'.$smoke.':</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-alarmSmoke_ct">'.ReadingsVal($name,'alarmSmoke_ct','').'</span><span class="homeinfo" informid="'.$name.'-alarmSmoke_hr">'.ReadingsVal($name,'alarmSmoke_hr','').'</span></td>';
+    my $motion = $HOMEMODE_de ? 'Bewegung' : 'Motion';
+    $html .= '<td class="tar">'.$motion.':</td>';
+    $html .= '<td class="dval homehover"><span informid="'.$name.'-motionsSensors_ct">'.ReadingsVal($name,'motionsSensors_ct','').'</span><span class="homeinfo" informid="'.$name.'-motionsSensors_hr">'.ReadingsVal($name,'motionsSensors_hr','').'</span></td>';
     $html .= '</tr>';
   }
   $html .= '</table>';

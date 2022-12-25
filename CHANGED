@@ -1,3 +1,7 @@
+v1.5.7
+  - add pressureTrend reading when using weather device
+  - refine function HOMEMODE_ContactOpenCheck
+  - refine function HOMEMODE_Details - add new line for batteryLow, alarmSmoke and motionsSensors if available
 v1.5.6
   - change from double quotes to single quotes where possible
   - substitute problematic characters for regex matching with dashes within cal events
