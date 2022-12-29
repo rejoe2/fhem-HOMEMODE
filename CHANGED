@@ -1,6 +1,6 @@
 v1.5.7
   - add pressureTrend reading when using weather device
-  - add info output if weather device is not added to HOMEMODE or not available
+  - add hint if weather device is not added to HOMEMODE or not available
   - refine function HOMEMODE_ContactOpenCheck
   - refine function HOMEMODE_Details - add new line for batteryLow, alarmSmoke and motionsSensors if available
 v1.5.6
