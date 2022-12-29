@@ -2138,7 +2138,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
 {
   my ($hash,$cmd,$resident) = @_;
   my $name = $hash->{NAME};
-  my $sensor = AttrVal($name,'HomeWeatherDevice','');
+  my $sensor = AttrVal($name,'HomeWeatherDevice','nOtDeFiNeDwEaThErDeViCe');
   $resident = $resident ? $resident : ReadingsVal($name,'lastActivityByResident','');
   my $alias = AttrVal($resident,'alias','');
   my $audio = AttrVal($resident,'msgContactAudio','');
@@ -2149,7 +2149,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $durabsence = ReadingsVal($resident,'durTimerAbsence_cr',0);
   my $durpresence = ReadingsVal($resident,'durTimerPresence_cr',0);
   my $dursleep = ReadingsVal($resident,'durTimerSleep_cr',0);
-  my $condition = ReadingsVal($sensor,'condition','');
+  my $condition = ReadingsVal($sensor,'condition',HOMEMODE_ID($sensor)?'no data available':'no weather device available');
   my $conditionart = ReadingsVal($name,'.be','');
   my $contactsOpen = ReadingsVal($name,'contactsOutsideOpen','');
   my $contactsOpenCt = ReadingsVal($name,'contactsOutsideOpen_ct',0);
@@ -2198,7 +2198,7 @@ sub HOMEMODE_replacePlaceholders($$;$)
   my $temp = ReadingsVal($name,'temperature',0);
   my $temptrend = ReadingsVal($name,'temperatureTrend','constant');
   my $wind = ReadingsVal($name,'wind',0);
-  my $windchill = ReadingsNum($sensor,'apparentTemperature',0);
+  my $windchill = ReadingsVal($sensor,'apparentTemperature',HOMEMODE_ID($sensor)?'no data available':'no weather device available');
   my $motion = ReadingsVal($name,'lastMotion','');
   my $pmotion = ReadingsVal($name,'prevMotion','');
   my $contact = ReadingsVal($name,'lastContact','');
