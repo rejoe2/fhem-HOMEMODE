@@ -35,11 +35,14 @@ sub HOMEMODE_Initialize($)
   $hash->{SetFn}        = 'HOMEMODE_Set';
   $hash->{UndefFn}      = 'HOMEMODE_Undef';
   $hash->{FW_detailFn}  = 'HOMEMODE_Details';
-  $hash->{AttrList}     = $readingFnAttributes;
+  $hash->{AttrList}     = HOMEMODE_AttrList($hash).' '.$readingFnAttributes;
   $hash->{NotifyOrderPrefix} = '51-';
   $hash->{FW_deviceOverview} = 1;
   $hash->{FW_addDetailToSummary} = 1;
-  $hash->{AttrRenameMap} = { 'HomeYahooWeatherDevice' => 'HomeWeatherDevice' };
+  $hash->{AttrRenameMap} = {
+    'HomeYahooWeatherDevice'  => 'HomeWeatherDevice',
+    'HomeAdvancedUserAttr'    => 'HomeAdvancedAttributes'
+  };
 }
 
 sub HOMEMODE_Define($$)
@@ -47,6 +50,7 @@ sub HOMEMODE_Define($$)
   my ($hash,$def) = @_;
   my @args = split ' ',$def;
   my ($name,$type,$resdev) = @args;
+  Log3 $name,4,"$name: HOMEMODE_Define called";
   $HOMEMODE_de = AttrVal('global','language','EN') eq 'DE' || AttrVal($name,'HomeLanguage','EN' eq 'DE') ? 1 : 0;
   my $trans;
   if (@args < 2 || @args > 3)
@@ -112,6 +116,7 @@ sub HOMEMODE_Define($$)
     readingsEndUpdate($hash,0);
     HOMEMODE_updateInternals($hash,1);
   }
+  Log3 $name,3,"$name: defined";
   return;
 }
 
@@ -142,27 +147,29 @@ sub HOMEMODE_Notify($$)
   my @commands;
   if ($devname eq 'global')
   {
-    if (grep /^INITIALIZED$/,@{$events})
+    if (grep {/^INITIALIZED$/x} @{$events})
     {
-      HOMEMODE_updateInternals($hash,1);
+      HOMEMODE_updateInternals($hash);
+      HOMEMODE_dynAttrList($hash);
+      InternalTimer(gettimeofday() + 30,'HOMEMODE_dynAttrList',$hash);
       push @commands,AttrVal($name,'HomeCMDfhemINITIALIZED','')
         if (AttrVal($name,'HomeCMDfhemINITIALIZED',''));
     }
-    elsif (grep /^SAVE$/,@{$events})
+    elsif (grep {/^SAVE$/x} @{$events})
     {
       push @commands,AttrVal($name,'HomeCMDfhemSAVE','')
         if (AttrVal($name,'HomeCMDfhemSAVE',''));
     }
-    elsif (grep /^UPDATE$/,@{$events})
+    elsif (grep {/^UPDATE$/x} @{$events})
     {
       push @commands,AttrVal($name,'HomeCMDfhemUPDATE','')
         if (AttrVal($name,'HomeCMDfhemUPDATE',''));
     }
-    elsif (grep /^DEFINED/,@{$events})
+    elsif (grep {/^DEFINED/x} @{$events})
     {
       for (@{$events})
       {
-        next unless ($_ =~ /^DEFINED\s(.+)$/);
+        next unless ($_ =~ /^DEFINED\s(.+)$/x);
         my $dev = $1;
         my $cmd = AttrVal($name,'HomeCMDfhemDEFINED','');
         if ($cmd)
@@ -175,14 +182,14 @@ sub HOMEMODE_Notify($$)
         last;
       }
     }
-    elsif (grep /^REREADCFG|MODIFIED\s$name$/,@{$events})
+    elsif (grep {/^REREADCFG|MODIFIED\s$name$/x} @{$events})
     {
       HOMEMODE_updateInternals($hash,1);
     }
   }
   else
   {
-    if ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST|PET)$/ && grep /^(state|wayhome|presence|location):\s/,@{$events})
+    if ($devtype =~ /^(RESIDENTS|ROOMMATE|GUEST|PET)$/ && grep {/^(state|wayhome|presence|location):\s/x} @{$events})
     {
       HOMEMODE_RESIDENTS($hash,$devname);
     }
@@ -195,10 +202,10 @@ sub HOMEMODE_Notify($$)
       HOMEMODE_Twilight($hash,$devname);
     }
     elsif ((AttrVal($name,'HomeEventsHolidayDevices',undef)
-              && grep(/^$devname$/,devspec2array(AttrVal($name,'HomeEventsHolidayDevices',''))))
+              && grep {/^$devname$/x} devspec2array(AttrVal($name,'HomeEventsHolidayDevices','')))
               ||
            (AttrVal($name,'HomeEventsCalendarDevices',undef)
-              && grep(/^$devname$/,devspec2array(AttrVal($name,'HomeEventsCalendarDevices','')))))
+              && grep {/^$devname$/x} devspec2array(AttrVal($name,'HomeEventsCalendarDevices',''))))
     {
       for my $evt (@{$events})
       {
@@ -206,7 +213,7 @@ sub HOMEMODE_Notify($$)
         HOMEMODE_EventCommands($hash,$devname,$1,$2);
       }
     }
-    elsif (AttrVal($name,'HomeUWZ',undef) && $devname eq AttrVal($name,'HomeUWZ','') && grep /^WarnCount:\s/,@{$events})
+    elsif (AttrVal($name,'HomeUWZ',undef) && $devname eq AttrVal($name,'HomeUWZ','') && grep {/^WarnCount:\s/x} @{$events})
     {
       HOMEMODE_UWZCommands($hash,$events);
     }
@@ -215,7 +222,7 @@ sub HOMEMODE_Notify($$)
       my ($d,$r,$on,$off) = split /:/,AttrVal($name,'HomeTriggerPanic','');
       if ($devname eq $d)
       {
-        if (grep /^$r:\s$on$/,@{$events})
+        if (grep {/^$r:\s$on$/x} @{$events})
         {
           if ($off)
           {
@@ -233,7 +240,7 @@ sub HOMEMODE_Notify($$)
             }
           }
         }
-        elsif ($off && grep /^$r:\s$off$/,@{$events})
+        elsif ($off && grep {/^$r:\s$off$/x} @{$events})
         {
           CommandSet(undef,"$name:FILTER=panic=on panic off");
         }
@@ -244,17 +251,17 @@ sub HOMEMODE_Notify($$)
       my ($d,$r,$on,$off) = split /:/,AttrVal($name,'HomeTriggerAnyoneElseAtHome','');
       if ($devname eq $d)
       {
-        if (grep /^$r:\s$on$/,@{$events})
+        if (grep {/^$r:\s$on$/x} @{$events})
         {
           CommandSet(undef,"$name:FILTER=anyoneElseAtHome=off anyoneElseAtHome on");
         }
-        elsif (grep /^$r:\s$off$/,@{$events})
+        elsif (grep {/^$r:\s$off$/x} @{$events})
         {
           CommandSet(undef,"$name:FILTER=anyoneElseAtHome=on anyoneElseAtHome off");
         }
       }
     }
-    elsif ($hash->{SENSORSENERGY} && grep(/^$devname$/,split /,/,$hash->{SENSORSENERGY}))
+    elsif ($hash->{SENSORSENERGY} && grep {/^$devname$/x} split /,/,$hash->{SENSORSENERGY})
     {
       my $read = AttrVal($name,'HomeSensorsPowerEnergyReadings','power energy');
       $read =~ s/ /\|/g;
@@ -265,7 +272,7 @@ sub HOMEMODE_Notify($$)
         last;
       }
     }
-    elsif ($hash->{SENSORSSMOKE} && grep(/^$devname$/,split /,/,$hash->{SENSORSSMOKE}))
+    elsif ($hash->{SENSORSSMOKE} && grep {/^$devname$/x} split /,/,$hash->{SENSORSSMOKE})
     {
       my $read = AttrVal($name,'HomeSensorsSmokeReading','state');
       for my $evt (@{$events})
@@ -277,20 +284,20 @@ sub HOMEMODE_Notify($$)
     }
     else
     {
-      if ($hash->{SENSORSCONTACT} && grep(/^$devname$/,split /,/,$hash->{SENSORSCONTACT}))
+      if ($hash->{SENSORSCONTACT} && grep {/^$devname$/x} split /,/,$hash->{SENSORSCONTACT})
       {
         my ($oread,$tread) = split ' ',AttrVal($devname,'HomeReadings',AttrVal($name,'HomeSensorsContactReadings','state sabotageError'));
-        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.+$/,@{$events});
+        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep {/^($oread|$tread):\s.+$/x} @{$events});
       }
-      if ($hash->{SENSORSMOTION} && grep(/^$devname$/,split /,/,$hash->{SENSORSMOTION}))
+      if ($hash->{SENSORSMOTION} && grep {/^$devname$/x} split /,/,$hash->{SENSORSMOTION})
       {
         my ($oread,$tread) = split ' ',AttrVal($devname,'HomeReadings',AttrVal($name,'HomeSensorsMotionReadings','state sabotageError'));
-        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep /^($oread|$tread):\s.+$/,@{$events});
+        HOMEMODE_TriggerState($hash,undef,undef,$devname) if (grep {/^($oread|$tread):\s.+$/x} @{$events});
       }
-      if ($hash->{SENSORSLUMINANCE} && grep(/^$devname$/,split /,/,$hash->{SENSORSLUMINANCE}))
+      if ($hash->{SENSORSLUMINANCE} && grep {/^$devname$/x} split /,/,$hash->{SENSORSLUMINANCE})
       {
         my $read = AttrVal($name,'HomeSensorsLuminanceReading','luminance');
-        if (grep /^$read:\s.+$/,@{$events})
+        if (grep {/^$read:\s.+$/x} @{$events})
         {
           for my $evt (@{$events})
           {
@@ -300,7 +307,7 @@ sub HOMEMODE_Notify($$)
           }
         }
       }
-      if (AttrVal($name,'HomeSensorTemperatureOutside',undef) && $devname eq AttrVal($name,'HomeSensorTemperatureOutside','') && grep /^(temperature|humidity):\s/,@{$events})
+      if (AttrVal($name,'HomeSensorTemperatureOutside',undef) && $devname eq AttrVal($name,'HomeSensorTemperatureOutside','') && grep {/^(temperature|humidity):\s/x} @{$events})
       {
         my $temp;
         my $humi;
@@ -322,7 +329,7 @@ sub HOMEMODE_Notify($$)
           HOMEMODE_ReadingTrend($hash,'humidity',$humi);
         }
       }
-      if (AttrVal($name,'HomeSensorHumidityOutside',undef) && $devname eq AttrVal($name,'HomeSensorHumidityOutside','') && grep /^humidity:\s/,@{$events})
+      if (AttrVal($name,'HomeSensorHumidityOutside',undef) && $devname eq AttrVal($name,'HomeSensorHumidityOutside','') && grep {/^humidity:\s/x} @{$events})
       {
         for my $evt (@{$events})
         {
@@ -336,7 +343,7 @@ sub HOMEMODE_Notify($$)
       if (AttrVal($name,'HomeSensorWindspeed',undef) && $devname eq (split /:/,AttrVal($name,'HomeSensorWindspeed',''))[0])
       {
         my $read = (split /:/,AttrVal($name,'HomeSensorWindspeed',''))[1];
-        if (grep /^$read:\s(.+)$/,@{$events})
+        if (grep {/^$read:\s(.+)$/x} @{$events})
         {
           for my $evt (@{$events})
           {
@@ -351,7 +358,7 @@ sub HOMEMODE_Notify($$)
       if (AttrVal($name,'HomeSensorAirpressure',undef) && $devname eq (split /:/,AttrVal($name,'HomeSensorAirpressure',''))[0])
       {
         my $read = (split /:/,AttrVal($name,'HomeSensorAirpressure',''))[1];
-        if (grep /^$read:\s(.+)$/,@{$events})
+        if (grep {/^$read:\s(.+)$/x} @{$events})
         {
           for my $evt (@{$events})
           {
@@ -363,7 +370,7 @@ sub HOMEMODE_Notify($$)
           }
         }
       }
-      if (AttrNum($name,'HomeAutoPresence',0) && $devtype =~ /^($prestype)$/ && grep(/^presence:\s(absent|present|appeared|disappeared)$/,@{$events}))
+      if (AttrNum($name,'HomeAutoPresence',0) && $devtype =~ /^($prestype)$/ && grep {/^presence:\s(absent|present|appeared|disappeared)$/x} @{$events})
       {
         my $resident;
         my $residentregex;
@@ -390,7 +397,7 @@ sub HOMEMODE_Notify($$)
           }
           my $presdevspresent = int(@presentdevicespresent);
           Log3 $name,5,"$name: var presdevspresent=$presdevspresent";
-          if (grep /^presence:\s(present|appeared)$/,@{$events})
+          if (grep {/^presence:\s(present|appeared)$/x} @{$events})
           {
             readingsBeginUpdate($hash);
             readingsBulkUpdate($hash,'lastActivityByPresenceDevice',$devname);
@@ -407,7 +414,7 @@ sub HOMEMODE_Notify($$)
               CommandSet(undef,"$resident:FILTER=state!=home state home");
             }
           }
-          elsif (grep /^presence:\s(absent|disappeared)$/,@{$events})
+          elsif (grep {/^presence:\s(absent|disappeared)$/x} @{$events})
           {
             readingsBeginUpdate($hash);
             readingsBulkUpdate($hash,'lastActivityByPresenceDevice',$devname);
@@ -432,10 +439,10 @@ sub HOMEMODE_Notify($$)
         }
       }
     }
-    if ($hash->{SENSORSBATTERY} && grep(/^$devname$/,split /,/,$hash->{SENSORSBATTERY}))
+    if ($hash->{SENSORSBATTERY} && grep {/^$devname$/x} split /,/,$hash->{SENSORSBATTERY})
     {
       my $read = AttrVal($name,'HomeSensorsBatteryReading','battery');
-      if (grep /^$read:\s(.+)$/,@{$events})
+      if (grep {/^$read:\s(.+)$/x} @{$events})
       {
         my @lowOld = split /,/,ReadingsVal($name,'batteryLow','');
         my @low;
@@ -446,9 +453,9 @@ sub HOMEMODE_Notify($$)
           my $val = $1;
           if (($val =~ /^(\d{1,3})(%|\s%)?$/ && $1 <= AttrNum($name,'HomeSensorsBatteryLowPercentage',50)) || $val =~ /^(nok|low)$/)
           {
-            push @low,$devname if (!grep /^$devname$/,@low);
+            push @low,$devname if (!grep {/^$devname$/x} @low);
           }
-          elsif (grep /^$devname$/,@low)
+          elsif (grep {/^$devname$/x} @low)
           {
             my @lown;
             for (@low)
@@ -465,7 +472,7 @@ sub HOMEMODE_Notify($$)
           readingsBulkUpdateIfChanged($hash,'batteryLow',join(',',@low));
           readingsBulkUpdateIfChanged($hash,'batteryLow_ct',int(@low));
           readingsBulkUpdateIfChanged($hash,'batteryLow_hr',HOMEMODE_makeHR($hash,1,@low));
-          readingsBulkUpdateIfChanged($hash,'lastBatteryLow',$devname) if (grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
+          readingsBulkUpdateIfChanged($hash,'lastBatteryLow',$devname) if (grep {/^$devname$/x} @low && !grep {/^$devname$/x} @lowOld);
         }
         else
         {
@@ -473,11 +480,11 @@ sub HOMEMODE_Notify($$)
           readingsBulkUpdateIfChanged($hash,'batteryLow_ct',int(@low));
           readingsBulkUpdateIfChanged($hash,'batteryLow_hr','');
         }
-        readingsBulkUpdateIfChanged($hash,'lastBatteryNormal',$devname) if (!grep(/^$devname$/,@low) && grep(/^$devname$/,@lowOld));
+        readingsBulkUpdateIfChanged($hash,'lastBatteryNormal',$devname) if (!grep {/^$devname$/x} @low && grep {/^$devname$/x} @lowOld);
         readingsEndUpdate($hash,1);
-        push @commands,AttrVal($name,'HomeCMDbattery','') if (AttrVal($name,'HomeCMDbattery',undef) && (grep(/^$devname$/,@low) || grep(/^$devname$/,@lowOld)));
-        push @commands,AttrVal($name,'HomeCMDbatteryLow','') if (AttrVal($name,'HomeCMDbatteryLow',undef) && grep(/^$devname$/,@low) && !grep(/^$devname$/,@lowOld));
-        push @commands,AttrVal($name,'HomeCMDbatteryNormal','') if (AttrVal($name,'HomeCMDbatteryNormal',undef) && !grep(/^$devname$/,@low) && grep(/^$devname$/,@lowOld));
+        push @commands,AttrVal($name,'HomeCMDbattery','') if (AttrVal($name,'HomeCMDbattery',undef) && (grep {/^$devname$/x} @low || grep {/^$devname$/x} @lowOld));
+        push @commands,AttrVal($name,'HomeCMDbatteryLow','') if (AttrVal($name,'HomeCMDbatteryLow',undef) && grep {/^$devname$/x} @low && !grep {/^$devname$/x} @lowOld);
+        push @commands,AttrVal($name,'HomeCMDbatteryNormal','') if (AttrVal($name,'HomeCMDbatteryNormal',undef) && !grep {/^$devname$/x} @low && grep {/^$devname$/x} @lowOld);
       }
     }
   }
@@ -557,7 +564,7 @@ sub HOMEMODE_updateInternals($;$$)
         {
           next unless (lc($p) =~ /$short/);
           push @residentspresdevs,$p;
-          push @allMonitoredDevices,$p if (!grep /^$p$/,@allMonitoredDevices);
+          push @allMonitoredDevices,$p if (!grep {/^$p$/x} @allMonitoredDevices);
         }
         if (@residentspresdevs)
         {
@@ -567,7 +574,7 @@ sub HOMEMODE_updateInternals($;$$)
             "Gefunden wurden $c übereinstimmende(s) Anwesenheits Gerät(e) vom Devspec \"TYPE=$presencetype\" für Bewohner \"$resident\"! Übereinstimmende Geräte: \"$devlist\"":
             "Found $c matching presence devices of devspec \"TYPE=$presencetype\" for resident \"$resident\"! Matching devices: \"$devlist\"";
           push @logtexte,$trans;
-          CommandAttr(undef,"$name HomePresenceDeviceAbsentCount-$resident $c") if ($init_done && ((!defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1) || (defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c < AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1))));
+          CommandAttr(undef,"$name HomePresenceDeviceAbsentCount-$resident $c") if ($hash->{'.AttrList'} && ((!defined AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c > 1) || (AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",undef) && $c < AttrNum($name,"HomePresenceDeviceAbsentCount-$resident",1))));
         }
         else
         {
@@ -597,7 +604,7 @@ sub HOMEMODE_updateInternals($;$$)
       for my $s (devspec2array($contacts))
       {
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
       }
       my $list = join(',',sort @sensors);
       $hash->{SENSORSCONTACT} = $list;
@@ -614,7 +621,7 @@ sub HOMEMODE_updateInternals($;$$)
       for my $s (devspec2array($motion))
       {
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
       }
       my $list = join(',',sort @sensors);
       $hash->{SENSORSMOTION} = $list;
@@ -633,7 +640,7 @@ sub HOMEMODE_updateInternals($;$$)
       {
         next unless (HOMEMODE_ID($s,undef,$p) && HOMEMODE_ID($s,undef,$e));
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
       }
       $hash->{SENSORSENERGY} = join(',',sort @sensors) if (@sensors);
     }
@@ -646,7 +653,7 @@ sub HOMEMODE_updateInternals($;$$)
       {
         next unless (HOMEMODE_ID($s,undef,$r));
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
       }
       $hash->{SENSORSSMOKE} = join(',',sort @sensors) if (@sensors);
     }
@@ -660,9 +667,9 @@ sub HOMEMODE_updateInternals($;$$)
         my $val = ReadingsVal($s,$read,undef);
         next unless (defined $val && $val =~ /^(ok|low|nok|\d{1,3})(%|\s%)?$/);
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
         $hash->{SENSORSBATTERY} = join(',',sort @sensors) if (@sensors);
-        if (!grep(/^$s$/,split(/,/,ReadingsVal($name,'batteryLow',''))))
+        if (!grep {/^$s$/x} split /,/,ReadingsVal($name,'batteryLow',''))
         {
           CommandTrigger(undef,"$s $read: ok") if ($val =~ /^(low|nok)$/);
           CommandTrigger(undef,"$s $read: 100") if ($val =~ /^\d{1,3}$/);
@@ -673,15 +680,15 @@ sub HOMEMODE_updateInternals($;$$)
       }
     }
     my $weather = HOMEMODE_AttrCheck($hash,'HomeWeatherDevice');
-    push @allMonitoredDevices,$weather if ($weather && !grep /^$weather$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$weather if ($weather && !grep {/^$weather$/x} @allMonitoredDevices);
     my $twilight = HOMEMODE_AttrCheck($hash,'HomeTwilightDevice');
-    push @allMonitoredDevices,$twilight if ($twilight && !grep /^$twilight$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$twilight if ($twilight && !grep {/^$twilight$/x} @allMonitoredDevices);
     my $temperature = HOMEMODE_AttrCheck($hash,'HomeSensorTemperatureOutside');
-    push @allMonitoredDevices,$temperature if ($temperature && !grep /^$temperature$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$temperature if ($temperature && !grep {/^$temperature$/x} @allMonitoredDevices);
     my $humidity = HOMEMODE_AttrCheck($hash,'HomeSensorHumidityOutside');
     if ($humidity)
     {
-      push @allMonitoredDevices,$humidity if (!grep /^$humidity$/,@allMonitoredDevices);
+      push @allMonitoredDevices,$humidity if (!grep {/^$humidity$/x} @allMonitoredDevices);
     }
     my @cals;
     CommandDeleteReading(undef,"$name event-.+");
@@ -689,19 +696,19 @@ sub HOMEMODE_updateInternals($;$$)
     {
       for my $c (devspec2array(HOMEMODE_AttrCheck($hash,'HomeEventsHolidayDevices')))
       {
-        push @cals,$c if (!grep /^$c$/,@cals);
+        push @cals,$c if (!grep {/^$c$/x} @cals);
       }
     }
     if (HOMEMODE_AttrCheck($hash,'HomeEventsCalendarDevices'))
     {
       for my $c (devspec2array(HOMEMODE_AttrCheck($hash,'HomeEventsCalendarDevices')))
       {
-        push @cals,$c if (!grep /^$c$/,@cals);
+        push @cals,$c if (!grep {/^$c$/x} @cals);
       }
     }
     for my $c (@cals)
     {
-      push @allMonitoredDevices,$c if (!grep /^$c$/,@allMonitoredDevices);
+      push @allMonitoredDevices,$c if (!grep {/^$c$/x} @allMonitoredDevices);
       if (HOMEMODE_ID($c,'Calendar'))
       {
         HOMEMODE_EventCommands($hash,$c,'modeStarted',ReadingsVal($c,'modeStarted','none'));
@@ -712,7 +719,7 @@ sub HOMEMODE_updateInternals($;$$)
       }
     }
     my $uwz = HOMEMODE_AttrCheck($hash,'HomeUWZ','');
-    push @allMonitoredDevices,$uwz if ($uwz && !grep /^$uwz$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$uwz if ($uwz && !grep {/^$uwz$/x} @allMonitoredDevices);
     my $luminance = HOMEMODE_AttrCheck($hash,'HomeSensorsLuminance');
     if ($luminance)
     {
@@ -722,18 +729,18 @@ sub HOMEMODE_updateInternals($;$$)
       {
         next unless (HOMEMODE_ID($s,undef,AttrVal($name,'HomeSensorsLuminanceReading','luminance')));
         push @sensors,$s;
-        push @allMonitoredDevices,$s if (!grep /^$s$/,@allMonitoredDevices);
+        push @allMonitoredDevices,$s if (!grep {/^$s$/x} @allMonitoredDevices);
       }
       $hash->{SENSORSLUMINANCE} = join(',',sort @sensors) if (@sensors);
     }
     my $pressure = (split /:/,HOMEMODE_AttrCheck($hash,'HomeSensorAirpressure'))[0];
-    push @allMonitoredDevices,$pressure if ($pressure && !grep /^$pressure$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$pressure if ($pressure && !grep {/^$pressure$/x} @allMonitoredDevices);
     my $wind = (split /:/,HOMEMODE_AttrCheck($hash,'HomeSensorWindspeed'))[0];
-    push @allMonitoredDevices,$wind if ($wind && !grep /^$wind$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$wind if ($wind && !grep {/^$wind$/x} @allMonitoredDevices);
     my $panic = (split /:/,HOMEMODE_AttrCheck($hash,'HomeTriggerPanic'))[0];
-    push @allMonitoredDevices,$panic if ($panic && !grep /^$panic$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$panic if ($panic && !grep {/^$panic$/x} @allMonitoredDevices);
     my $aeah = (split /:/,HOMEMODE_AttrCheck($hash,'HomeTriggerAnyoneElseAtHome'))[0];
-    push @allMonitoredDevices,$aeah if ($aeah && !grep /^$aeah$/,@allMonitoredDevices);
+    push @allMonitoredDevices,$aeah if ($aeah && !grep {/^$aeah$/x} @allMonitoredDevices);
     Log3 $name,5,"$name: new monitored device count: ".@allMonitoredDevices;
     @allMonitoredDevices = sort @allMonitoredDevices;
     $hash->{NOTIFYDEV} = join(',',@allMonitoredDevices);
@@ -906,7 +913,7 @@ sub HOMEMODE_Set($@)
     {
       push @commands,AttrVal($name,'HomeCMDpresence-present','') if (AttrVal($name,'HomeCMDpresence-present',undef) && $mode =~ /^(absent|gone)$/);
       $present = 'present';
-      $location = grep(/^$plocation$/,split /,/,$slocations) ? $plocation : 'home';
+      $location = grep {/^$plocation$/x} split /,/,$slocations ? $plocation : 'home';
       if ($presence eq 'absent')
       {
         if (AttrNum($name,'HomeAutoArrival',0))
@@ -1064,7 +1071,7 @@ sub HOMEMODE_Set($@)
       else
       {
         return if ($aeh eq 'none' || $value eq 'none');
-        for my $item (split(/,/,$aeh))
+        for my $item (split /,/,$aeh)
         {
           next unless $item ne $value;
           push @arr,$item if (!grep {/^$item$/x} @arr);
@@ -1089,8 +1096,8 @@ sub HOMEMODE_Set($@)
   elsif ($cmd =~ /^device(Dis|En)able$/)
   {
     HOMEMODE_ToggleDevice($hash,$option)
-      if (($1 eq 'En' && grep /^$option$/,split /,/,ReadingsVal($name,'devicesDisabled',''))
-          || ($1 eq 'Dis' && grep /^$option$/,split /,/,$hash->{helper}{enabledDevices}));
+      if (($1 eq 'En' && grep {/^$option$/x} split /,/,ReadingsVal($name,'devicesDisabled',''))
+          || ($1 eq 'Dis' && grep {/^$option$/x} split /,/,$hash->{helper}{enabledDevices}));
   }
   elsif ($cmd eq 'updateInternalsForce')
   {
@@ -1229,11 +1236,11 @@ sub HOMEMODE_RESIDENTS($;$)
   my $mode;
   my $ema = ReplaceEventMap($dev,'absent',1);
   my $emp = ReplaceEventMap($dev,'present',1);
-  if (grep /^state:\s/,@{$events})
+  if (grep {/^state:\s/x} @{$events})
   {
     for (@{$events})
     {
-      next unless ($_ =~ /^state:\s(.+)$/ && grep /^$1$/,split /,/,$HOMEMODE_UserModesAll);
+      next unless ($_ =~ /^state:\s(.+)$/ && grep {/^$1$/x} split /,/,$HOMEMODE_UserModesAll);
       $mode = $1;
       Log3 $name,5,"$name: HOMEMODE_RESIDENTS mode: $mode";
       last;
@@ -1252,31 +1259,31 @@ sub HOMEMODE_RESIDENTS($;$)
     readingsBulkUpdate($hash,'prevActivityByResident',$lad);
     readingsEndUpdate($hash,1);
     my @commands;
-    if (grep /^wayhome:\s1$/,@{$events})
+    if (grep {/^wayhome:\s1$/x} @{$events})
     {
       CommandSet(undef,"$name:FILTER=location!=wayhome location wayhome") if (ReadingsVal($name,'state','') =~ /^absent|gone$/);
     }
-    elsif (grep /^wayhome:\s0$/,@{$events})
+    elsif (grep {/^wayhome:\s0$/x} @{$events})
     {
       my $rx = $hash->{RESIDENTS};
       $rx =~ s/,/|/g;
       CommandSet(undef,"$name:FILTER=location!=underway location underway") if (ReadingsVal($name,'state','') =~ /^absent|gone$/ && !devspec2array("$rx:FILTER=wayhome=1"));
     }
-    if (grep /^presence:\s$ema$/,@{$events})
+    if (grep {/^presence:\s$ema$/x} @{$events})
     {
       Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - presence: $ema";
       readingsSingleUpdate($hash,'lastAbsentByResident',$dev,1);
       push @commands,AttrVal($name,'HomeCMDpresence-absent-resident','') if (AttrVal($name,'HomeCMDpresence-absent-resident',undef));
       push @commands,AttrVal($name,"HomeCMDpresence-absent-$dev",'') if (AttrVal($name,"HomeCMDpresence-absent-$dev",undef));
     }
-    elsif (grep /^presence:\s$emp$/,@{$events})
+    elsif (grep {/^presence:\s$emp$/x} @{$events})
     {
       Log3 $name,5,"$name: HOMEMODE_RESIDENTS dev: $dev - presence: $emp";
       readingsSingleUpdate($hash,'lastPresentByResident',$dev,1);
       push @commands,AttrVal($name,'HomeCMDpresence-present-resident','') if (AttrVal($name,'HomeCMDpresence-present-resident',undef));
       push @commands,AttrVal($name,"HomeCMDpresence-present-$dev",'') if (AttrVal($name,"HomeCMDpresence-present-$dev",undef));
     }
-    if (grep /^location:\s/,@{$events})
+    if (grep {/^location:\s/x} @{$events})
     {
       my $loc;
       for (@{$events})
@@ -1352,7 +1359,7 @@ sub HOMEMODE_AttrList($)
     'disable:1,0',
     'disabledForIntervals',
     'HomeAdvancedDetails:none,detail,both,room',
-    'HomeAdvancedUserAttr:1,0',
+    'HomeAdvancedAttributes:1,0',
     'HomeAutoAlarmModes:0,1',
     'HomeAutoArrival',
     'HomeAutoAsleep',
@@ -1508,9 +1515,9 @@ sub HOMEMODE_dynAttrList($)
 {
   my ($hash) = @_;
   my $name = $hash->{NAME};
-  my $adv = HOMEMODE_AttrCheck($hash,'HomeAdvancedUserAttr',0);
+  my $adv = HOMEMODE_AttrCheck($hash,'HomeAdvancedAttributes',0);
   my $attrList = HOMEMODE_AttrList($hash).' '.$readingFnAttributes;
-  my @dynAttrList = split(' ',$attrList);
+  my @dynAttrList = split ' ',$attrList;
   for (split /,/,HOMEMODE_AttrCheck($hash,'HomeSpecialModes'))
   {
     push @dynAttrList,'HomeCMDmode-'.makeReadingName($_);
@@ -1523,11 +1530,11 @@ sub HOMEMODE_dynAttrList($)
   {
     for my $cal (devspec2array(HOMEMODE_AttrCheck($hash,'HomeEventsHolidayDevices')))
     {
-      my $events = HOMEMODE_CalendarEvents($name,$cal);
+      my $evts = HOMEMODE_CalendarEvents($name,$cal);
       push @dynAttrList,"HomeCMDevent-$cal-each";
       if ($adv)
       {
-        for my $evt (@{$events})
+        for my $evt (@{$evts})
         {
           push @dynAttrList,"HomeCMDevent-$cal-".makeReadingName($evt).'-begin';
           push @dynAttrList,"HomeCMDevent-$cal-".makeReadingName($evt).'-end';
@@ -1539,11 +1546,11 @@ sub HOMEMODE_dynAttrList($)
   {
     for my $cal (devspec2array(HOMEMODE_AttrCheck($hash,'HomeEventsCalendarDevices')))
     {
-      my $events = HOMEMODE_CalendarEvents($name,$cal);
+      my $evts = HOMEMODE_CalendarEvents($name,$cal);
       push @dynAttrList,"HomeCMDevent-$cal-each";
       if ($adv)
       {
-        for my $evt (@{$events})
+        for my $evt (@{$evts})
         {
           push @dynAttrList,"HomeCMDevent-$cal-".makeReadingName($evt).'-begin';
           push @dynAttrList,"HomeCMDevent-$cal-".makeReadingName($evt).'-end';
@@ -1571,14 +1578,14 @@ sub HOMEMODE_dynAttrList($)
       {
         my $loc = makeReadingName($_);
         push @dynAttrList,'HomeCMDlocation-'.$loc.'-'.$resident;
-        push @dynAttrList,'HomeCMDlocation-'.$loc.'-resident' if (!grep(/^HomeCMDlocation-$loc-resident$/,@dynAttrList));
+        push @dynAttrList,'HomeCMDlocation-'.$loc.'-resident' if (!grep {/^HomeCMDlocation-$loc-resident$/x} @dynAttrList);
       }
     }
     my @presdevs = @{$hash->{helper}{presdevs}{$resident}} if ($hash->{helper}{presdevs}{$resident});
     if (@presdevs)
     {
-      my $count;
-      my $numbers;
+      my $count = 0;
+      my $numbers = '';
       for (@presdevs)
       {
         $count++;
@@ -1604,20 +1611,20 @@ sub HOMEMODE_dynAttrList($)
     my $text = makeReadingName((split /\|/)[1]);
     my $d = "HomeCMDdaytime-$text";
     my $m = "HomeCMDmode-$text";
-    push @dynAttrList,$d if (!grep /^$d$/,@dynAttrList);
-    push @dynAttrList,$m if (!grep /^$m$/,@dynAttrList);
+    push @dynAttrList,$d if (!grep {/^$d$/x} @dynAttrList);
+    push @dynAttrList,$m if (!grep {/^$m$/x} @dynAttrList);
   }
   for (split ' ',HOMEMODE_AttrCheck($hash,'HomeSeasons',$HOMEMODE_Seasons))
   {
     my $text = (split /\|/)[1];
     my $s = 'HomeCMDseason-'.makeReadingName($text);
-    push @dynAttrList,$s if (!grep /^$s$/,@dynAttrList);
+    push @dynAttrList,$s if (!grep {/^$s$/x} @dynAttrList);
   }
   my @list;
   for my $attrib (@dynAttrList)
   {
     $attrib = $attrib =~ /^.+:.+$/ ? $attrib : "$attrib:textField-long";
-    push @list,$attrib if (!grep /^$attrib$/,@list);
+    push @list,$attrib if (!grep {/^$attrib$/x} @list);
   }
   $hash->{'.AttrList'} = join ' ',sort @list;
   #######################
@@ -1664,10 +1671,10 @@ sub HOMEMODE_cleanUserattr($$;$)
         if ($_ =~ /^Home/)
         {
           $_ =~ s/:.*//;
-          CommandDeleteAttr(undef,"$dev $_") if ((AttrVal($dev,$_,'') && !@newdevspec) || (AttrVal($dev,$_,'') && @newdevspec && !grep /^$dev$/,@newdevspec));
+          CommandDeleteAttr(undef,"$dev $_") if ((AttrVal($dev,$_,'') && !@newdevspec) || (AttrVal($dev,$_,'') && @newdevspec && !grep {/^$dev$/x} @newdevspec));
           next;
         }
-        push @stayattr,$_ if (!grep /^$_$/,@stayattr);
+        push @stayattr,$_ if (!grep {/^$_$/x} @stayattr);
       }
       if (@stayattr)
       {
@@ -1686,14 +1693,15 @@ sub HOMEMODE_Attr(@)
 {
   my ($cmd,$name,$attr_name,$attr_value) = @_;
   my $hash = $defs{$name};
+  return undef if (!$hash->{'.AttrList'});
   delete $hash->{helper}{lastChangedAttr};
   delete $hash->{helper}{lastChangedAttrValue};
   my $attr_value_old = AttrVal($name,$attr_name,'');
   $hash->{helper}{lastChangedAttr} = $attr_name;
+  $hash->{helper}{lastChangedAttrValue} = $attr_value?$attr_value:'';
   my $trans;
   if ($cmd eq 'set')
   {
-    $hash->{helper}{lastChangedAttrValue} = $attr_value;
     if ($attr_name =~ /^(HomeAutoAwoken|HomeAutoAsleep|HomeAutoArrival|HomeModeAbsentBelatedTime)$/)
     {
       $trans = $HOMEMODE_de?
@@ -1727,7 +1735,7 @@ sub HOMEMODE_Attr(@)
         $modules{HOMEMODE}->{FW_addDetailToSummary} = 1;
       }
     }
-    elsif ($attr_name =~ /^(disable|HomeAdvancedUserAttr|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
+    elsif ($attr_name =~ /^(disable|HomeAdvancedAttributes|HomeAutoDaytime|HomeAutoAlarmModes|HomeAutoPresence)$/)
     {
       $trans = $HOMEMODE_de?
         "Ungültiger Wert $attr_value für Attribut $attr_name. Kann nur 1 oder 0 sein, Vorgabewert ist 0.":
@@ -1735,7 +1743,7 @@ sub HOMEMODE_Attr(@)
       return $trans if ($attr_value !~ /^[01]$/);
       RemoveInternalTimer($hash) if ($attr_name eq 'disable' && $attr_value == 1);
       HOMEMODE_GetUpdate($hash) if ($attr_name eq 'disable' && !$attr_value);
-      HOMEMODE_updateInternals($hash,1) if ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence)$/ && $init_done);
+      HOMEMODE_updateInternals($hash,1) if ($attr_name =~ /^(HomeAdvancedAttributes|HomeAutoPresence)$/ && $init_done);
     }
     elsif ($attr_name =~ /^HomeCMD/ && $init_done)
     {
@@ -1980,7 +1988,7 @@ sub HOMEMODE_Attr(@)
       $trans = $HOMEMODE_de?
         "$attr_value für $attr_name muss eine Leerzeichen separierte Liste aus Datum|Text Paaren mit mindestens 4 Werten sein! z.B. $HOMEMODE_Seasons":
         "$attr_value for $attr_name must be a space separated list of date|text pairs with at least 4 values! e.g. $HOMEMODE_Seasons";
-      return $trans if (int(split ' ',$attr_value) < 4 || int(split '|',$attr_value) < 5);
+      return $trans if (int(split ' ',$attr_value) < 4 || int(split /\|/,$attr_value) < 5);
       if ($attr_value_old ne $attr_value)
       {
         my @ds;
@@ -2017,14 +2025,14 @@ sub HOMEMODE_Attr(@)
       $trans = $HOMEMODE_de?
         "$attr_value für $attr_name muss eine Pipe separierte Liste mit 3 Werten sein!":
         "$attr_value for $attr_name must be a pipe separated list with 3 values!";
-      return $trans if (int(split '|',$attr_value) != 3);
+      return $trans if (int(split /\|/,$attr_value) != 3);
     }
     elsif ($attr_name eq 'HomeTextClosedOpen')
     {
       $trans = $HOMEMODE_de?
         "$attr_value für $attr_name muss eine Pipe separierte Liste mit 2 Werten sein!":
         "$attr_value for $attr_name must be a pipe separated list with 2 values!";
-      return $trans if (int(split '|',$attr_value) != 2);
+      return $trans if (int(split /\|/,$attr_value) != 2);
     }
     elsif ($attr_name eq 'HomeUWZ' && $init_done)
     {
@@ -2111,7 +2119,7 @@ sub HOMEMODE_Attr(@)
     {
       $HOMEMODE_de = AttrVal('global','language','DE') ? 1 : undef;
     }
-    elsif ($attr_name =~ /^(HomeAdvancedUserAttr|HomeAutoPresence|HomePresenceDeviceType|HomeEvents(Holiday|Calendar)Devices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
+    elsif ($attr_name =~ /^(HomeAdvancedAttributes|HomeAutoPresence|HomePresenceDeviceType|HomeEvents(Holiday|Calendar)Devices|HomeSensorAirpressure|HomeSensorWindspeed|HomeSensorsBattery|HomeSensorsBatteryReading)$/)
     {
       CommandDeleteReading(undef,"$name event-.+") if ($attr_name =~ /^HomeEvents(Holiday|Calendar)Devices$/);
       CommandDeleteReading(undef,"$name battery.*|lastBatteryLow") if ($attr_name eq 'HomeSensorsBattery');
@@ -2288,14 +2296,14 @@ sub HOMEMODE_replacePlaceholders($$;$)
     {
       for my $c (devspec2array(AttrVal($name,'HomeEventsHolidayDevices','')))
       {
-        push @cals,$c if (!grep /^$c$/,@cals);
+        push @cals,$c if (!grep {/^$c$/x} @cals);
       }
     }
     else
     {
       for my $c (devspec2array(AttrVal($name,'HomeEventsCalendarDevices','')))
       {
-        push @cals,$c if (!grep /^$c$/,@cals);
+        push @cals,$c if (!grep {/^$c$/x} @cals);
       }
     }
     for my $cal (@cals)
@@ -2680,13 +2688,13 @@ sub HOMEMODE_addSensorsuserattr($$;$)
   HOMEMODE_cleanUserattr($hash,$olddevs,$devs) if (@olddevspec);
   for my $sensor (@devspec)
   {
-    my $inolddevspec = @olddevspec && grep /^$sensor$/,@olddevspec ? 1 : 0;
+    my $inolddevspec = @olddevspec && grep {/^$sensor$/x} @olddevspec ? 1 : 0;
     my $alias = AttrVal($sensor,'alias','');
     my @list;
     push @list,'HomeModeAlarmActive';
     push @list,'HomeReadings';
     push @list,'HomeValues';
-    if ($hash->{SENSORSCONTACT} && grep(/^$sensor$/,split /,/,$hash->{SENSORSCONTACT}))
+    if ($hash->{SENSORSCONTACT} && grep {/^$sensor$/x} split /,/,$hash->{SENSORSCONTACT})
     {
       push @list,'HomeContactType:doorinside,dooroutside,doormain,window';
       push @list,'HomeOpenMaxTrigger';
@@ -2704,7 +2712,7 @@ sub HOMEMODE_addSensorsuserattr($$;$)
         CommandAttr(undef,"$sensor HomeModeAlarmActive armaway") if (!AttrVal($sensor,'HomeModeAlarmActive',''));
       }
     }
-    if ($hash->{SENSORSMOTION} && grep(/^$sensor$/,split /,/,$hash->{SENSORSMOTION}))
+    if ($hash->{SENSORSMOTION} && grep {/^$sensor$/x} split /,/,$hash->{SENSORSMOTION})
     {
       push @list,'HomeSensorLocation:inside,outside';
       HOMEMODE_set_userattr($sensor,\@list);
@@ -2800,11 +2808,11 @@ sub HOMEMODE_TriggerState($;$$$)
         push @doorsMOpen,$sensor if ($kind && $kind eq 'doormain');
         push @outsideOpen,$sensor if ($kind =~ /^(dooroutside|doormain|window)$/);
         push @windowsOpen,$sensor if ($kind eq 'window');
-        if (grep /^($amodea)$/,$amode)
+        if (grep {/^($amodea)$/x} $amode)
         {
           push @alarmSensors,$sensor;
         }
-        if (defined $exit && $trigger eq $sensor && grep /^$oread:/,@{$events})
+        if (defined $exit && $trigger eq $sensor && grep {/^$oread:/x} @{$events})
         {
           readingsBeginUpdate($hash);
           readingsBulkUpdate($hash,'prevContact',ReadingsVal($name,'lastContact',''));
@@ -2816,7 +2824,7 @@ sub HOMEMODE_TriggerState($;$$$)
       }
       else
       {
-        if (defined $exit && $trigger eq $sensor && grep /^$oread:/,@{$events})
+        if (defined $exit && $trigger eq $sensor && grep {/^$oread:/x} @{$events})
         {
           readingsBeginUpdate($hash);
           readingsBulkUpdate($hash,'prevContactClosed',ReadingsVal($name,'lastContactClosed',''));
@@ -2850,11 +2858,11 @@ sub HOMEMODE_TriggerState($;$$$)
         push @motionsOpen,$sensor;
         push @motionsInsideOpen,$sensor if ($kind eq 'inside');
         push @motionsOutsideOpen,$sensor if ($kind eq 'outside');
-        if (grep /^($amodea)$/,$amode)
+        if (grep {/^($amodea)$/x} $amode)
         {
           push @alarmSensors,$sensor;
         }
-        if (defined $exit && $trigger eq $sensor && grep /^$oread:/,@{$events})
+        if (defined $exit && $trigger eq $sensor && grep {/^$oread:/x} @{$events})
         {
           readingsBeginUpdate($hash);
           readingsBulkUpdate($hash,'prevMotion',ReadingsVal($name,'lastMotion',''));
@@ -2865,7 +2873,7 @@ sub HOMEMODE_TriggerState($;$$$)
       }
       else
       {
-        if (defined $exit && $trigger eq $sensor && grep /^$oread:/,@{$events})
+        if (defined $exit && $trigger eq $sensor && grep {/^$oread:/x} @{$events})
         {
           readingsBeginUpdate($hash);
           readingsBulkUpdate($hash,'prevMotionClosed',ReadingsVal($name,'lastMotionClosed',''));
@@ -3186,13 +3194,13 @@ sub HOMEMODE_EventCommands($$$$)
       $sum =~ s/[\s ]+/-/g;
       if ($read eq 'start')
       {
-        push @prevevents,$summary if (!grep /^$summary$/,@prevevents);
+        push @prevevents,$summary if (!grep {/^$summary$/x} @prevevents);
         push @cmds,AttrVal($name,"HomeCMDevent-$cal-".makeReadingName($sum).'-begin','') if (AttrVal($name,"HomeCMDevent-$cal-".makeReadingName($sum).'-begin',undef));
       }
       elsif ($read eq 'end')
       {
         push @cmds,AttrVal($name,"HomeCMDevent-$cal-".makeReadingName($sum).'-end','') if (AttrVal($name,"HomeCMDevent-$cal-".makeReadingName($sum).'-end',undef));
-        if (grep /^$summary$/,@prevevents)
+        if (grep {/^$summary$/x} @prevevents)
         {
           my @sevents;
           for (@prevevents)
@@ -3204,7 +3212,7 @@ sub HOMEMODE_EventCommands($$$$)
       }
       elsif ($read eq 'modeStarted')
       {
-        push @prevevents,$summary if (!grep /^$summary$/,@prevevents);
+        push @prevevents,$summary if (!grep {/^$summary$/x} @prevevents);
       }
       for (@cmds)
       {
@@ -3243,7 +3251,7 @@ sub HOMEMODE_UWZCommands($$)
   my $warning;
   for my $evt (@{$events})
   {
-    next unless (grep /^WarnCount:\s[0-9]$/,$evt);
+    next unless (grep {/^WarnCount:\s[0-9]$/x} $evt);
     $count = $evt;
     $count =~ s/^WarnCount:\s//;
     last;
@@ -3278,8 +3286,8 @@ sub HOMEMODE_HomebridgeMapping($)
   $mapping .= '\nStatusLowBattery=batteryLow_ct,values=0:0;/.*/:1' if (HOMEMODE_ID($name,undef,'batteryLow_ct'));
   $mapping .= '\nSmokeDetected=alarmSmoke_ct,values=0:0;/.*/:1' if (HOMEMODE_ID($name,undef,'alarmSmoke_ct'));
   $mapping .= '\nAirPressure=pressure' if (HOMEMODE_ID($name,undef,'pressure'));
-  addToDevAttrList($name,'genericDeviceType') if (!grep /^genericDeviceType/,split(' ',AttrVal('global','userattr','')));
-  addToDevAttrList($name,'homebridgeMapping:textField-long') if (!grep /^homebridgeMapping/,split(' ',AttrVal('global','userattr','')));
+  addToDevAttrList($name,'genericDeviceType') if (!grep {/^genericDeviceType/x} split ' ',AttrVal('global','userattr',''));
+  addToDevAttrList($name,'homebridgeMapping:textField-long') if (!grep {/^homebridgeMapping/x} split ' ',AttrVal('global','userattr',''));
   CommandAttr(undef,"$name genericDeviceType security");
   CommandAttr(undef,"$name homebridgeMapping $mapping");
   return;
@@ -3470,7 +3478,7 @@ sub HOMEMODE_CalendarEvents($$)
         shift @parts;
       }
       my $evt = join('-',@parts);
-      push @events,$evt if (!grep /^$evt$/,@events);
+      push @events,$evt if (!grep {/^$evt$/x} @events);
     }
   }
   else
@@ -3483,7 +3491,7 @@ sub HOMEMODE_CalendarEvents($$)
       Log3 $name,5,"Calendar_GetEvents event: $evt";
       $evt =~ s/[,;\?\!\|\\\/\^\$]/-/g;
       $evt =~ s/[\s ]+/-/g;
-      push @events,$evt if (!grep /^$evt$/,@events);
+      push @events,$evt if (!grep {/^$evt$/x} @events);
     }
   }
   return \@events;
@@ -3548,7 +3556,7 @@ sub HOMEMODE_ToggleDevice($$)
   if ($devname)
   {
     my @cmds;
-    if (grep /^$devname$/,@disabled)
+    if (grep {/^$devname$/x} @disabled)
     {
       push @cmds,AttrVal($name,'HomeCMDdeviceEnable','') if (AttrVal($name,'HomeCMDdeviceEnable',''));
       my @new;
@@ -3579,7 +3587,7 @@ sub HOMEMODE_ToggleDevice($$)
   my @list;
   for my $d (split /,/,$hash->{NOTIFYDEV})
   {
-    push @list,$d if (!grep /^$d$/,@disabled);
+    push @list,$d if (!grep {/^$d$/x} @disabled);
   }
   $hash->{helper}{enabledDevices} = join ',',@list;
   return;
@@ -3589,7 +3597,7 @@ sub HOMEMODE_IsDisabled($$)
 {
   my ($hash,$devname) = @_;
   return 1 if (IsDisabled($devname));
-  return 1 if ($hash && grep /^$devname$/,split /,/,ReadingsVal($hash->{NAME},'devicesDisabled',''));
+  return 1 if ($hash && grep {/^$devname$/x} split /,/,ReadingsVal($hash->{NAME},'devicesDisabled',''));
   return 0;
 }
 
@@ -3863,7 +3871,7 @@ sub HOMEMODE_Details($$$)
       default: none
     </li>
     <li>
-      <a id='HOMEMODE-attr-HomeAdvancedUserAttr'>HomeAdvancedUserAttr</a><br>
+      <a id='HOMEMODE-attr-HomeAdvancedAttributes'>HomeAdvancedAttributes</a><br>
       more HomeCMD userattr will be provided<br>
       additional attributes for each resident and each calendar event<br>
       values: 0 or 1<br>
