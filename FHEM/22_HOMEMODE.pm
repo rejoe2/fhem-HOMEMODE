@@ -11,7 +11,7 @@ package main;
 
 use strict;
 use warnings;
-use POSIX;
+#use POSIX;
 use Time::HiRes qw(gettimeofday);
 use HttpUtils;
 use vars qw{%attr %defs %modules $FW_CSRF};
@@ -61,6 +61,10 @@ sub HOMEMODE_Define($$)
     return $trans;
   }
   RemoveInternalTimer($hash);
+
+# Ab hier muss wohl ein InternalTimer rein, um die erstinitialisierung zu machen?
+# Heißt bei mir immer "FirstInit". Sonst ist auch das mit den Residents noch nicht klar (cfg-Reihenfolgeproblem!)
+
   if (!$resdev)
   {
     my @resdevs;
@@ -1692,6 +1696,7 @@ sub HOMEMODE_cleanUserattr($$;$)
 sub HOMEMODE_Attr(@)
 {
   my ($cmd,$name,$attr_name,$attr_value) = @_;
+  return if !$init_done;
   my $hash = $defs{$name};
   return undef if (!$hash->{'.AttrList'});
   delete $hash->{helper}{lastChangedAttr};
